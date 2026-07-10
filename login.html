@@ -1,10 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login | FIFABOY</title>
+    <link rel="stylesheet" href="css/style.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="js/supabase.js"></script>
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 100%; max-width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; }
+        .auth-container h2 { margin-bottom: 20px; color: #3ecf8e; }
+        .auth-container input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #333; border: 1px solid #444; border-radius: 4px; color: white; }
+        .auth-container button { width: 100%; background: #3ecf8e; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+        .auth-container button:disabled { background: #555; cursor: not-allowed; }
+        .auth-container p { margin-top: 15px; font-size: 14px; }
+        .auth-container a { color: #3ecf8e; text-decoration: none; }
+    </style>
+</head>
+<body>
+
+<div class="auth-container">
+    <h2>⚽ Login to FIFABOY</h2>
+    <input type="email" id="email" placeholder="Enter Email">
+    <input type="password" id="password" placeholder="Enter Password">
+    <button id="loginBtn" onclick="loginUser()">Login</button>
+    <p>Don't have an account? <a href="register.html">Register here</a></p>
+</div>
+
 <script>
 async function loginUser() {
-    const email = document.getElementById("email").value;
-    const password = document.getElementById("password").value;
-    
-    const loginBtn = document.getElementById("loginLink") || document.querySelector("button");
-    const originalText = loginBtn.innerText;
+    const email = document.getElementById("email").value.trim();
+    const password = document.getElementById("password").value.trim();
+    const logBtn = document.getElementById("loginBtn");
 
     if(!email || !password) {
         alert("ইমেইল এবং পাসওয়ার্ড দিন!");
@@ -12,10 +42,9 @@ async function loginUser() {
     }
 
     try {
-        loginBtn.innerText = "Logging in...";
-        loginBtn.disabled = true;
+        logBtn.innerText = "Logging in...";
+        logBtn.disabled = true;
 
-        // Supabase-এ লগইন রিকোয়েস্ট
         const { data, error } = await supabase.auth.signInWithPassword({
             email: email,
             password: password,
@@ -25,16 +54,17 @@ async function loginUser() {
 
         if (data.user) {
             alert("লগইন সফল হয়েছে!");
-            window.location.href = "index.html"; // সরাসরি হোম পেজে ব্যাক করবে
+            window.location.href = "index.html";
         }
-
     } catch (e) {
         console.error(e);
         alert("লগইন করা যায়নি: " + e.message);
     } finally {
-        loginBtn.innerText = originalText;
-        loginBtn.disabled = false;
+        logBtn.innerText = "Login";
+        logBtn.disabled = false;
     }
 }
-// আপনার লগইন বাটনের onclick="loginUser()" সেট করে দিন
 </script>
+
+</body>
+</html>

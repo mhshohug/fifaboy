@@ -7,116 +7,73 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { 
-            font-family: 'Poppins', sans-serif; 
-            background: #1a1a1a; 
-            color: white; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            height: 100vh; 
-            margin: 0; 
-        }
-        .profile-container { 
-            background: #2a2a2a; 
-            padding: 30px; 
-            border-radius: 12px; 
-            width: 90%; 
-            max-width: 400px; 
-            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
-            text-align: center; 
-        }
-        .avatar-box { 
-            width: 100px; 
-            height: 100px; 
-            background: #3ecf8e; 
-            border-radius: 50%; 
-            margin: 0 auto 15px; 
-            display: flex; 
-            justify-content: center; 
-            align-items: center; 
-            font-size: 40px; 
-            font-weight: bold; 
-            color: white; 
-            overflow: hidden; 
-        }
-        .avatar-box img { 
-            width: 100%; 
-            height: 100%; 
-            object-fit: cover; 
-        }
-        h2 { 
-            margin: 10px 0; 
-            color: #3ecf8e; 
-        }
-        p { 
-            color: #aaa; 
-            margin: 5px 0; 
-            font-size: 14px; 
-        }
-        .info-group { 
-            background: #333; 
-            padding: 12px; 
-            border-radius: 6px; 
-            margin: 15px 0; 
-            text-align: left; 
-        }
-        .info-group div { 
-            margin-bottom: 8px; 
-            font-size: 15px; 
-        }
-        .info-group div:last-child { 
-            margin-bottom: 0; 
-        }
-        .info-group strong { 
-            color: #3ecf8e; 
-        }
-        .btn-home { 
-            display: inline-block; 
-            width: 100%; 
-            background: #3ecf8e; 
-            color: white; 
-            border: none; 
-            padding: 12px; 
-            cursor: pointer; 
-            border-radius: 6px; 
-            font-weight: bold; 
-            font-size: 16px; 
-            text-decoration: none; 
-            box-sizing: border-box; 
-            margin-top: 10px; 
-        }
-        .btn-home:hover { 
-            background: #34b279; 
-        }
+        body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .profile-container { background: #2a2a2a; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); text-align: center; }
+        .avatar-box { width: 100px; height: 100px; background: #3ecf8e; border-radius: 50%; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; color: white; overflow: hidden; border: 3px solid #3ecf8e; }
+        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
+        h2 { margin: 10px 0; color: #3ecf8e; }
+        p { color: #aaa; margin: 5px 0; font-size: 14px; }
+        .info-group { background: #333; padding: 12px; border-radius: 6px; margin: 15px 0; text-align: left; }
+        .info-group div { margin-bottom: 8px; font-size: 15px; }
+        .info-group div:last-child { margin-bottom: 0; }
+        .info-group strong { color: #3ecf8e; }
+        
+        /* Edit Form Styling */
+        .edit-form { display: none; margin-top: 15px; text-align: left; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; }
+        .edit-form label { font-size: 13px; color: #3ecf8e; display: block; margin-top: 8px; }
+        .edit-form input { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; background: #333; border: 1px solid #555; border-radius: 4px; color: white; }
+        
+        .btn { display: inline-block; width: 100%; border: none; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; text-decoration: none; box-sizing: border-box; margin-top: 10px; text-align: center; }
+        .btn-green { background: #3ecf8e; color: white; }
+        .btn-green:hover { background: #34b279; }
+        .btn-outline { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e; }
+        .btn-outline:hover { background: rgba(62, 207, 142, 0.1); }
+        .btn-save { background: #2196F3; color: white; }
     </style>
 </head>
 <body>
 
 <div class="profile-container">
-    <div id="avatarContainer" class="avatar-box">⚽</div>
-    
-    <h2 id="profUsername">Loading...</h2>
-    <p id="profEmail">Please wait...</p>
-    
-    <div class="info-group">
-        <div><strong>Role:</strong> <span id="profRole">User</span></div>
-        <div><strong>Account Created:</strong> <span id="profCreated">N/A</span></div>
+    <div id="profileView">
+        <div id="avatarContainer" class="avatar-box">⚽</div>
+        <h2 id="profUsername">Loading...</h2>
+        <p id="profEmail">Please wait...</p>
+        
+        <div class="info-group">
+            <div><strong>Role:</strong> <span id="profRole">User</span></div>
+            <div><strong>Account Created:</strong> <span id="profCreated">N/A</span></div>
+        </div>
+        
+        <button class="btn btn-outline" onclick="toggleEdit(true)">Edit Profile</button>
+        <a href="index.html" class="btn btn-green">Back to Home</a>
     </div>
-    
-    <a href="index.html" class="btn-home">Back to Home</a>
+
+    <div id="editSection" class="edit-form">
+        <h3 style="margin: 0 0 10px 0; color: #3ecf8e; text-align: center;">⚙️ Edit Info</h3>
+        
+        <label for="editUsername">Display Name / Username</label>
+        <input type="text" id="editUsername" placeholder="Enter new username">
+        
+        <label for="editAvatar">Avatar Image URL</label>
+        <input type="text" id="editAvatar" placeholder="Paste image direct link (https://...)">
+        
+        <button id="saveBtn" class="btn btn-save" onclick="saveProfileChanges()">Save Changes</button>
+        <button class="btn btn-outline" style="border-color: #ff6b6b; color: #ff6b6b;" onclick="toggleEdit(false)">Cancel</button>
+    </div>
 </div>
 
 <script>
-window.addEventListener('DOMContentLoaded', async () => {
-    // ১. আপনার আসল সুপাবেস ক্রেডেনশিয়ালস সরাসরি সেট করা হলো
-    const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-    const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let loggedInUser = null;
 
+// পেজ লোড হলে ডাটা আনা
+window.addEventListener('DOMContentLoaded', loadProfileData);
+
+async function loadProfileData() {
     try {
-        // ২. বর্তমান লগইন থাকা ইউজারকে গেট করা
         const { data: { user }, error: userError } = await mySupabase.auth.getUser();
 
         if (userError || !user) {
@@ -125,42 +82,95 @@ window.addEventListener('DOMContentLoaded', async () => {
             return;
         }
 
-        // ৩. ইন্টারনাল মেটাডাটা থেকে ডিফল্ট ভ্যালু স্ক্রিনে সেট করা (যাতে রো না থাকলেও পেজ সাদা না হয়)
+        loggedInUser = user;
+
+        // ডিফল্ট ভ্যালু সেট
         let defaultUsername = user.user_metadata?.username || user.email.split('@')[0];
         document.getElementById("profEmail").innerText = user.email;
         document.getElementById("profCreated").innerText = new Date(user.created_at).toLocaleDateString();
         document.getElementById("profUsername").innerText = defaultUsername;
         document.getElementById("profRole").innerText = "User";
+        
+        // এডিট ইনপুট বক্সে ডিফল্ট ভ্যালু বসানো
+        document.getElementById("editUsername").value = defaultUsername;
 
-        // প্রথম অক্ষর দিয়ে ডিফল্ট গোল অবতার তৈরি করা
         const avatarContainer = document.getElementById("avatarContainer");
         avatarContainer.innerText = defaultUsername.charAt(0).toUpperCase();
 
-        // ৪. public.profiles টেবিল থেকে কাস্টম ডাটা চেক করা
-        const { data: profileData, error: profileError } = await mySupabase
+        // public.profiles টেবিল থেকে কাস্টম ডাটা চেক করা
+        const { data: profileData } = await mySupabase
             .from('profiles')
             .select('*')
             .eq('id', user.id);
 
-        // যদি প্রোফাইল টেবিলে ম্যাচিং ডাটা পাওয়া যায়, তবে তা দিয়ে স্ক্রিন আপডেট করা
         if (profileData && profileData.length > 0) {
             const p = profileData[0];
-            if (p.username) document.getElementById("profUsername").innerText = p.username;
+            if (p.username) {
+                document.getElementById("profUsername").innerText = p.username;
+                document.getElementById("editUsername").value = p.username;
+            }
             if (p.role) document.getElementById("profRole").innerText = p.role;
             if (p.avatar) {
                 avatarContainer.innerHTML = `<img src="${p.avatar}" alt="Avatar">`;
+                document.getElementById("editAvatar").value = p.avatar;
             } else {
                 avatarContainer.innerText = (p.username || defaultUsername).charAt(0).toUpperCase();
             }
         }
 
     } catch (e) {
-        console.error("Profile page error:", e);
-        document.getElementById("profUsername").innerText = "Error Loading Profile";
+        console.error("Profile load error:", e);
     }
-});
+}
+
+// এডিট ফর্ম অন/অফ করার ফাংশন
+function toggleEdit(show) {
+    document.getElementById("editSection").style.display = show ? "block" : "none";
+}
+
+// নাম ও ছবি ডেটাবেজে আপডেট করার ফাংশn
+async function saveProfileChanges() {
+    if (!loggedInUser) return;
+    
+    const newUsername = document.getElementById("editUsername").value.trim();
+    const newAvatarUrl = document.getElementById("editAvatar").value.trim();
+    const saveBtn = document.getElementById("saveBtn");
+
+    if (!newUsername) {
+        alert("ইউজারনেম খালি রাখা যাবে না!");
+        return;
+    }
+
+    try {
+        saveBtn.innerText = "Saving...";
+        saveBtn.disabled = true;
+
+        // Profiles টেবিলে ডাটা আপসার্ট (Upsert - থাকলে আপডেট করবে না থাকলে নতুন বানাবে)
+        const { error } = await mySupabase
+            .from('profiles')
+            .upsert({
+                id: loggedInUser.id,
+                username: newUsername,
+                avatar: newAvatarUrl || null,
+                updated_at: new Date()
+            });
+
+        if (error) throw error;
+
+        alert("প্রোফাইল সফলভাবে আপডেট হয়েছে!");
+        toggleEdit(false);
+        // পেজের ডেটা রিফ্রেশ করা
+        loadProfileData();
+
+    } catch (e) {
+        alert("আপডেট করা যায়নি: " + e.message);
+        console.error(e);
+    } finally {
+        saveBtn.innerText = "Save Changes";
+        saveBtn.disabled = false;
+    }
+}
 </script>
 
 </body>
 </html>
-

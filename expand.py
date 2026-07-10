@@ -20,10 +20,11 @@ def get_full_url(short_url: str) -> str:
     }
 
     try:
-        # বড় হাত/ছোট হাতের অক্ষরের ঝামেলা সাফ করা
         check_url = short_url.lower()
 
-        # ====================== 📸 INSTAGRAM CLEAN LINK ======================
+        # =====================================================================
+        # 📸 INSTAGRAM (আপনার আগের সচল কোড - সম্পূর্ণ টাচফ্রি ও নিরাপদ)
+        # =====================================================================
         if "instagram.com" in check_url or "ig.me" in check_url:
             session = requests.Session()
             session.headers.update(headers)
@@ -34,56 +35,61 @@ def get_full_url(short_url: str) -> str:
                 clean_url += '/'
             return clean_url
 
-        # ====================== 📘 FACEBOOK FIXED (আপনার চাওয়া reel/ID ফরম্যাট) ======================
-        if "facebook.com" in check_url or "fb.watch" in check_url:
-            
-            # ট্রিক ১: যদি লিংক অলরেডি /share/r/ ফরম্যাটে থাকে, তবে মেটার সিকিউরিটি ব্লক বাইপাস করতে ওএমবেড এপিআই ডিরেক্ট হিট
-            if "/share/r/" in short_url or "/share/" in short_url or "fb.watch" in short_url:
-                # ফেসবুকের ওএমবেড প্লাগইন এপিআই যা বট ব্লক করে না
-                oembed_endpoint = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
-                try:
-                    api_res = requests.get(oembed_endpoint, headers=headers, timeout=10)
-                    if api_res.status_code == 200:
-                        api_data = api_res.json()
-                        html_box = api_data.get("html", "")
-                        
-                        # এপিআই রেসপন্সের এইচটিএমএল থেকে আসল নিউমেরিক আইডি টেনে বের করা
-                        id_match = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', html_box)
-                        if id_match:
-                            reel_id = id_match.group(1)
-                            # ডিরেক্ট আপনার চাওয়া ক্লিন আউটপুট ফরম্যাট জেনারেট
-                            return f"https://www.facebook.com/reel/{reel_id}"
-                except Exception as api_err:
-                    print(f"API Method Failed: {api_err}")
-
-            # ট্রিক ২: যদি এপিআই ফেইল করে, তবে নরমাল রিডাইরেক্ট ট্রাই করা
-            session = requests.Session()
-            session.headers.update(headers)
-            response = session.get(short_url, timeout=12, allow_redirects=True)
-            final_url = response.url
-            html_content = response.text
-
-            # রিডাইরেক্ট ইউআরএল বা পেজের ভেতরের ওরিজিনাল আইডি খোঁজা
-            combined_search = final_url + " " + html_content
-            id_match_backup = re.search(r'(?:reel|reels|video|v|audio)/([0-9]{12,20})', combined_search)
-            
-            if id_match_backup:
-                return f"https://www.facebook.com/reel/{id_match_backup.group(1)}"
-
-            # ট্রিক ৩: যদি ফেসবুক লগইন পেজে আটকে দেয়, তবে টেক্সট থেকে মেইন পার্ট পরিষ্কার করা
-            clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
-            if "/reels/" in clean_url:
-                clean_url = clean_url.replace("/reels/", "/reel/")
-            if clean_url.endswith('/'):
-                clean_url = clean_url[:-1]
-            return clean_url
-
-        # ====================== 🎵 TIKTOK ======================
+        # =====================================================================
+        # 🎵 TIKTOK (আপনার আগের সচল কোড - সম্পূর্ণ টাচফ্রি ও নিরাপদ)
+        # =====================================================================
         if "tiktok.com" in check_url:
             session = requests.Session()
             session.headers.update(headers)
             response = session.get(short_url, timeout=12, allow_redirects=True)
             return response.url.split("?")[0].split("&")[0]
+
+        # =====================================================================
+        # 📘 FACEBOOK FIXED ONLY (আলাদা এবং স্বাধীন ব্লক, অন্যগুলোতে ঝামেলা করবে না)
+        # =====================================================================
+        if "facebook.com" in check_url or "fb.watch" in check_url:
+            # গিটহাব সার্ভার ব্লকিং বাইপাস করতে ওএমবেড গেটওয়ে হিট
+            oembed_endpoint = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
+            try:
+                api_res = requests.get(oembed_endpoint, headers=headers, timeout=10)
+                if api_res.status_code == 200:
+                    html_box = api_res.json().get("html", "")
+                    id_match = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', html_box)
+                    if id_match:
+                        return f"https://www.facebook.com/reel/{id_match.group(1)}"
+            except Exception as api_err:
+                print(f"Facebook API Gateway bypass failed, trying regular method: {api_err}")
+
+            # ওএমবেড কাজ না করলে ব্যাকআপ রিডাইরেক্ট মেথড
+            try:
+                session = requests.Session()
+                session.headers.update(headers)
+                response = session.get(short_url, timeout=12, allow_redirects=True)
+                final_url = response.url
+                
+                # রিডাইরেক্ট লোকেশন চেইন থেকে আইডি খোঁজা
+                if response.history:
+                    for resp in response.history:
+                        loc = resp.headers.get('Location', '')
+                        id_match_loc = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', loc)
+                        if id_match_loc:
+                            return f"https://www.facebook.com/reel/{id_match_loc.group(1)}"
+                
+                # পেজের বডি টেক্সট থেকে আইডি খোঁজা
+                id_match_content = re.search(r'(?:reel|reels|video|v|audio)/([0-9]{12,20})', final_url + " " + response.text)
+                if id_match_content:
+                    return f"https://www.facebook.com/reel/{id_match_content.group(1)}"
+                
+                # কোনো আইডি না পাওয়া গেলে ট্র্যাকিং প্যারামিটার কেটে ক্লিন ইউআরএল ডাটাবেজে রাখা
+                clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
+                if "/reels/" in clean_url:
+                    clean_url = clean_url.replace("/reels/", "/reel/")
+                if clean_url.endswith('/'):
+                    clean_url = clean_url[:-1]
+                return clean_url
+            except Exception as fb_err:
+                print(f"Facebook Fallback failed: {fb_err}")
+                return short_url
 
         return short_url.split("?")[0]
 
@@ -93,7 +99,7 @@ def get_full_url(short_url: str) -> str:
 
 
 def process_posts():
-    print("🚀 Starting URL Processor for Perfect Reel Format...")
+    print("🚀 Starting URL Processor (Safe Mode for Instagram, TikTok & Facebook)...")
     response = supabase.table("posts").select("*").execute()
     posts = response.data or []
     
@@ -115,7 +121,7 @@ def process_posts():
             
             if new_url != current_url:
                 supabase.table("posts").update({"url": new_url}).eq("id", post["id"]).execute()
-                print(f"✅ Updated to Clean URL: {new_url}")
+                print(f"✅ Updated Database URL: {new_url}")
                 updated += 1
 
     print(f"\n🎉 Finished! {updated} posts updated.")

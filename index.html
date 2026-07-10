@@ -3,14 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FIFABOY | Messi Watch</title>
+<title>      FIFA WATCH</title>
 <meta name="description" content="Community Archive of Football Refereeing Discussions">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
-<div id="fb-root"></div>
-<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"></script>
 <style>
 .modal {
     display: none; 
@@ -47,23 +45,24 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* শর্ট লিংক হেল্পার বাটন */
+/* শর্ট লিংক হেল্পার বাটন স্টাইল */
 .link-helper-btn {
     display: none;
     margin-top: 8px;
-    background: #ff0050;
+    background: #4267B2;
     color: white;
     border: none;
-    padding: 8px 12px;
+    padding: 10px 12px;
     border-radius: 6px;
-    font-size: 12px;
+    font-size: 13px;
     font-weight: bold;
     cursor: pointer;
     width: 100%;
     text-align: center;
 }
+.tiktok-color { background: #ff0050; }
 
-/* এমবেড করা মিডিয়া বক্সের প্রপার সাইজ */
+/* মিডিয়া বক্সের প্রপার সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -77,7 +76,7 @@
 .embed-container iframe {
     border: none;
     width: 100%;
-    min-height: 550px;
+    min-height: 500px;
 }
 </style>
 </head>
@@ -155,11 +154,11 @@ Loading Posts...
         <textarea id="postDesc" placeholder="Describe the refereeing decision in details..."></textarea>
         
         <label for="postUrl">Social Link (YouTube, FB, TikTok, X, Insta) or Direct Image URL</label>
-        <input type="text" id="postUrl" placeholder="Paste video/photo link here" oninput="checkTikTokUrl(this.value)">
+        <input type="text" id="postUrl" placeholder="Paste video/photo link here" oninput="validateInputUrl(this.value)">
         
-        <!-- শর্ট লিংক ডিটেক্ট হলে এই বাটনটি ভেসে উঠবে -->
-        <button type="button" id="tiktokHelperBtn" class="link-helper-btn" onclick="openTikTokForFullLink()">
-            🔗 এটি শর্ট লিংক! ফুল লিংক বের করতে এখানে ক্লিক করুন
+        <!-- শর্ট/শেয়ার লিংক ডিটেক্ট হলে এই বাটনটি ডাইনামিকালি চেঞ্জ হবে -->
+        <button type="button" id="linkHelperBtn" class="link-helper-btn" onclick="openLinkForExpansion()">
+            🔗 শর্ট লিংক সনাক্ত হয়েছে! ফুল লিংক বের করতে ক্লিক করুন
         </button>
         
         <div class="modal-buttons">
@@ -170,7 +169,6 @@ Loading Posts...
 </div>
 
 <button id="fab" onclick="openUpload()">+</button>
-
 <button id="topBtn" onclick="scrollTopPage()">⬆</button>
 
 <footer>
@@ -188,21 +186,28 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// ইনপুট ফিল্ডে শর্ট লিংক ডিটেক্ট করার লজিক
-function checkTikTokUrl(val) {
-    const helperBtn = document.getElementById("tiktokHelperBtn");
+// ইনপুট বক্সে ফেসবুক বা টিকটকের শর্ট/শেয়ার লিংক চেক করার ফাংশন
+function validateInputUrl(val) {
+    const helperBtn = document.getElementById("linkHelperBtn");
+    
     if (val.includes("vt.tiktok.com") || val.includes("vm.tiktok.com")) {
+        helperBtn.className = "link-helper-btn tiktok-color";
+        helperBtn.innerText = "🎵 টিকটক শর্ট লিংক! ফুল ইউআরএল বের করতে এখানে ক্লিক করুন";
+        helperBtn.style.display = "block";
+    } else if (val.includes("fb.watch") || val.includes("facebook.com/share")) {
+        helperBtn.className = "link-helper-btn";
+        helperBtn.innerText = "📘 ফেসবুক শেয়ার লিংক! ফুল ইউআরএল বের করতে এখানে ক্লিক করুন";
         helperBtn.style.display = "block";
     } else {
         helperBtn.style.display = "none";
     }
 }
 
-// ইউজারকে সরাসরি ব্রাউজারে পাঠানো যাতে রিডাইরেক্ট হয়ে ফুল লিংক আসে
-function openTikTokForFullLink() {
+// ইউজারকে ব্রাউজার ট্যাবে পাঠিয়ে ফুল লিংক জেনারেট করার লজিক
+function openLinkForExpansion() {
     const rawUrl = document.getElementById("postUrl").value.trim();
     if (rawUrl) {
-        alert("আপনার ব্রাউজারে লিংকটি ওপেন হচ্ছে। লিংকটি পুরোপুরি লোড হলে ওপরের অ্যাড্রেস বার থেকে বড় লিংকটি (tiktok.com/@user/video/ID) কপি করে এখানে পেস্ট করুন ভাই।");
+        alert("আপনার ব্রাউজারে লিংকটি ওপেন হচ্ছে। লিংকটি পুরোপুরি লোড হলে ওপরের অ্যাড্রেস বার থেকে পরিবর্তিত মূল ফুল লিংকটি কপি করে এনে এখানে পেস্ট করুন ভাই।");
         window.open(rawUrl, '_blank');
     }
 }
@@ -220,77 +225,33 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
 
-            // ২. Facebook (Video, Reels, Photo Post - ১০০% সাকসেসফুল পিওর আইফ্রেম মেথড)
-    if (url.includes("facebook.com") || url.includes("fb.watch") || url.includes("share/v") || url.includes("share/r") || url.includes("share/")) {
+    // ২. Facebook (ভিডিও ও রিলস এর মূল ফুল লিংক রেন্ডারার)
+    if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let cleanUrl = url.split("?")[0];
-        
-        // অ্যাপের ভিডিও বা রিল শেয়ার লিংকগুলোকে অফিশিয়াল অরিজিনাল ফরম্যাটে রূপান্তর
-        if (cleanUrl.includes("/share/v/")) {
-            cleanUrl = cleanUrl.replace("/share/v/", "/videos/");
-        } else if (cleanUrl.includes("/share/r/")) {
-            cleanUrl = cleanUrl.replace("/share/r/", "/reels/");
-        }
-
-        // কন্ডিশন ১: যদি লিংকটি ভিডিও, রিল বা fb.watch হয়, তবে ভিডিও প্লেয়ার আইফ্রেম হবে
-        if (cleanUrl.includes("/videos/") || cleanUrl.includes("/reels/") || cleanUrl.includes("fb.watch")) {
-            return `
-            <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center;">
-                <iframe 
-                    src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" 
-                    width="100%" 
-                    height="500" 
-                    style="border:none; overflow:hidden; border-radius:8px;" 
-                    scrolling="no" 
-                    frameborder="0" 
-                    allowfullscreen="true" 
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-                </iframe>
-            </div>`;
-        } else {
-            // কন্ডিশন ২: যদি লিংকটি নরমাল ফটো বা টেক্সট পোস্টের শেয়ার লিংক হয়, তবে পোস্ট প্লাগইন আইফ্রেম হবে
-            return `
-            <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center;">
-                <iframe 
-                    src="https://www.facebook.com/plugins/post.php?href=${encodeURIComponent(cleanUrl)}&width=500&show_text=true" 
-                    width="100%" 
-                    height="500" 
-                    style="border:none; overflow:hidden; border-radius:8px;" 
-                    scrolling="no" 
-                    frameborder="0" 
-                    allowfullscreen="true" 
-                    allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-                </iframe>
-            </div>`;
-        }
+        return `
+        <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center;">
+            <iframe 
+                src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" 
+                width="100%" 
+                height="500" 
+                style="border:none; overflow:hidden; border-radius:8px;" 
+                scrolling="no" 
+                frameborder="0" 
+                allowfullscreen="true" 
+                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
+            </iframe>
+        </div>`;
     }
 
-
-    // ৩. TikTok (১০০% সাকসেসফুল পিওর আইফ্রেম মেথড - যা ফুল লিংকের ক্ষেত্রে কোনোদিন ফেইল করবে না)
+    // ৩. TikTok (ফুল লিংকের জন্য পিওর আইফ্রেম মেথড)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
-        
-        if (cleanUrl.endsWith('/')) {
-            cleanUrl = cleanUrl.slice(0, -1);
-        }
+        if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
-        
-        // যদি কোনো কারণে শর্ট লিংক ডাটাবেজে ঢুকেও থাকে, তার ব্যাকআপ ফালব্যাক হ্যান্ডলিং
-        if (isNaN(videoId)) {
-            return `
-            <div class="embed-container">
-                <iframe src="https://www.tiktok.com/embed/v2/shorts?url=${encodeURIComponent(cleanUrl)}" width="100%" height="550" frameborder="0" allowfullscreen></iframe>
-            </div>`;
-        }
         
         return `
         <div class="embed-container">
-            <iframe 
-                src="https://www.tiktok.com/embed/${videoId}" 
-                width="100%" 
-                height="550" 
-                frameborder="0" 
-                allowfullscreen>
-            </iframe>
+            <iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe>
         </div>`;
     }
 
@@ -403,7 +364,6 @@ function renderPosts(postsList) {
     });
 
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
-    if(window.FB) window.FB.XFBML.parse();
 }
 
 function openUpload() {
@@ -420,10 +380,10 @@ function closeUpload() {
     document.getElementById("postTitle").value = "";
     document.getElementById("postDesc").value = "";
     document.getElementById("postUrl").value = "";
-    document.getElementById("tiktokHelperBtn").style.display = "none";
+    document.getElementById("linkHelperBtn").style.display = "none";
 }
 
-// সাবমিট ফাংশন - যা শর্ট লিংক পোস্ট করতে বাধা দেবে এবং ফুল লিংক নিশ্চিত করবে
+// সাবমিট ফাংশন - যা শর্ট বা শেয়ার লিংক সরাসরি সাবমিট করা কঠোরভাবে লক রাখবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -436,9 +396,9 @@ async function submitNewPost() {
         return;
     }
 
-    // 🛑 কড়া লক: শর্ট লিংক সরাসরি ডাটাবেজে সাবমিট করতে দেওয়া হবে না
-    if (rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com")) {
-        alert("❌ শর্ট লিংক সরাসরি পোস্ট করা যাবে না ভাই। অনুগ্রহ করে লাল বাটনে ক্লিক করে ২ সেকেন্ডে ফুল লিংকটি বের করে এনে এখানে পেস্ট করুন।");
+    // 🛑 শর্ট/শেয়ার লিংকের জন্য সাবমিশন লক
+    if (rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com") || rawUrl.includes("fb.watch") || rawUrl.includes("facebook.com/share")) {
+        alert("❌ শর্ট বা অ্যাপ শেয়ার লিংক সরাসরি পোস্ট করা যাবে না ভাই। অনুগ্রহ করে হেল্পার বাটনে ক্লিক করে ২ সেকেন্ডে ব্রাউজার থেকে ফুল অরিজিনাল ইউআরএল বের করে এনে এখানে পেস্ট করুন।");
         return;
     }
 

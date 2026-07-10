@@ -188,18 +188,17 @@ function getMediaEmbedHTML(url) {
     }
 
     // ৩. TikTok (এখন সঠিকভাবে কাজ করবে)
-    // ৩. TikTok (সবচেয়ে ভালো ভার্সন)
+    // TikTok Embed
 if (url.includes("tiktok.com") || url.includes("vt.tiktok.com")) {
     const cleanUrl = url.split("?")[0];
     
     return `
-    <div class="embed-container" style="width:100%; max-width:605px; margin:15px auto;">
-        <blockquote class="tiktok-embed" 
-                    cite="${cleanUrl}" 
-                    data-embed-from="embed_page"
-                    style="max-width: 605px; min-width: 325px; width:100%;">
-            <section></section>
-        </blockquote>
+    <div class="embed-container">
+        <iframe 
+            src="https://www.tiktok.com/embed/${cleanUrl.split('/').pop()}" 
+            style="width:100%; min-height:500px; border:none;" 
+            allowfullscreen>
+        </iframe>
     </div>`;
 }
 

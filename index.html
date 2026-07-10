@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>      FIFA WATCH</title>
+<title>FIFABOY | Messi Watch</title>
 <meta name="description" content="Community Archive of Football Refereeing Discussions">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -62,7 +62,6 @@
 }
 .tiktok-color { background: #ff0050; }
 
-/* মিডিয়া বক্সের প্রপার সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -78,14 +77,13 @@
     width: 100%;
     min-height: 500px;
 }
+.comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
 </style>
 </head>
 <body>
 
 <nav class="navbar">
-<div class="logo">
-⚽ <span>FIFABOY</span>
-</div>
+<div class="logo">⚽ <span>FIFABOY</span></div>
 <div class="menu">
 <a href="index.html">Home</a>
 <a href="#feed">Feed</a>
@@ -101,43 +99,28 @@
 <h1>MESSI WATCH</h1>
 <p>Community Archive of Football Refereeing Discussions Involving Lionel Messi</p>
 <div class="buttons">
-<button id="explore" onclick="document.getElementById('feed').scrollIntoView({behavior:'smooth'})">
-Explore Evidence
-</button>
-<button id="upload" onclick="openUpload()">
-Upload Evidence
-</button>
+<button id="explore" onclick="document.getElementById('feed').scrollIntoView({behavior:'smooth'})">Explore Evidence</button>
+<button id="upload" onclick="openUpload()">Upload Evidence</button>
 </div>
 </section>
 
-<section class="notice">
-⚠️ Community submitted content. Verify information before sharing.
-</section>
+<section class="notice">⚠️ Community submitted content. Verify information before sharing.</section>
 
 <section class="search">
 <input id="search" type="text" placeholder="Search player, match, tournament...">
 </section>
 
 <section class="categories">
-<button>Latest</button>
-<button>Trending</button>
-<button>Penalty</button>
-<button>Card</button>
-<button>Handball</button>
-<button>VAR</button>
-<button>Community</button>
+<button>Latest</button><button>Trending</button><button>Penalty</button><button>Card</button><button>Handball</button><button>VAR</button><button>Community</button>
 </section>
 
 <section id="feed">
-<div class="loading">
-Loading Posts...
-</div>
+<div class="loading">Loading Posts...</div>
 </section>
 
 <div id="uploadModal" class="modal">
     <div class="modal-content">
         <h2>📁 Upload Evidence</h2>
-        
         <label for="postTitle">Title / Match Name</label>
         <input type="text" id="postTitle" placeholder="e.g., Argentina vs France - Penalty Incident">
         
@@ -156,7 +139,6 @@ Loading Posts...
         <label for="postUrl">Social Link (YouTube, FB, TikTok, X, Insta) or Direct Image URL</label>
         <input type="text" id="postUrl" placeholder="Paste video/photo link here" oninput="validateInputUrl(this.value)">
         
-        <!-- শর্ট/শেয়ার লিংক ডিটেক্ট হলে এই বাটনটি ডাইনামিকালি চেঞ্জ হবে -->
         <button type="button" id="linkHelperBtn" class="link-helper-btn" onclick="openLinkForExpansion()">
             🔗 শর্ট লিংক সনাক্ত হয়েছে! ফুল লিংক বের করতে ক্লিক করুন
         </button>
@@ -164,6 +146,17 @@ Loading Posts...
         <div class="modal-buttons">
             <button id="submitPostBtn" class="btn-submit" onclick="submitNewPost()">Submit Post</button>
             <button class="btn-close" onclick="closeUpload()">Cancel</button>
+        </div>
+    </div>
+</div>
+
+<div id="webViewModal" class="modal" style="z-index: 3000;">
+    <div class="modal-content" style="max-width: 95%; width: 500px; height: 80vh; display: flex; flex-direction: column; padding: 15px;">
+        <h3 style="margin-top:0; color:#3ecf8e; text-align:center; font-size:14px;">🌐 ইন-ওয়েবসাইট ব্রাউজার ভিউ</h3>
+        <p style="font-size:11px; color:#aaa; margin:0 0 10px; text-align:center;">লিংক লোড হলে ওখান থেকে পরিবর্তিত মূল ফুল ইউআরএলটি কপি করে নিন ভাই।</p>
+        <iframe id="webViewFrame" src="" style="width: 100%; flex: 1; border: 1px solid #444; border-radius: 8px; background: white;"></iframe>
+        <div class="modal-buttons" style="margin-top: 10px;">
+            <button class="btn-close" onclick="closeWebViewModal()" style="padding: 8px;">Done / Close</button>
         </div>
     </div>
 </div>
@@ -186,10 +179,8 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// ইনপুট বক্সে ফেসবুক বা টিকটকের শর্ট/শেয়ার লিংক চেক করার ফাংশন
 function validateInputUrl(val) {
     const helperBtn = document.getElementById("linkHelperBtn");
-    
     if (val.includes("vt.tiktok.com") || val.includes("vm.tiktok.com")) {
         helperBtn.className = "link-helper-btn tiktok-color";
         helperBtn.innerText = "🎵 টিকটক শর্ট লিংক! ফুল ইউআরএল বের করতে এখানে ক্লিক করুন";
@@ -203,20 +194,21 @@ function validateInputUrl(val) {
     }
 }
 
-// ইউজারকে ব্রাউজার ট্যাবে পাঠিয়ে ফুল লিংক জেনারেট করার লজিক
 function openLinkForExpansion() {
     const rawUrl = document.getElementById("postUrl").value.trim();
     if (rawUrl) {
-        alert("আপনার ব্রাউজারে লিংকটি ওপেন হচ্ছে। লিংকটি পুরোপুরি লোড হলে ওপরের অ্যাড্রেস বার থেকে পরিবর্তিত মূল ফুল লিংকটি কপি করে এনে এখানে পেস্ট করুন ভাই।");
-        window.open(rawUrl, '_blank');
+        document.getElementById("webViewFrame").src = rawUrl;
+        document.getElementById("webViewModal").style.display = "flex";
     }
 }
 
-// মিডিয়া লিংক ডিটেক্টর ও পিওর আইফ্রেম জেনারেটর ফাংশন
+function closeWebViewModal() {
+    document.getElementById("webViewModal").style.display = "none";
+    document.getElementById("webViewFrame").src = "";
+}
+
 function getMediaEmbedHTML(url) {
     if (!url) return "";
-    
-    // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
@@ -224,48 +216,23 @@ function getMediaEmbedHTML(url) {
         else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].split("?")[0];
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
-
-    // ২. Facebook (ভিডিও ও রিলস এর মূল ফুল লিংক রেন্ডারার)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let cleanUrl = url.split("?")[0];
-        return `
-        <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center;">
-            <iframe 
-                src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" 
-                width="100%" 
-                height="500" 
-                style="border:none; overflow:hidden; border-radius:8px;" 
-                scrolling="no" 
-                frameborder="0" 
-                allowfullscreen="true" 
-                allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share">
-            </iframe>
-        </div>`;
+        return `<div class="embed-container"><iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
     }
-
-    // ৩. TikTok (ফুল লিংকের জন্য পিওর আইফ্রেম মেথড)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
-        
-        return `
-        <div class="embed-container">
-            <iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe>
-        </div>`;
+        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
     }
-
-    // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
-
-    // ৫. Instagram
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
         return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
     }
-
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
 
@@ -326,6 +293,7 @@ function renderPosts(postsList) {
         
         let mediaHTML = getMediaEmbedHTML(post.url);
         let voteCount = post.votes || 0;
+        const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
 
         postCard.innerHTML = `
             <div class="post-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -335,7 +303,11 @@ function renderPosts(postsList) {
                 <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px;">${post.platform || "Community"}</span>
             </div>
             
-            <p class="post-desc" style="color:#ccc; margin-top:10px; line-height:1.5; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+            <div style="font-size:11px; color:#888; margin:5px 0 10px;">
+                Posted By: <span class="comment-user-link" onclick="viewPublicProfile('${post.user_id}')">${userShortId}</span>
+            </div>
+            
+            <p class="post-desc" style="color:#ccc; line-height:1.5; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
                 ${post.description || ""}
             </p>
             
@@ -355,23 +327,20 @@ function renderPosts(postsList) {
                      🚩 <span>Report</span>
                 </button>
             </div>
-            
-            <div class="post-footer" style="margin-top:12px; font-size:11px; color:#555; text-align:left;">
-                <small>Posted on: ${new Date(post.created_at).toLocaleDateString()}</small>
-            </div>
         `;
         feedSection.appendChild(postCard);
     });
-
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
 }
 
+function viewPublicProfile(uid) {
+    if(!uid) return;
+    if(currentUserId && uid === currentUserId) window.location.href = "profile.html";
+    else window.location.href = `profile.html?uid=${uid}`;
+}
+
 function openUpload() {
-    if (!currentUserId) {
-        alert("পোস্ট আপলোড করতে প্রথমে লগইন করুন!");
-        window.location.href = "login.html";
-        return;
-    }
+    if (!currentUserId) { alert("পোস্ট করতে প্রথমে লগইন করুন!"); window.location.href = "login.html"; return; }
     document.getElementById("uploadModal").style.display = "flex";
 }
 
@@ -383,7 +352,6 @@ function closeUpload() {
     document.getElementById("linkHelperBtn").style.display = "none";
 }
 
-// সাবমিট ফাংশন - যা শর্ট বা শেয়ার লিংক সরাসরি সাবমিট করা কঠোরভাবে লক রাখবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -391,74 +359,44 @@ async function submitNewPost() {
     const rawUrl = document.getElementById("postUrl").value.trim();
     const submitBtn = document.getElementById("submitPostBtn");
 
-    if (!title || !description) {
-        alert("টাইটেল এবং ডেসক্রিপশন লিখুন!");
-        return;
-    }
-
-    // 🛑 শর্ট/শেয়ার লিংকের জন্য সাবমিশন লক
+    if (!title || !description) { alert("টাইটেল এবং ডেসক্রিপশন লিখুন!"); return; }
     if (rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com") || rawUrl.includes("fb.watch") || rawUrl.includes("facebook.com/share")) {
-        alert("❌ শর্ট বা অ্যাপ শেয়ার লিংক সরাসরি পোস্ট করা যাবে না ভাই। অনুগ্রহ করে হেল্পার বাটনে ক্লিক করে ২ সেকেন্ডে ব্রাউজার থেকে ফুল অরিজিনাল ইউআরএল বের করে এনে এখানে পেস্ট করুন।");
+        alert("❌ শর্ট বা অ্যাপ শেয়ার লিংক সরাসরি পোস্ট করা যাবে না ভাই। হেল্পার বাটনে ক্লিক করে ফুল লিংকটি নিয়ে পেস্ট করুন।");
         return;
     }
 
     try {
-        submitBtn.innerText = "Uploading...";
-        submitBtn.disabled = true;
-
+        submitBtn.innerText = "Uploading..."; submitBtn.disabled = true;
         const { error } = await mySupabase.from('posts').insert([{
-            user_id: currentUserId,
-            title: title,
-            platform: platform,
-            description: description,
-            url: rawUrl || null
+            user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null
         }]);
-
         if (error) throw error;
-        alert("সফলভাবে আপলোড হয়েছে!");
-        closeUpload();
-        loadPosts();
+        alert("সফলভাবে আপলোড হয়েছে!"); closeUpload(); loadPosts();
     } catch (e) { alert("Error: " + e.message); } 
-    finally {
-        submitBtn.innerText = "Submit Post";
-        submitBtn.disabled = false;
-    }
+    finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }
 
 async function votePost(postId, btnElement) {
     if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
     const voteNumSpan = btnElement.querySelector(".vote-num");
     let currentVotes = parseInt(voteNumSpan.innerText);
-    
     btnElement.classList.toggle("liked");
-    if(btnElement.classList.contains("liked")) {
-        currentVotes++;
-    } else {
-        currentVotes--;
-    }
+    if(btnElement.classList.contains("liked")) currentVotes++; else currentVotes--;
     voteNumSpan.innerText = currentVotes;
     await mySupabase.from('posts').update({ votes: currentVotes }).eq('id', postId);
 }
 
 function sharePost(title, postId) {
     const shareUrl = `${window.location.origin}${window.location.pathname.replace('index.html','')}/post.html?id=${postId}`;
-    navigator.clipboard.writeText(shareUrl).then(() => {
-        alert(`"${title}" পোস্টের লিংক কপি হয়েছে!`);
-    }).catch(err => { err; });
+    navigator.clipboard.writeText(shareUrl).then(() => { alert(`"${title}" পোস্টের লিংক কপি হয়েছে!`); });
 }
 
 function reportPost(postId, btnElement) {
-    if(!currentUserId) { alert("রিপোর্ট করতে প্রথমে লগইন করুন!"); return; }
-    btnElement.style.color = "#ff6b6b";
-    alert("ধন্যবাদ, পোস্টটি পর্যালোচনার জন্য পাঠানো হয়েছে।");
+    if(!currentUserId) { alert("রিপোর্ট করতে লগইন করুন!"); return; }
+    btnElement.style.color = "#ff6b6b"; alert("ধন্যবাদ, পোস্টটি পর্যালোচনার জন্য পাঠানো হয়েছে।");
 }
 
-async function logout() {
-    await mySupabase.auth.signOut();
-    alert("Logged out!");
-    window.location.reload();
-}
-
+async function logout() { await mySupabase.auth.signOut(); alert("Logged out!"); window.location.reload(); }
 function scrollTopPage() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
 
 window.addEventListener("scroll", () => {
@@ -469,16 +407,12 @@ window.addEventListener("scroll", () => {
 document.getElementById("search").addEventListener("input", e => {
     const q = e.target.value.toLowerCase();
     const filtered = POSTS.filter(post =>
-        (post.title || "").toLowerCase().includes(q) ||
-        (post.description || "").toLowerCase().includes(q)
+        (post.title || "").toLowerCase().includes(q) || (post.description || "").toLowerCase().includes(q)
     );
     renderPosts(filtered);
 });
 
-window.addEventListener("DOMContentLoaded", () => {
-    initPage();
-    loadPosts();
-});
+window.addEventListener("DOMContentLoaded", () => { initPage(); loadPosts(); });
 </script>
 </body>
 </html>

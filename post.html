@@ -1,1 +1,289 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
 
+<meta charset="UTF-8">
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+
+<title>FIFABOY | Post</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
+<script src="js/supabase.js"></script>
+
+</head>
+
+<body>
+
+<nav>
+
+<div class="logo">
+
+⚽ <span>FIFABOY</span>
+
+</div>
+
+<div class="menu">
+
+<a href="index.html">Home</a>
+
+<a href="feed.html">Feed</a>
+
+<a href="login.html" id="loginLink">Login</a>
+
+<a href="register.html" id="registerLink">Register</a>
+
+<a href="profile.html" id="profileLink" style="display:none;">Profile</a>
+
+<a href="#" id="logoutLink" style="display:none;">Logout</a>
+
+</div>
+
+</nav>
+
+<section id="post-container">
+
+<div class="loading">
+
+Loading post...
+
+</div>
+
+</section>
+  <section class="comments">
+
+<h2>Comments</h2>
+
+<div id="comments">
+
+<div class="loading">
+
+Loading comments...
+
+</div>
+
+</div>
+
+<div class="comment-box">
+
+<textarea
+id="commentText"
+placeholder="Write a comment..."></textarea>
+
+<button id="commentBtn">
+
+Post Comment
+
+</button>
+
+</div>
+
+</section>
+
+<section class="post-actions">
+
+<button id="likeBtn">
+
+👍 Like
+
+</button>
+
+<button id="dislikeBtn">
+
+👎 Dislike
+
+</button>
+
+<button id="reportBtn">
+
+🚩 Report
+
+</button>
+
+<button id="shareBtn">
+
+📤 Share
+
+</button>
+
+</section>
+
+<button id="topBtn">
+
+⬆
+
+</button>
+
+<footer>
+
+<h2>
+
+⚽ FIFABOY
+
+</h2>
+
+<p>
+
+Watch • Verify • Discuss
+
+</p>
+
+<p>
+
+©2026 FIFABOY
+
+</p>
+
+</footer>
+  <script src="js/post.js"></script>
+
+<script>
+
+async function initPage(){
+
+try{
+
+const user=await getUser();
+
+const login=document.getElementById("loginLink");
+const register=document.getElementById("registerLink");
+const profile=document.getElementById("profileLink");
+const logout=document.getElementById("logoutLink");
+
+if(user){
+
+login.style.display="none";
+register.style.display="none";
+profile.style.display="inline-block";
+logout.style.display="inline-block";
+
+}else{
+
+login.style.display="inline-block";
+register.style.display="inline-block";
+profile.style.display="none";
+logout.style.display="none";
+
+}
+
+}catch(err){
+
+console.error(err);
+
+}
+
+}
+
+window.addEventListener("load",async()=>{
+
+await initPage();
+
+if(typeof loadPost==="function"){
+
+await loadPost();
+
+}
+
+if(typeof loadComments==="function"){
+
+await loadComments();
+
+}
+
+});
+
+logoutLink.onclick=async(e)=>{
+
+e.preventDefault();
+
+await signOut();
+
+};
+
+commentBtn.onclick=async()=>{
+
+const text=commentText.value.trim();
+
+if(!text) return;
+
+if(typeof sendComment==="function"){
+
+await sendComment(text);
+
+commentText.value="";
+
+}
+
+};
+
+likeBtn.onclick=()=>{
+
+if(typeof likeCurrentPost==="function"){
+
+likeCurrentPost();
+
+}
+
+};
+
+dislikeBtn.onclick=()=>{
+
+if(typeof dislikeCurrentPost==="function"){
+
+dislikeCurrentPost();
+
+}
+
+};
+
+reportBtn.onclick=()=>{
+
+if(typeof reportCurrentPost==="function"){
+
+reportCurrentPost();
+
+}
+
+};
+
+shareBtn.onclick=()=>{
+
+navigator.clipboard.writeText(location.href);
+
+alert("Link Copied");
+
+};
+
+topBtn.onclick=()=>{
+
+window.scrollTo({
+
+top:0,
+
+behavior:"smooth"
+
+});
+
+};
+
+window.addEventListener("scroll",()=>{
+
+if(window.scrollY>300){
+
+topBtn.style.display="flex";
+
+}else{
+
+topBtn.style.display="none";
+
+}
+
+});
+
+</script>
+
+</body>
+</html>

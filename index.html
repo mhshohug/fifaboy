@@ -201,14 +201,26 @@ function getMediaEmbedHTML(url) {
     }
 
     // ৩. TikTok (ডিরেক্ট ফুল আইফ্রেম মেথড যা ফুল লিংকের আইডি নিয়ে ইনস্ট্যান্ট চলে)
+        // ৩. TikTok (সরাসরি ভিডিও আইডি ডিটেক্ট করে ইনস্ট্যান্ট প্লে করার ফাইনাল ফিক্স)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
+        let videoId = "";
         
+        // ইউআরএল থেকে আসল ভিডিও আইডিটি খুঁজে বের করা
         if (cleanUrl.includes("/video/")) {
-            let videoId = cleanUrl.split("/video/")[1];
+            // স্ল্যাশ দিয়ে ভাগ করে আইডি অংশটি আলাদা করা
+            let parts = cleanUrl.split("/video/");
+            if (parts[1]) {
+                videoId = parts[1].split("/")[0];
+            }
+        }
+        
+        // যদি আইডি পাওয়া যায়, তবে টিকটকের প্লেয়ার ইন্টারফেসে ডিরেক্ট হিট করা
+        if (videoId) {
             return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
         }
         
+        // ফালব্যাক (যদি কোনো কারণে আইডি না পায় তবে মূল লিংক এম্বেড করা)
         return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
     }
 

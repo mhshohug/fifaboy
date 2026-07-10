@@ -1,205 +1,98 @@
-
+<!-- register.html -->
 <!DOCTYPE html>
-<html lang="en">
+<html>
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-
-<title>FIFABOY | Register</title>
-
-<link rel="stylesheet" href="css/style.css">
-
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
-
-<style>
-
-body{
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    background:#090b13;
-    font-family:Poppins,sans-serif;
-}
-
-.register-box{
-    width:100%;
-    max-width:430px;
-    background:#151922;
-    padding:35px;
-    border-radius:18px;
-    box-shadow:0 10px 30px rgba(0,0,0,.35);
-}
-
-.logo{
-    font-size:34px;
-    color:#ffd700;
-    font-weight:700;
-    text-align:center;
-    margin-bottom:8px;
-}
-
-.sub{
-    text-align:center;
-    color:#bbb;
-    margin-bottom:25px;
-}
-
-.input{
-    margin-bottom:15px;
-}
-
-.input input{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    background:#202534;
-    color:#fff;
-    outline:none;
-    font-size:15px;
-}
-
-button{
-    width:100%;
-    padding:15px;
-    border:none;
-    border-radius:10px;
-    background:#ffd700;
-    color:#000;
-    font-size:16px;
-    font-weight:700;
-    cursor:pointer;
-    margin-top:10px;
-}
-
-.social{
-    display:grid;
-    gap:10px;
-    margin-top:15px;
-}
-
-.google{
-    background:#fff;
-    color:#000;
-}
-
-.facebook{
-    background:#1877F2;
-    color:#fff;
-}
-
-.bottom{
-    text-align:center;
-    margin-top:20px;
-}
-
-.bottom a{
-    color:#ffd700;
-    text-decoration:none;
-}
-
-</style>
-
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Register - FIFABOY</title>
+    <link rel="stylesheet" href="css/style.css">
 </head>
-
 <body>
-
-<div class="register-box">
-
-<div class="logo">
-⚽ FIFABOY
-</div>
-
-<div class="sub">
-Create Your Account
-</div>
-
-<div class="input">
-<input type="text" id="username" placeholder="Username">
-</div>
-
-<div class="input">
-<input type="email" id="email" placeholder="Email">
-</div>
-
-<div class="input">
-<input type="password" id="password" placeholder="Password">
-</div>
-
-<button id="registerBtn">
-Create Account
-</button>
-
-<div class="social">
-
-<button class="google" id="googleBtn">
-Continue with Google
-</button>
-
-<button class="facebook" id="facebookBtn">
-Continue with Facebook
-</button>
-
-</div>
-
-<div class="bottom">
-Already have an account?
-<a href="login.html">Login</a>
-</div>
-
-</div>
-
-<script>
-
-registerBtn.onclick=async()=>{
-
-    const {error}=await supabase.auth.signUp({
-
-        email:email.value,
-
-        password:password.value,
-
-        options:{
-            data:{
-                username:username.value
+    <div class="auth-container">
+        <h1>FIFABOY</h1>
+        <h2>Create Your Account</h2>
+        
+        <div id="error-message" style="color: red; display: none;"></div>
+        
+        <form id="register-form">
+            <input type="text" id="username" placeholder="Username" required>
+            <input type="email" id="email" placeholder="Email" required>
+            <input type="password" id="password" placeholder="Password (min 6 characters)" required>
+            <button type="submit" id="register-btn">Create Account</button>
+        </form>
+        
+        <div class="divider">or</div>
+        
+        <button onclick="googleLogin()" class="social-btn google">
+            Continue with Google
+        </button>
+        <button onclick="facebookLogin()" class="social-btn facebook">
+            Continue with Facebook
+        </button>
+        
+        <p>Already have an account? <a href="login.html">Login</a></p>
+    </div>
+    
+    <!-- Supabase JS -->
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    
+    <!-- Your supabase.js -->
+    <script src="js/supabase.js"></script>
+    
+    <script>
+        // Register form handler
+        document.addEventListener('DOMContentLoaded', () => {
+            const form = document.getElementById('register-form');
+            const errorDiv = document.getElementById('error-message');
+            const btn = document.getElementById('register-btn');
+            
+            if (form) {
+                form.addEventListener('submit', async (e) => {
+                    e.preventDefault();
+                    
+                    const username = document.getElementById('username').value.trim();
+                    const email = document.getElementById('email').value.trim();
+                    const password = document.getElementById('password').value;
+                    
+                    // Validation
+                    errorDiv.style.display = 'none';
+                    
+                    if (!username || !email || !password) {
+                        errorDiv.textContent = 'Please fill all fields';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    if (username.length < 3) {
+                        errorDiv.textContent = 'Username must be at least 3 characters';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    if (password.length < 6) {
+                        errorDiv.textContent = 'Password must be at least 6 characters';
+                        errorDiv.style.display = 'block';
+                        return;
+                    }
+                    
+                    // Disable button
+                    btn.disabled = true;
+                    btn.textContent = 'Creating...';
+                    
+                    // Call signup function
+                    const result = await signUp(email, password, username);
+                    
+                    // Enable button
+                    btn.disabled = false;
+                    btn.textContent = 'Create Account';
+                    
+                    if (!result) {
+                        errorDiv.textContent = 'Sign up failed. Please try again.';
+                        errorDiv.style.display = 'block';
+                    }
+                });
             }
-        }
-
-    });
-
-    if(error){
-
-        alert(error.message);
-
-        return;
-
-    }
-
-    alert("Registration Successful. Please verify your email.");
-
-    location.href="login.html";
-
-};
-
-googleBtn.onclick=async()=>{
-
-    await supabase.auth.signInWithOAuth({
-        provider:"google"
-    });
-
-};
-
-facebookBtn.onclick=async()=>{
-
-    await supabase.auth.signInWithOAuth({
-        provider:"facebook"
-    });
-
-};
-
-</script>
-
+        });
+    </script>
 </body>
 </html>

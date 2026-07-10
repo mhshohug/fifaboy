@@ -146,7 +146,6 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// 🎯 মিডিয়া এমবেড হ্যান্ডেল করার একদম সঠিক ও ক্লিন জাভাস্ক্রিপ্ট ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -159,7 +158,7 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook (পাইথনের ওরিজিনাল ক্লিন রিল লিংক সরাসরি আইফ্রেমে প্লে হবে)
+    // ২. Facebook
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let finalUrl = url;
         if (!url.includes("video/embed") && !url.includes("plugins/video.php")) {
@@ -169,7 +168,7 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container"><iframe src="' + finalUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>';
     }
     
-    // ৩. TikTok (সরাসরি সাইটেই প্লে হবে)
+    // ৩. TikTok
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -182,22 +181,19 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-        // ৫. Instagram (অফিসিয়াল blockquote মেথড - স্ক্রিপ্ট ট্যাগ ছাড়া)
+    // ৫. Instagram (মেতার কড়া ব্লকিং ভাঙার আসল অফিশিয়াল উইজেট মেথড)
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
         
         return '<div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center; width:100%;">' +
-               '<blockquote class="instagram-media" data-instgrm-permalink="' + cleanUrl + '" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff; min-height:500px;"></blockquote>' +
+               '<blockquote class="instagram-media" data-instgrm-permalink="' + cleanUrl + '" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff; min-height:500px; width:100%;"></blockquote>' +
                '</div>';
     }
-
-
     
     return '<img src="' + url + '" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">';
 }
-
 
 async function initPage(){
     try {
@@ -238,7 +234,7 @@ async function loadPosts() {
         POSTS = data || [];
         renderPosts(POSTS);
     } catch (e) {
-        if(feedSection) feedSection.innerHTML = `<div class="error" style="color:#ff6b6b; text-align:center; padding:20px;">Failed to load: ${e.message}</div>`;
+        if(feedSection) feedSection.innerHTML = '<div class="error" style="color:#ff6b6b; text-align:center; padding:20px;">Failed to load: ' + e.message + '</div>';
     }
 }
 
@@ -246,7 +242,7 @@ function renderPosts(postsList) {
     const feedSection = document.getElementById("feed");
     if (!feedSection) return;
     if (!postsList || postsList.length === 0) {
-        feedSection.innerHTML = `<div class="no-posts" style="text-align:center; padding:20px; color:#aaa;">No evidence found.</div>`;
+        feedSection.innerHTML = '<div class="no-posts" style="text-align:center; padding:20px; color:#aaa;">No evidence found.</div>';
         return;
     }
     feedSection.innerHTML = "";
@@ -293,8 +289,10 @@ function renderPosts(postsList) {
         `;
         feedSection.appendChild(postCard);
     });
-        if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
-    
+
+    if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
+
+    // ডাইনামিক পোস্ট লোড হওয়ার পর ইনস্টাগ্রাম উইজেটকে ফোর্স রান করা
     if (window.instgrm && window.instgrm.Embeds) {
         window.instgrm.Embeds.process();
     } else {
@@ -307,7 +305,6 @@ function renderPosts(postsList) {
         document.body.appendChild(script);
     }
 }
-
 
 function viewPublicProfile(uid) {
     if(!uid) return;

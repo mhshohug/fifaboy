@@ -1,79 +1,40 @@
-<!-- login.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Login - FIFABOY</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <div class="auth-container">
-        <h1>FIFABOY</h1>
-        <h2>Welcome Back</h2>
-        
-        <div id="error-message" style="color: red; display: none;"></div>
-        
-        <form id="login-form">
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password" required>
-            <button type="submit" id="login-btn">Login</button>
-        </form>
-        
-        <div class="divider">or</div>
-        
-        <button onclick="googleLogin()" class="social-btn google">
-            Continue with Google
-        </button>
-        <button onclick="facebookLogin()" class="social-btn facebook">
-            Continue with Facebook
-        </button>
-        
-        <p>Don't have an account? <a href="register.html">Register</a></p>
-    </div>
+<script>
+async function loginUser() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
     
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    
-    <!-- Your supabase.js -->
-    <script src="js/supabase.js"></script>
-    
-    <script>
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('login-form');
-            const errorDiv = document.getElementById('error-message');
-            const btn = document.getElementById('login-btn');
-            
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const email = document.getElementById('email').value.trim();
-                    const password = document.getElementById('password').value;
-                    
-                    errorDiv.style.display = 'none';
-                    
-                    if (!email || !password) {
-                        errorDiv.textContent = 'Please fill all fields';
-                        errorDiv.style.display = 'block';
-                        return;
-                    }
-                    
-                    btn.disabled = true;
-                    btn.textContent = 'Logging in...';
-                    
-                    const result = await signIn(email, password);
-                    
-                    btn.disabled = false;
-                    btn.textContent = 'Login';
-                    
-                    if (!result) {
-                        errorDiv.textContent = 'Login failed. Please try again.';
-                        errorDiv.style.display = 'block';
-                    }
-                });
-            }
+    const loginBtn = document.getElementById("loginLink") || document.querySelector("button");
+    const originalText = loginBtn.innerText;
+
+    if(!email || !password) {
+        alert("ইমেইল এবং পাসওয়ার্ড দিন!");
+        return;
+    }
+
+    try {
+        loginBtn.innerText = "Logging in...";
+        loginBtn.disabled = true;
+
+        // Supabase-এ লগইন রিকোয়েস্ট
+        const { data, error } = await supabase.auth.signInWithPassword({
+            email: email,
+            password: password,
         });
-    </script>
-</body>
-</html>
+
+        if (error) throw error;
+
+        if (data.user) {
+            alert("লগইন সফল হয়েছে!");
+            window.location.href = "index.html"; // সরাসরি হোম পেজে ব্যাক করবে
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("লগইন করা যায়নি: " + e.message);
+    } finally {
+        loginBtn.innerText = originalText;
+        loginBtn.disabled = false;
+    }
+}
+// আপনার লগইন বাটনের onclick="loginUser()" সেট করে দিন
+</script>

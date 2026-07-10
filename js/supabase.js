@@ -13,6 +13,11 @@ console.log('✅ Supabase connected');
 // SIGN UP
 // =========================
 
+// =========================
+// AUTH FUNCTIONS  ← এই সেকশন খুঁজো
+// =========================
+
+// 📝 Sign Up (register)  ← এই ফাংশনটা রিপ্লেস করো
 async function signUp(email, password, username) {
     try {
         console.log('1️⃣ SignUp started');
@@ -21,19 +26,21 @@ async function signUp(email, password, username) {
             email: email,
             password: password,
             options: {
-                data: { username: username }
+                data: { username: username },
+                emailRedirectTo: window.location.origin + '/login.html'
             }
         });
 
         console.log('2️⃣ Response:', { data, error });
 
         if (error) {
+            console.error('❌ Error:', error);
             alert('❌ ' + error.message);
             return false;
         }
 
         if (data.user) {
-            console.log('3️⃣ User created');
+            console.log('3️⃣ User created:', data.user.id);
             
             const { error: pe } = await supabase
                 .from('profiles')
@@ -44,11 +51,12 @@ async function signUp(email, password, username) {
                 });
             
             if (pe) {
-                console.log('4️⃣ Profile error:', pe);
-            } else {
-                console.log('4️⃣ Profile created');
+                console.error('4️⃣ Profile error:', pe);
+                alert('⚠️ Profile creation failed: ' + pe.message);
+                return false;
             }
             
+            console.log('4️⃣ Profile created!');
             alert('✅ Account created! Please login.');
             window.location.href = 'login.html';
             return true;
@@ -57,33 +65,7 @@ async function signUp(email, password, username) {
         return false;
 
     } catch (err) {
-        console.error('❌ Error:', err);
-        alert('Error: ' + err.message);
-        return false;
-    }
-}
-
-// =========================
-// SIGN IN
-// =========================
-
-async function signIn(email, password) {
-    try {
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password
-        });
-
-        if (error) {
-            alert('❌ ' + error.message);
-            return false;
-        }
-
-        alert('✅ Welcome back!');
-        window.location.href = 'index.html';
-        return true;
-
-    } catch (err) {
+        console.error('❌ Catch error:', err);
         alert('Error: ' + err.message);
         return false;
     }

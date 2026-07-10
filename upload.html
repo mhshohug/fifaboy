@@ -3,135 +3,269 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>Upload Post | FIFABOY</title>
+<title>FIFABOY | Messi Watch</title>
+<meta name="description" content="Community Archive of Football Refereeing Discussions">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
+<div id="fb-root"></div>
+<script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"></script>
 <style>
-    body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; margin: 0; padding-bottom: 40px; }
-    nav { background: #2a2a2a; padding: 15px 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; }
-    nav .logo { font-size: 20px; font-weight: bold; color: #3ecf8e; text-decoration: none; }
-    .btn-back { color: #ccc; text-decoration: none; font-size: 14px; background: #333; padding: 6px 12px; border-radius: 4px; }
-    .btn-back:hover { background: #444; color: white; }
-    
-    .container { max-width: 500px; margin: 40px auto; background: #2a2a2a; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); width: 90%; box-sizing: border-box; }
-    h1 { margin-top: 0; color: #3ecf8e; text-align: center; font-size: 24px; }
-    
-    .input { margin-bottom: 18px; text-align: left; }
-    .input label { display: block; margin-bottom: 6px; font-size: 14px; color: #3ecf8e; font-weight: 500; }
-    .input input, .input textarea, .input select {
-        width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; font-family: inherit; font-size: 15px;
-    }
-    .input textarea { resize: none; }
-    .input input:focus, .input textarea:focus, .input select:focus { outline: none; border-color: #3ecf8e; }
-    
-    button[type="submit"] { width: 100%; background: #3ecf8e; color: white; border: none; padding: 14px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; }
-    button[type="submit"]:disabled { background: #555; cursor: not-allowed; }
+/* এমবেড করা মিডিয়া বক্সের সুন্দর রেসপনসিভ সাইজ */
+.embed-container {
+    margin-top: 12px;
+    width: 100%;
+    max-width: 100%;
+    overflow: hidden;
+    border-radius: 8px;
+    background: #1f1f1f;
+    display: flex;
+    justify-content: center;
+}
+.embed-container iframe {
+    border: none;
+    width: 100%;
+    min-height: 315px;
+}
 </style>
 </head>
 <body>
 
-<nav>
-    <a href="index.html" class="logo">⚽ FIFABOY</a>
-    <a href="index.html" class="btn-back">← Home</a>
+<nav class="navbar">
+<div class="logo">
+⚽ <span>FIFABOY</span>
+</div>
+<div class="menu">
+<a href="index.html">Home</a>
+<a href="#feed">Feed</a>
+<a href="login.html" id="loginLink">Login</a>
+<a href="register.html" id="registerLink">Register</a>
+<a href="profile.html" id="profileLink" style="display:none;">Profile</a>
+<a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+<a href="#" id="logoutLink" style="display:none;" onclick="logout();return false;">Logout</a>
+</div>
 </nav>
 
-<div class="container">
-    <h1>Create New Post</h1>
-
-    <form id="uploadForm" onsubmit="submitPost(event)">
-        <div class="input">
-            <label>Title / Match Name</label>
-            <input type="text" id="title" placeholder="e.g., Real Madrid vs Barcelona - VAR Check" required>
-        </div>
-
-        <div class="input">
-            <label>Category / Platform</label>
-            <select id="platform" required>
-                <option value="Penalty">Penalty</option>
-                <option value="Red Card">Red Card</option>
-                <option value="Handball">Handball</option>
-                <option value="VAR">VAR</option>
-                <option value="Community">Community</option>
-            </select>
-        </div>
-
-        <div class="input">
-            <label>Description / Detailed Analysis</label>
-            <textarea id="description" rows="5" placeholder="Explain what happened..."></textarea>
-        </div>
-
-        <div class="input">
-            <label>Evidence Link (YouTube, Facebook, TikTok, X, Insta, or Direct Image URL)</label>
-            <input type="url" id="url" placeholder="Paste the link here...">
-        </div>
-
-        <button type="submit" id="submitBtn">Publish Post</button>
-    </form>
+<section class="hero">
+<h1>MESSI WATCH</h1>
+<p>Community Archive of Football Refereeing Discussions Involving Lionel Messi</p>
+<div class="buttons">
+<button id="explore" onclick="document.getElementById('feed').scrollIntoView({behavior:'smooth'})">
+Explore Evidence
+</button>
+<button id="upload" onclick="openUpload()">
+Upload Evidence
+</button>
 </div>
+</section>
+
+<section class="notice">
+⚠️ Community submitted content. Verify information before sharing.
+</section>
+
+<section class="search">
+<input id="search" type="text" placeholder="Search player, match, tournament...">
+</section>
+
+<section class="categories">
+<button>Latest</button>
+<button>Trending</button>
+<button>Penalty</button>
+<button>Red Card</button>
+<button>Handball</button>
+<button>VAR</button>
+<button>Community</button>
+</section>
+
+<section id="feed">
+<div class="loading">
+Loading Posts...
+</div>
+</section>
+
+<button id="fab" onclick="openUpload()">+</button>
+
+<button id="topBtn" onclick="scrollTopPage()">⬆</button>
+
+<footer>
+<h2>⚽ FIFABOY</h2>
+<p>Watch • Verify • Discuss</p>
+<p>©2026 FIFABOY</p>
+</footer>
 
 <script>
-// সুপাবেস কানেকশন
+// ১. সুপাবেস কানেকশন ইনিশিয়াল করা
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUserId = null;
 
-// পেজ লোড হলেই চেক করবে ইউজার লগইন আছে কিনা
-window.addEventListener('DOMContentLoaded', async () => {
-    const { data: { user } } = await mySupabase.auth.getUser();
-    if (!user) {
-        alert("পোস্ট করতে প্রথমে লগইন করুন!");
-        window.location.href = "login.html";
-    } else {
-        currentUserId = user.id;
-    }
-});
+let POSTS = [];
+let isLoggedIn = false;
 
-// ফর্ম সাবমিট হ্যান্ডেল করার মেইন ফাংশন
-async function submitPost(event) {
-    event.preventDefault(); // পেজ রিফ্রেশ হওয়া বন্ধ করা
+// স্মার্ট মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর
+function getMediaEmbedHTML(url) {
+    if (!url) return "";
     
-    if (!currentUserId) return;
+    // ①. YouTube ভিডিও অথবা Shorts ডিটেকশন
+    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+        let videoId = "";
+        if (url.includes("shorts/")) {
+            videoId = url.split("shorts/")[1].split("?")[0];
+        } else if (url.includes("v=")) {
+            videoId = url.split("v=")[1].split("&")[0];
+        } else if (url.includes("youtu.be/")) {
+            videoId = url.split("youtu.be/")[1].split("?")[0];
+        }
+        return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+    }
 
-    const title = document.getElementById("title").value.trim();
-    const platform = document.getElementById("platform").value;
-    const description = document.getElementById("description").value.trim();
-    const url = document.getElementById("url").value.trim();
-    const submitBtn = document.getElementById("submitBtn");
+    // ②. Facebook ভিডিও অথবা পোস্ট ডিটেকশন
+    if (url.includes("facebook.com") || url.includes("fb.watch")) {
+        return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
+    }
 
+    // ③. TikTok ভিডিও ডিটেকশন
+    if (url.includes("tiktok.com")) {
+        let videoId = url.split("/video/")[1]?.split("?")[0];
+        if (videoId) {
+            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:500px;"></iframe></div>`;
+        }
+        return `<div class="embed-container"><blockquote class="tiktok-embed" style="max-width: 605px;min-width: 325px;" ><section><a target="_blank" href="${url}">Watch TikTok Video</a></section></blockquote></div>`;
+    }
+
+    // ④. Twitter/X পোস্ট ডিটেকশন
+    if (url.includes("twitter.com") || url.includes("x.com")) {
+        return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
+    }
+
+    // ⑤. Instagram পোস্ট বা রিল ডিটেকশন
+    if (url.includes("instagram.com")) {
+        let cleanUrl = url.split("?")[0] + "embed";
+        return `<div class="embed-container"><iframe src="${cleanUrl}" style="min-height:450px;"></iframe></div>`;
+    }
+
+    // ⑥. সাধারণ ডাইরেক্ট ইমেজ (jpg, png, gif) হলে
+    return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
+}
+
+// ইউজার স্টেট চেক
+async function initPage(){
     try {
-        submitBtn.innerText = "Publishing...";
-        submitBtn.disabled = true;
+        const { data: { user }, error: userError } = await mySupabase.auth.getUser();
+        const login = document.getElementById("loginLink");
+        const register = document.getElementById("registerLink");
+        const profile = document.getElementById("profileLink");
+        const admin = document.getElementById("adminLink");
+        const logoutBtn = document.getElementById("logoutLink");
 
-        // সুপাবেসের posts টেবিলে ডাটা ইনসার্ট
-        const { error } = await mySupabase
-            .from('posts')
-            .insert([
-                {
-                    user_id: currentUserId,
-                    title: title,
-                    platform: platform,
-                    description: description,
-                    url: url || null
-                }
-            ]);
+        if(user){
+            isLoggedIn = true;
+            if(login) login.style.display = "none";
+            if(register) register.style.display = "none";
+            if(profile) profile.style.display = "inline-block";
+            if(logoutBtn) logoutBtn.style.display = "inline-block";
 
+            const { data: profileData } = await mySupabase.from('profiles').select('role').eq('id', user.id).single();
+            if(profileData && profileData.role === 'admin' && admin){
+                admin.style.display = "inline-block";
+            }
+        } else {
+            isLoggedIn = false;
+            if(login) login.style.display = "inline-block";
+            if(register) register.style.display = "inline-block";
+            if(profile) profile.style.display = "none";
+            if(admin) admin.style.display = "none";
+            if(logoutBtn) logoutBtn.style.display = "none";
+        }
+    } catch(e) { console.error(e); }
+}
+
+// Supabase থেকে সব পোস্ট রিড করা
+async function loadPosts() {
+    const feedSection = document.getElementById("feed");
+    try {
+        const { data, error } = await mySupabase.from('posts').select('*').order('created_at', { ascending: false });
         if (error) throw error;
-
-        alert("আপনার পোস্টটি সফলভাবে পাবলিশ হয়েছে!");
-        window.location.href = "index.html"; // সফল হলে সরাসরি হোম পেজে ফেরত যাবে
-
+        POSTS = data || [];
+        renderPosts(POSTS);
     } catch (e) {
-        alert("ভুল হয়েছে: " + e.message);
-        console.error(e);
-    } finally {
-        submitBtn.innerText = "Publish Post";
-        submitBtn.disabled = false;
+        if(feedSection) feedSection.innerHTML = `<div class="error" style="color:#ff6b6b; text-align:center; padding:20px;">Failed to load posts: ${e.message}</div>`;
     }
 }
-</script>
 
+// ফিডে পোস্ট রেন্ডার করা
+function renderPosts(postsList) {
+    const feedSection = document.getElementById("feed");
+    if (!feedSection) return;
+    if (!postsList || postsList.length === 0) {
+        feedSection.innerHTML = `<div class="no-posts" style="text-align:center; padding:20px; color:#aaa;">No evidence found. Be the first to upload!</div>`;
+        return;
+    }
+    feedSection.innerHTML = "";
+    postsList.forEach(post => {
+        const postCard = document.createElement("div");
+        postCard.className = "post-card";
+        
+        let mediaHTML = getMediaEmbedHTML(post.url);
+
+        postCard.innerHTML = `
+            <div class="post-header" style="display:flex; justify-content:space-between; align-items:center;">
+                <h3 style="margin:0; color:#3ecf8e;">${post.title || "Untitled Discussion"}</h3>
+                <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px;">${post.platform || "Community"}</span>
+            </div>
+            <p class="post-desc" style="color:#ccc; margin-top:10px; line-height:1.5;">${post.description || ""}</p>
+            ${mediaHTML}
+            <div class="post-footer" style="margin-top:12px; font-size:11px; color:#666;">
+                <small>Posted on: ${new Date(post.created_at).toLocaleDateString()}</small>
+            </div>
+        `;
+        feedSection.appendChild(postCard);
+    });
+
+    // সোশ্যাল মিডিয়া উইজেট রিলোড করা (যাতে লাইভ স্ক্রিপ্ট লোড হয়)
+    if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
+    if(window.FB) window.FB.XFBML.parse();
+}
+
+// সরাসরি আপনার তৈরি করা upload.html পেজে নিয়ে যাবে
+function openUpload() {
+    if (!isLoggedIn) {
+        alert("পোস্ট আপলোড করতে প্রথমে লগইন করুন!");
+        window.location.href = "login.html";
+        return;
+    }
+    window.location.href = "upload.html";
+}
+
+async function logout() {
+    await mySupabase.auth.signOut();
+    alert("Logged out successfully!");
+    window.location.reload();
+}
+
+function scrollTopPage() { window.scrollTo({ top: 0, behavior: 'smooth' }); }
+
+window.addEventListener("scroll", () => {
+    const top = document.getElementById("topBtn");
+    if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
+});
+
+document.getElementById("search").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    const filtered = POSTS.filter(post =>
+        (post.title || "").toLowerCase().includes(q) ||
+        (post.description || "").toLowerCase().includes(q) ||
+        (post.platform || "").toLowerCase().includes(q)
+    );
+    renderPosts(filtered);
+});
+
+window.addEventListener("DOMContentLoaded", () => {
+    initPage();
+    loadPosts();
+});
+</script>
 </body>
 </html>

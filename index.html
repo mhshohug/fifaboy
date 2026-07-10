@@ -45,23 +45,6 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* শর্ট লিংক হেল্পার বাটন স্টাইল */
-.link-helper-btn {
-    display: none;
-    margin-top: 8px;
-    background: #4267B2;
-    color: white;
-    border: none;
-    padding: 10px 12px;
-    border-radius: 6px;
-    font-size: 13px;
-    font-weight: bold;
-    cursor: pointer;
-    width: 100%;
-    text-align: center;
-}
-.tiktok-color { background: #ff0050; }
-
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -78,6 +61,27 @@
     min-height: 500px;
 }
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
+
+/* ইনস্ট্যান্ট ব্যাকআপ বাটনের স্টাইল */
+.instant-btn-holder {
+    padding: 20px; 
+    text-align: center; 
+    background: #1e1e1e; 
+    border: 1px solid #333; 
+    border-radius: 8px; 
+    margin-top: 12px;
+}
+.instant-btn {
+    display: inline-block; 
+    color: white; 
+    padding: 10px 20px; 
+    border-radius: 6px; 
+    text-decoration: none; 
+    font-weight: bold; 
+    font-size: 14px;
+}
+.fb-btn { background: #4267B2; }
+.tiktok-btn { background: #ff0050; }
 </style>
 </head>
 <body>
@@ -118,6 +122,7 @@
 <div class="loading">Loading Posts...</div>
 </section>
 
+<!-- 📁 আপলোড মডাল -->
 <div id="uploadModal" class="modal">
     <div class="modal-content">
         <h2>📁 Upload Evidence</h2>
@@ -137,26 +142,11 @@
         <textarea id="postDesc" placeholder="Describe the refereeing decision in details..."></textarea>
         
         <label for="postUrl">Social Link (YouTube, FB, TikTok, X, Insta) or Direct Image URL</label>
-        <input type="text" id="postUrl" placeholder="Paste video/photo link here" oninput="validateInputUrl(this.value)">
-        
-        <button type="button" id="linkHelperBtn" class="link-helper-btn" onclick="openLinkForExpansion()">
-            🔗 শর্ট লিংক সনাক্ত হয়েছে! ফুল লিংক বের করতে ক্লিক করুন
-        </button>
+        <input type="text" id="postUrl" placeholder="Paste video/photo link here">
         
         <div class="modal-buttons">
             <button id="submitPostBtn" class="btn-submit" onclick="submitNewPost()">Submit Post</button>
             <button class="btn-close" onclick="closeUpload()">Cancel</button>
-        </div>
-    </div>
-</div>
-
-<div id="webViewModal" class="modal" style="z-index: 3000;">
-    <div class="modal-content" style="max-width: 95%; width: 500px; height: 80vh; display: flex; flex-direction: column; padding: 15px;">
-        <h3 style="margin-top:0; color:#3ecf8e; text-align:center; font-size:14px;">🌐 ইন-ওয়েবসাইট ব্রাউজার ভিউ</h3>
-        <p style="font-size:11px; color:#aaa; margin:0 0 10px; text-align:center;">লিংক লোড হলে ওখান থেকে পরিবর্তিত মূল ফুল ইউআরএলটি কপি করে নিন ভাই।</p>
-        <iframe id="webViewFrame" src="" style="width: 100%; flex: 1; border: 1px solid #444; border-radius: 8px; background: white;"></iframe>
-        <div class="modal-buttons" style="margin-top: 10px;">
-            <button class="btn-close" onclick="closeWebViewModal()" style="padding: 8px;">Done / Close</button>
         </div>
     </div>
 </div>
@@ -179,36 +169,10 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-function validateInputUrl(val) {
-    const helperBtn = document.getElementById("linkHelperBtn");
-    if (val.includes("vt.tiktok.com") || val.includes("vm.tiktok.com")) {
-        helperBtn.className = "link-helper-btn tiktok-color";
-        helperBtn.innerText = "🎵 টিকটক শর্ট লিংক! ফুল ইউআরএল বের করতে এখানে ক্লিক করুন";
-        helperBtn.style.display = "block";
-    } else if (val.includes("fb.watch") || val.includes("facebook.com/share")) {
-        helperBtn.className = "link-helper-btn";
-        helperBtn.innerText = "📘 ফেসবুক শেয়ার লিংক! ফুল ইউআরএল বের করতে এখানে ক্লিক করুন";
-        helperBtn.style.display = "block";
-    } else {
-        helperBtn.style.display = "none";
-    }
-}
-
-function openLinkForExpansion() {
-    const rawUrl = document.getElementById("postUrl").value.trim();
-    if (rawUrl) {
-        document.getElementById("webViewFrame").src = rawUrl;
-        document.getElementById("webViewModal").style.display = "flex";
-    }
-}
-
-function closeWebViewModal() {
-    document.getElementById("webViewModal").style.display = "none";
-    document.getElementById("webViewFrame").src = "";
-}
-
 function getMediaEmbedHTML(url) {
     if (!url) return "";
+    
+    // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
@@ -216,23 +180,57 @@ function getMediaEmbedHTML(url) {
         else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].split("?")[0];
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
+    
+    // ২. Facebook
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        let cleanUrl = url.split("?")[0];
-        return `<div class="embed-container"><iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
+        // যদি পাইথন এখনো ব্যাকগ্রাউন্ডে কনভার্ট না করে থাকে (শর্ট লিংক অবস্থায় থাকে), তবে ব্যাকআপ বাটন দেখাবে
+        if (url.includes("fb.watch") || url.includes("facebook.com/share")) {
+            return `
+            <div class="instant-btn-holder">
+                <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">📘 ফেসবুক শর্ট লিংক (ব্যাকগ্রাউন্ডে প্রসেস হচ্ছে)</p>
+                <a href="${url}" target="_blank" class="instant-btn fb-btn">▶️ Watch Video on Facebook</a>
+            </div>`;
+        }
+        
+        // পাইথন কনভার্ট করে ওরিজিনাল এমবেড লিংক বানালে বা ফুল লিংক দিলে সরাসরি আইফ্রেমে ভিডিও চলবে
+        let finalFbUrl = url;
+        if (!url.includes("plugins/video.php")) {
+            let cleanUrl = url.split("?")[0];
+            finalFbUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false`;
+        }
+        return `<div class="embed-container"><iframe src="${finalFbUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
     }
+    
+    // ৩. TikTok (আপনার ওরিজিনাল অক্ষত টিকটক প্লেয়ার কোড)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
+        
+        // পাইথন কনভার্ট করার আগ পর্যন্ত ৫ মিনিটের গ্যাপে ব্যাকআপ বাটন দেখাবে
+        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
+            return `
+            <div class="instant-btn-holder">
+                <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">🎵 টিকটক শর্ট লিংক (ওপেন করতে ক্লিক করুন)</p>
+                <a href="${url}" target="_blank" class="instant-btn tiktok-btn">▶️ Watch Video on TikTok</a>
+            </div>`;
+        }
+        
+        // পাইথন ফুল লিংক বানিয়ে ফেলার পর ডিরেক্ট আপনার চেনা ওরিজিনাল প্লেয়ার চালু হবে
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
         return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
     }
+    
+    // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
+    
+    // ৫. Instagram
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
         return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
     }
+    
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
 
@@ -349,7 +347,6 @@ function closeUpload() {
     document.getElementById("postTitle").value = "";
     document.getElementById("postDesc").value = "";
     document.getElementById("postUrl").value = "";
-    document.getElementById("linkHelperBtn").style.display = "none";
 }
 
 async function submitNewPost() {
@@ -360,14 +357,14 @@ async function submitNewPost() {
     const submitBtn = document.getElementById("submitPostBtn");
 
     if (!title || !description) { alert("টাইটেল এবং ডেসক্রিপশন লিখুন!"); return; }
-    
+
     try {
         submitBtn.innerText = "Uploading..."; submitBtn.disabled = true;
         const { error } = await mySupabase.from('posts').insert([{
             user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null
         }]);
         if (error) throw error;
-        alert("সফলভাবে আপলোড হয়েছে!"); closeUpload(); loadPosts();
+        alert("সফলভাবে আপলোড হয়েছে! ব্যাকগ্রাউন্ডে ভিডিও প্রসেস হচ্ছে ভাই।"); closeUpload(); loadPosts();
     } catch (e) { alert("Error: " + e.message); } 
     finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }

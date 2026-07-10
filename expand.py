@@ -13,29 +13,21 @@ def get_full_url(short_url: str) -> str:
     if not short_url:
         return short_url
 
-    # ফেসবুকের রিডাইরেক্ট ভাঙার জন্য কড়া মোবাইল ব্রাউজার হেডার
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.5',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'Accept-Language': 'en-US,en;q=0.9',
+        'Connection': 'keep-alive'
     }
 
     try:
         session = requests.Session()
         session.headers.update(headers)
 
-        # রিডাইরেক্ট ফলো করে মেইন ইউআরএল হিট করা
+        # ১. শর্ট লিংকের আসল রিডাইরেক্ট লোকেশন বের করা
         response = session.get(short_url, timeout=15, allow_redirects=True)
         final_url = response.url
-        
-        # ট্রিক: যদি ডিরেক্ট response.url এও ফেসবুকের মেইন লিংক না আসে, তবে রিডাইরেক্ট হিস্ট্রি চেক করা
-        if response.history:
-            for resp in response.history:
-                if "facebook.com/reel/" in resp.headers.get('Location', '') or "facebook.com/videos/" in resp.headers.get('Location', ''):
-                    final_url = resp.headers['Location']
-                    break
+        html_content = response.text
 
         check_url = final_url.lower()
         check_short = short_url.lower()
@@ -47,34 +39,33 @@ def get_full_url(short_url: str) -> str:
                 clean_url += '/'
             return clean_url
 
-        # ====================== 📘 FACEBOOK FIXED METHOD ======================
+        # ====================== 📘 FACEBOOK (আপনার চাওয়া পারফেক্ট reel/ID ফরম্যাট) ======================
         if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
             
-            # ফেসবুকের যদি মোবাইল বা ডেস্কটপ আসল রিল/ভিডিও লোকেশন চলে আসে
-            if "reel/" in final_url or "reels/" in final_url or "videos/" in final_url or "watch/" in final_url:
-                clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
-                if clean_url.endswith('/'):
-                    clean_url = clean_url[:-1]
-                
-                # যদি লিংকে /reels/ থাকে, সেটাকে স্ট্যান্ডার্ড /reel/ করে দেওয়া যেন আইফ্রেম রিড করতে পারে
-                if "/reels/" in clean_url:
-                    clean_url = clean_url.replace("/reels/", "/reel/")
-                    
-                return clean_url
+            # মেথড A: যদি রিডাইরেক্ট ইউআরএল বা ওরিজিনাল এইচটিএমএল মেটা ট্যাগের ভেতর ওরিজিনাল রিল আইডি পাওয়া যায়
+            combined_text = final_url + " " + html_content
+            
+            # ফেসবুক রিলের ১৫-১৬ ডিজিটের ইউনিক আইডি খুঁজে বের করার মাস্টার রেগুলার এক্সপ্রেশন
+            fb_id_match = re.search(r'(?:reel|reels|video|v|audio)/([0-9]{12,20})', combined_text)
+            
+            if fb_id_match:
+                reel_id = fb_id_match.group(1)
+                # ডিরেক্ট আপনার চাওয়া নিখুঁত আউটপুট ফরম্যাট তৈরি
+                return f"https://www.facebook.com/reel/{reel_id}"
+            
+            # মেথড B: ওএমবেড ব্যাকআপ প্লাগইন থেকে আইডি খোঁজা
+            oembed_url = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
+            try:
+                api_res = session.get(oembed_url, timeout=7)
+                if api_res.status_code == 200:
+                    html_box = api_res.json().get("html", "")
+                    api_id_match = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', html_box)
+                    if api_id_match:
+                        return f"https://www.facebook.com/reel/{api_id_match.group(1)}"
+            except Exception:
+                pass
 
-            # ব্যাকআপ রেগুলার এক্সপ্রেশন (যদি রিডাইরেক্টের পরেও /share/ থেকে যায়)
-            html = response.text
-            og_url_match = re.search(r'<meta\s+property=["\']og:url["\']\s+content=["\']([^"\']+)["\']', html)
-            if og_url_match:
-                fb_real_url = og_url_match.group(1)
-                clean_url = fb_real_url.split("?")[0].split("&")[0].split("#")[0]
-                if clean_url.endswith('/'):
-                    clean_url = clean_url[:-1]
-                if "/reels/" in clean_url:
-                    clean_url = clean_url.replace("/reels/", "/reel/")
-                return clean_url
-
-            # কোনো লজিক কাজ না করলে একদম ফ্রেশ ট্র্যাকিং কাটা লিংক
+            # মেথড C: যদি কোনো আইডিই ম্যাচ না করে, তবে অন্তত ট্র্যাকিং কেটে মেইন পার্ট রাখা
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
             if clean_url.endswith('/'):
                 clean_url = clean_url[:-1]

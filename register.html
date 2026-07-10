@@ -8,7 +8,6 @@
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="js/supabase.js"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
         .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 100%; max-width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; }
@@ -32,6 +31,12 @@
 </div>
 
 <script>
+// সরাসরি আপনার প্রজেক্টের সাথে কানেক্ট করা হলো
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+
+const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
 async function registerUser() {
     const email = document.getElementById("email").value.trim();
     const password = document.getElementById("password").value.trim();

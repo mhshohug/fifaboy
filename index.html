@@ -163,7 +163,7 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook
+    // ২. Facebook (Direct Iframe Injection - No API, No CORS restrictions)
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
         setTimeout(() => {
             fetchFacebookEmbed(url, containerId);
@@ -179,7 +179,7 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.tiktok.com/embed/' + videoId + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
     
-    // ۴. Twitter/X
+    // ৪. Twitter/X
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
@@ -201,28 +201,14 @@ async function fetchFacebookEmbed(facebookUrl, targetId) {
 
     try {
         let cleanUrl = facebookUrl.split("?")[0].split("&")[0].split("#")[0];
-        let oembedUrl = "https://www.facebook.com/plugins/video/oembed.json?url=" + encodeURIComponent(cleanUrl);
         
-        let res = await fetch(oembedUrl);
-        if (res.ok) {
-            let data = await res.json();
-            let htmlBox = data.html || "";
-            
-            let match = htmlBox.match(/(?:reel|reels|video|v)\/([0-9]+)/);
-            if (match && match[1]) {
-                let reelId = match[1];
-                let finalIframeUrl = "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Freel%2F" + reelId + "&show_text=false&width=500";
-                container.innerHTML = '<iframe src="' + finalIframeUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>';
-                return;
-            }
-        }
-        
+        // পাইথন বা এপিআই-এর ঝামেলা বাদ দিয়ে সরাসরি লিংকটিকে স্ট্যান্ডার্ড এমবেড আইফ্রেমে পাঞ্চ করা
         let fallbackUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
-        container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true"></iframe>';
+        container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>';
         
     } catch (err) {
-        console.error("Facebook Live Convert Error: ", err);
-        container.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Video temporary unavailable</div>';
+        console.error("Facebook Embed Error: ", err);
+        container.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Video unavailable</div>';
     }
 }
 

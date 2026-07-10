@@ -167,7 +167,46 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর ফাংশন
+// JSONP পদ্ধতি ব্যবহার করে কোনো প্রক্সি ছাড়াই শর্ট লিংক ভেঙে ফুল ইউজারনেমসহ লিংক বের করার ফাংশন
+function resolveTikTokShortLink(shortUrl) {
+    return new Promise((resolve) => {
+        if (!shortUrl || (!shortUrl.includes("vt.tiktok.com") && !shortUrl.includes("vm.tiktok.com"))) {
+            resolve(shortUrl);
+            return;
+        }
+
+        const callbackName = "tiktok_callback_" + Math.floor(Math.random() * 100000);
+        window[callbackName] = function(data) {
+            if (data && data.author_url && data.html) {
+                const match = data.html.match(/video\/(\d+)/);
+                if (match && match[1]) {
+                    const username = data.author_url.split('/').pop();
+                    const fullUrl = `https://www.tiktok.com/@${username}/video/${match[1]}`;
+                    cleanup();
+                    resolve(fullUrl);
+                    return;
+                }
+            }
+            cleanup();
+            resolve(shortUrl);
+        };
+
+        function cleanup() {
+            if (script && script.parentNode) script.parentNode.removeChild(script);
+            delete window[callbackName];
+        }
+
+        const script = document.createElement("script");
+        script.src = `https://www.tiktok.com/oembed?url=${encodeURIComponent(shortUrl)}&callback=${callbackName}`;
+        script.onerror = function() {
+            cleanup();
+            resolve(shortUrl);
+        };
+        document.body.appendChild(script);
+    });
+}
+
+// মিডিয়া লিংক ডিটেক্টর ও পিওর আইফ্রেম জেনারেটর ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -185,26 +224,10 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (আপনার দেওয়া চমৎকার পিওর আইফ্রেম ভার্সন)
+    // ৩. TikTok (আপনার দেওয়া চমৎকার ও লাইটওয়েট পিওর আইফ্রেম মেথড)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
-        // যদি মোবাইল শর্ট লিংক (vt.tiktok.com বা vm.tiktok.com) হয়
-        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
-            return `
-            <div class="embed-container">
-                <iframe 
-                    src="https://www.tiktok.com/embed/v2/shorts?url=${encodeURIComponent(cleanUrl)}" 
-                    width="100%" 
-                    height="550" 
-                    frameborder="0" 
-                    allowfullscreen 
-                    style="border-radius:8px;">
-                </iframe>
-            </div>`;
-        }
-        
-        // যদি ফুল লিংক হয়, তবে শেষ মাথা থেকে আইডি বের করা
         if (cleanUrl.endsWith('/')) {
             cleanUrl = cleanUrl.slice(0, -1);
         }
@@ -351,7 +374,7 @@ function closeUpload() {
     document.getElementById("postUrl").value = "";
 }
 
-// ইউজারের দেওয়া লিংক হুবহু ডেটাবেজে সাবমিট করার ফাংশন
+// সাবমিট ফাংশন - যা আপলোডের সময় শর্ট লিংক অটোমেটিক ব্রাউজারের মতো ভেঙে ফুল ইউজারনেমসহ লিংক বানাবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -365,15 +388,19 @@ async function submitNewPost() {
     }
 
     try {
-        submitBtn.innerText = "Uploading...";
+        submitBtn.innerText = "Processing Link...";
         submitBtn.disabled = true;
 
+        // ব্যাকগ্রাউন্ডে শর্ট লিংক কনভার্ট করে ফুল লিংক বানানো
+        const finalUrl = await resolveTikTokShortLink(rawUrl);
+
+        submitBtn.innerText = "Uploading...";
         const { error } = await mySupabase.from('posts').insert([{
             user_id: currentUserId,
             title: title,
             platform: platform,
             description: description,
-            url: rawUrl || null
+            url: finalUrl || null
         }]);
 
         if (error) throw error;

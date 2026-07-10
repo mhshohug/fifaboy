@@ -292,18 +292,18 @@ function renderPosts(postsList) {
             
             ${mediaHTML}
             
-            <div class="interaction-bar">
-                <button class="action-btn" onclick="votePost(${post.id}, this)">
-                    <i class="fa-regular fa-thumbs-up"></i> <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
+            <div class="interaction-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:12px; border-top:1px solid #383838; width: 100%;">
+                <button class="action-btn" onclick="votePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                     👍 <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
                 </button>
-                <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'">
-                    <i class="fa-regular fa-comment"></i> <span>Comment</span>
+                <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                     💬 <span>Comment</span>
                 </button>
-                <button class="action-btn" onclick="sharePost('${post.title}', ${post.id})">
-                    <i class="fa-regular fa-share-from-square"></i> <span>Share</span>
+                <button class="action-btn" onclick="sharePost('${post.title}', ${post.id})" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                     📤 <span>Share</span>
                 </button>
-                <button class="action-btn reported" onclick="reportPost(${post.id}, this)">
-                    <i class="fa-regular fa-flag"></i> <span>Report</span>
+                <button class="action-btn" onclick="reportPost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                     🚩 <span>Report</span>
                 </button>
             </div>
             
@@ -317,6 +317,7 @@ function renderPosts(postsList) {
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
     if(window.FB) window.FB.XFBML.parse();
 }
+
 
 
 function openUpload() {

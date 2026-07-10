@@ -183,12 +183,18 @@ function getMediaEmbedHTML(url) {
     }
     
     // ৫. Instagram (পাইথনের জেনারেট করা /embed ফরম্যাট আইফ্রেম দিয়ে সরাসরি সুন্দরভাবে লোড হবে)
+        // ৫. Instagram (মেটার ভিজিট ইনস্টাগ্রাম বাটন সরিয়ে সরাসরি সাইটে প্লে করার অফিশিয়াল মেথড)
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        return '<div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center;"><iframe src="' + cleanUrl + 'embed" style="width:100%; min-height:450px; border:none; border-radius:8px;"></iframe></div>';
+        
+        return '<div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center; width:100%;">' +
+               '<blockquote class="instagram-media" data-instgrm-permalink="' + cleanUrl + '" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff;"></blockquote>' +
+               '</div>' +
+               '<script async src="https://www.instagram.com/embed.js"><\/script>';
     }
+
     
     return '<img src="' + url + '" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">';
 }

@@ -107,7 +107,7 @@ Upload Evidence
 <button>Latest</button>
 <button>Trending</button>
 <button>Penalty</button>
-<button>Red Card</button>
+<button>Card</button>
 <button>Handball</button>
 <button>VAR</button>
 <button>Community</button>
@@ -189,13 +189,41 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok ভিডিও ডিটেকশন
+    // ৩. TikTok ভিডিও ডিটেকশন (vt.tiktok.com বা সাধারণ লিংক দুটোর জন্যই)
     if (url.includes("tiktok.com")) {
-        let videoId = url.split("/video/")[1]?.split("?")[0];
-        if (videoId) {
-            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:500px;"></iframe></div>`;
+        let cleanUrl = url.split("?")[0];
+        
+        // ডাইনামিকালি টিকটকের অফিশিয়াল এমবেড স্ক্রিপ্ট লোড করা
+        if (!document.getElementById("tiktok-js")) {
+            const script = document.createElement("script");
+            script.id = "tiktok-js";
+            script.src = "https://www.tiktok.com/embed.js";
+            script.async = true;
+            document.head.appendChild(script);
+        } else {
+            setTimeout(() => {
+                if (window.tiktokEmbed) window.tiktokEmbed.render();
+            }, 500);
         }
-        return `<div class="embed-container"><blockquote class="tiktok-embed" data-video-id="" style="max-width: 605px;min-width: 325px;" ><section><a target="_blank" href="${url}">Watch TikTok Video</a></section></blockquote></div>`;
+
+        // যদি vt.tiktok.com বা vm.tiktok.com শর্ট লিংক হয়
+        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
+            // টিকটকের এমবেড প্লেয়ার শর্ট লিংকও সাপোর্ট করে যদি অফিশিয়াল ব্লককোড ঠিক থাকে
+            return `
+            <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
+                <blockquote class="tiktok-embed" data-unique-id="" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
+                    <section><a target="_blank" href="${cleanUrl}">Loading TikTok Video...</a></section>
+                </blockquote>
+            </div>`;
+        }
+
+        // সাধারণ বড় লিংক হলে (/video/id ফরম্যাট)
+        return `
+        <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
+            <blockquote class="tiktok-embed" data-music-id="" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
+                <section><a target="_blank" href="${cleanUrl}">Loading TikTok Video...</a></section>
+            </blockquote>
+        </div>`;
     }
 
     // ৪. Twitter/X পোস্ট ডিটেকশন
@@ -205,13 +233,15 @@ function getMediaEmbedHTML(url) {
 
     // ৫. Instagram পোস্ট বা রিল ডিটেকশন
     if (url.includes("instagram.com")) {
-        let cleanUrl = url.split("?")[0] + "embed";
-        return `<div class="embed-container"><iframe src="${cleanUrl}" style="min-height:450px;"></iframe></div>`;
+        let cleanUrl = url.split("?")[0];
+        if (!cleanUrl.endsWith("/")) cleanUrl += "/";
+        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px; width:100%; max-width:500px; margin:0 auto;"></iframe></div>`;
     }
 
-    // ৬. যদি সাধারণ ডাইরেক্ট ইমেজের লিংক হয় (jpg, png, gif)
+    // ৬. যদি কোনো সোশ্যাল লিংক না হয়ে সাধারণ ইমেজের লিংক হয়
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 async function initPage(){
     try {

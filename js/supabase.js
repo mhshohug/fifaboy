@@ -19,54 +19,57 @@ console.log('✅ Supabase connected');
 
 // 📝 Sign Up (register)  ← এই ফাংশনটা রিপ্লেস করো
 async function signUp(email, password, username) {
+    console.log('➡️ Function called');
+    
     try {
-        console.log('1️⃣ SignUp started');
+        console.log('1️⃣ SignUp started for:', email);
         
-        const { data, error } = await supabase.auth.signUp({
+        const response = await supabase.auth.signUp({
             email: email,
             password: password,
             options: {
-                data: { username: username },
-                emailRedirectTo: window.location.origin + '/login.html'
+                data: { username: username }
             }
         });
 
-        console.log('2️⃣ Response:', { data, error });
+        console.log('2️⃣ Full response:', JSON.stringify(response));
 
-        if (error) {
-            console.error('❌ Error:', error);
-            alert('❌ ' + error.message);
+        if (response.error) {
+            console.error('❌ Error:', response.error);
+            alert('❌ ' + response.error.message);
             return false;
         }
 
-        if (data.user) {
-            console.log('3️⃣ User created:', data.user.id);
+        if (response.data && response.data.user) {
+            console.log('3️⃣ User ID:', response.data.user.id);
             
-            const { error: pe } = await supabase
+            const profileResult = await supabase
                 .from('profiles')
                 .upsert({
-                    id: data.user.id,
+                    id: response.data.user.id,
                     username: username,
                     role: 'user'
                 });
             
-            if (pe) {
-                console.error('4️⃣ Profile error:', pe);
-                alert('⚠️ Profile creation failed: ' + pe.message);
+            console.log('4️⃣ Profile result:', profileResult);
+            
+            if (profileResult.error) {
+                console.error('❌ Profile error:', profileResult.error);
+                alert('⚠️ ' + profileResult.error.message);
                 return false;
             }
             
-            console.log('4️⃣ Profile created!');
-            alert('✅ Account created! Please login.');
+            alert('✅ Account created!');
             window.location.href = 'login.html';
             return true;
         }
         
+        console.log('⚠️ No user in response');
         return false;
 
-    } catch (err) {
-        console.error('❌ Catch error:', err);
-        alert('Error: ' + err.message);
+    } catch (error) {
+        console.error('❌ Catch error:', error);
+        alert('💥 ' + error.message);
         return false;
     }
 }

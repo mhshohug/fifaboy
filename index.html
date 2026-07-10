@@ -360,11 +360,7 @@ async function submitNewPost() {
     const submitBtn = document.getElementById("submitPostBtn");
 
     if (!title || !description) { alert("টাইটেল এবং ডেসক্রিপশন লিখুন!"); return; }
-    if (rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com") || rawUrl.includes("fb.watch") || rawUrl.includes("facebook.com/share")) {
-        alert("❌ শর্ট বা অ্যাপ শেয়ার লিংক সরাসরি পোস্ট করা যাবে না ভাই। হেল্পার বাটনে ক্লিক করে ফুল লিংকটি নিয়ে পেস্ট করুন।");
-        return;
-    }
-
+    
     try {
         submitBtn.innerText = "Uploading..."; submitBtn.disabled = true;
         const { error } = await mySupabase.from('posts').insert([{

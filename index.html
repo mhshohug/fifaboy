@@ -180,12 +180,21 @@ function getMediaEmbedHTML(url) {
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
-    
-    // ৫. Instagram
+        // ৫. Instagram (মেটার রিফিউজ টু কানেক্ট ব্লকিং ভাঙার জন্য অফিশিয়াল এমবেড উইজেট)
     if (url.includes("instagram.com")) {
-        let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
+        // পেছনের সব জাবিজাবি কেটে ক্লিন লিংক নেওয়া
+        let cleanUrl = url.split("?")[0];
+        if (cleanUrl.endsWith("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
+        if (!cleanUrl.endsWith("/")) cleanUrl += "/";
+        
+        return `
+            <div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center;">
+                <blockquote class="instagram-media" data-instgrm-permalink="${cleanUrl}" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff;"></blockquote>
+            </div>
+            <script async src="//www.instagram.com/embed.js"></script>
+        `;
     }
+
     
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }

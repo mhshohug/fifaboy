@@ -472,9 +472,35 @@ background:#111827;
 
 @media(max-width:768px){
 
-.menu{
+nav{
+flex-direction:column;
+gap:15px;
+}
 
-display:none;
+.menu{
+display:flex;
+flex-wrap:wrap;
+justify-content:center;
+gap:10px;
+}
+
+.hero h1{
+font-size:42px;
+}
+
+.hero p{
+font-size:16px;
+}
+
+.post iframe{
+height:230px;
+}
+
+#fab{
+width:58px;
+height:58px;
+font-size:30px;
+}
 
 }
 

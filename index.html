@@ -167,6 +167,20 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
+ async function getTikTokRealUrl(shortUrl) {
+    if (!shortUrl.includes("vt.tiktok.com") && !shortUrl.includes("vm.tiktok.com")) {
+        return shortUrl; // অলরেডি বড় লিংক থাকলে ডিরেক্ট রিটার্ন করবে
+    }
+    try {
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(shortUrl)}`);
+        const data = await response.json();
+        return data.status.url || shortUrl;
+    } catch (e) {
+        console.error("Proxy redirect failed", e);
+        return shortUrl;
+    }
+}
+   
 // স্মার্ট মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";

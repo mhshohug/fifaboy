@@ -3,8 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FIFABOY | Messi Watch</title>
-<meta name="description" content="Community Archive of Football Refereeing Discussions">
+<title>TRACKBOY | Evidence</title>
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -61,27 +60,6 @@
     min-height: 500px;
 }
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
-
-/* ইনস্ট্যান্ট ব্যাকআপ বাটনের স্টাইল */
-.instant-btn-holder {
-    padding: 20px; 
-    text-align: center; 
-    background: #1e1e1e; 
-    border: 1px solid #333; 
-    border-radius: 8px; 
-    margin-top: 12px;
-}
-.instant-btn {
-    display: inline-block; 
-    color: white; 
-    padding: 10px 20px; 
-    border-radius: 6px; 
-    text-decoration: none; 
-    font-weight: bold; 
-    font-size: 14px;
-}
-.fb-btn { background: #4267B2; }
-.tiktok-btn { background: #ff0050; }
 </style>
 </head>
 <body>
@@ -122,7 +100,6 @@
 <div class="loading">Loading Posts...</div>
 </section>
 
-<!-- 📁 আপলোড মডাল -->
 <div id="uploadModal" class="modal">
     <div class="modal-content">
         <h2>📁 Upload Evidence</h2>
@@ -181,14 +158,17 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
     
-    // ২. Facebook (কোনো বাটন নেই, টিকটকের মতোই সরাসরি সাইটের ভেতর প্লে হবে ভাই!)
+    // ২. Facebook (টিকটকের মতোই ওরিজিনাল এমবেড প্লেয়ার সরাসরি সাইটে চলবে ভাই!)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        let cleanUrl = url.split("?")[0];
-        let finalFbUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500`;
-        return `<div class="embed-container"><iframe src="${finalFbUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
+        let finalUrl = url;
+        if (!url.includes("video/embed") && !url.includes("plugins/video.php")) {
+            let cleanUrl = url.split("?")[0];
+            finalUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500`;
+        }
+        return `<div class="embed-container"><iframe src="${finalUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
     }
     
-    // ৩. TikTok (একদম আগের মতোই সরাসরি সাইটে প্লে হবে)
+    // ৩. TikTok (একদম আগের মতোই ডিরেক্ট সাইটে প্লে হবে)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -209,8 +189,6 @@ function getMediaEmbedHTML(url) {
     
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
-
-
 
 async function initPage(){
     try {

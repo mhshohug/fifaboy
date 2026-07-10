@@ -15,67 +15,77 @@ def get_full_url(short_url: str) -> str:
 
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Connection': 'keep-alive'
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
     }
 
     try:
-        session = requests.Session()
-        session.headers.update(headers)
-
-        # ১. শর্ট লিংকের আসল রিডাইরেক্ট লোকেশন বের করা
-        response = session.get(short_url, timeout=15, allow_redirects=True)
-        final_url = response.url
-        html_content = response.text
-
-        check_url = final_url.lower()
-        check_short = short_url.lower()
+        # বড় হাত/ছোট হাতের অক্ষরের ঝামেলা সাফ করা
+        check_url = short_url.lower()
 
         # ====================== 📸 INSTAGRAM CLEAN LINK ======================
-        if "instagram.com" in check_url or "instagram.com" in check_short:
+        if "instagram.com" in check_url or "ig.me" in check_url:
+            session = requests.Session()
+            session.headers.update(headers)
+            response = session.get(short_url, timeout=12, allow_redirects=True)
+            final_url = response.url
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
             if not clean_url.endswith('/'):
                 clean_url += '/'
             return clean_url
 
-        # ====================== 📘 FACEBOOK (আপনার চাওয়া পারফেক্ট reel/ID ফরম্যাট) ======================
-        if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
+        # ====================== 📘 FACEBOOK FIXED (আপনার চাওয়া reel/ID ফরম্যাট) ======================
+        if "facebook.com" in check_url or "fb.watch" in check_url:
             
-            # মেথড A: যদি রিডাইরেক্ট ইউআরএল বা ওরিজিনাল এইচটিএমএল মেটা ট্যাগের ভেতর ওরিজিনাল রিল আইডি পাওয়া যায়
-            combined_text = final_url + " " + html_content
-            
-            # ফেসবুক রিলের ১৫-১৬ ডিজিটের ইউনিক আইডি খুঁজে বের করার মাস্টার রেগুলার এক্সপ্রেশন
-            fb_id_match = re.search(r'(?:reel|reels|video|v|audio)/([0-9]{12,20})', combined_text)
-            
-            if fb_id_match:
-                reel_id = fb_id_match.group(1)
-                # ডিরেক্ট আপনার চাওয়া নিখুঁত আউটপুট ফরম্যাট তৈরি
-                return f"https://www.facebook.com/reel/{reel_id}"
-            
-            # মেথড B: ওএমবেড ব্যাকআপ প্লাগইন থেকে আইডি খোঁজা
-            oembed_url = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
-            try:
-                api_res = session.get(oembed_url, timeout=7)
-                if api_res.status_code == 200:
-                    html_box = api_res.json().get("html", "")
-                    api_id_match = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', html_box)
-                    if api_id_match:
-                        return f"https://www.facebook.com/reel/{api_id_match.group(1)}"
-            except Exception:
-                pass
+            # ট্রিক ১: যদি লিংক অলরেডি /share/r/ ফরম্যাটে থাকে, তবে মেটার সিকিউরিটি ব্লক বাইপাস করতে ওএমবেড এপিআই ডিরেক্ট হিট
+            if "/share/r/" in short_url or "/share/" in short_url or "fb.watch" in short_url:
+                # ফেসবুকের ওএমবেড প্লাগইন এপিআই যা বট ব্লক করে না
+                oembed_endpoint = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
+                try:
+                    api_res = requests.get(oembed_endpoint, headers=headers, timeout=10)
+                    if api_res.status_code == 200:
+                        api_data = api_res.json()
+                        html_box = api_data.get("html", "")
+                        
+                        # এপিআই রেসপন্সের এইচটিএমএল থেকে আসল নিউমেরিক আইডি টেনে বের করা
+                        id_match = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', html_box)
+                        if id_match:
+                            reel_id = id_match.group(1)
+                            # ডিরেক্ট আপনার চাওয়া ক্লিন আউটপুট ফরম্যাট জেনারেট
+                            return f"https://www.facebook.com/reel/{reel_id}"
+                except Exception as api_err:
+                    print(f"API Method Failed: {api_err}")
 
-            # মেথড C: যদি কোনো আইডিই ম্যাচ না করে, তবে অন্তত ট্র্যাকিং কেটে মেইন পার্ট রাখা
+            # ট্রিক ২: যদি এপিআই ফেইল করে, তবে নরমাল রিডাইরেক্ট ট্রাই করা
+            session = requests.Session()
+            session.headers.update(headers)
+            response = session.get(short_url, timeout=12, allow_redirects=True)
+            final_url = response.url
+            html_content = response.text
+
+            # রিডাইরেক্ট ইউআরএল বা পেজের ভেতরের ওরিজিনাল আইডি খোঁজা
+            combined_search = final_url + " " + html_content
+            id_match_backup = re.search(r'(?:reel|reels|video|v|audio)/([0-9]{12,20})', combined_search)
+            
+            if id_match_backup:
+                return f"https://www.facebook.com/reel/{id_match_backup.group(1)}"
+
+            # ট্রিক ৩: যদি ফেসবুক লগইন পেজে আটকে দেয়, তবে টেক্সট থেকে মেইন পার্ট পরিষ্কার করা
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
+            if "/reels/" in clean_url:
+                clean_url = clean_url.replace("/reels/", "/reel/")
             if clean_url.endswith('/'):
                 clean_url = clean_url[:-1]
             return clean_url
 
         # ====================== 🎵 TIKTOK ======================
-        if "tiktok.com" in check_url or "tiktok.com" in check_short:
-            return final_url.split("?")[0].split("&")[0]
+        if "tiktok.com" in check_url:
+            session = requests.Session()
+            session.headers.update(headers)
+            response = session.get(short_url, timeout=12, allow_redirects=True)
+            return response.url.split("?")[0].split("&")[0]
 
-        return final_url.split("?")[0]
+        return short_url.split("?")[0]
 
     except Exception as e:
         print(f"Error processing {short_url}: {e}")
@@ -83,7 +93,7 @@ def get_full_url(short_url: str) -> str:
 
 
 def process_posts():
-    print("🚀 Starting URL Processor...")
+    print("🚀 Starting URL Processor for Perfect Reel Format...")
     response = supabase.table("posts").select("*").execute()
     posts = response.data or []
     

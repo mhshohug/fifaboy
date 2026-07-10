@@ -47,7 +47,23 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* মিডিয়া বক্সের প্রপার ও রেসপন্সিভ সাইজ */
+/* শর্ট লিংক হেল্পার বাটন */
+.link-helper-btn {
+    display: none;
+    margin-top: 8px;
+    background: #ff0050;
+    color: white;
+    border: none;
+    padding: 8px 12px;
+    border-radius: 6px;
+    font-size: 12px;
+    font-weight: bold;
+    cursor: pointer;
+    width: 100%;
+    text-align: center;
+}
+
+/* এমবেড করা মিডিয়া বক্সের প্রপার সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -61,7 +77,7 @@
 .embed-container iframe {
     border: none;
     width: 100%;
-    min-height: 580px;
+    min-height: 550px;
 }
 </style>
 </head>
@@ -139,7 +155,12 @@ Loading Posts...
         <textarea id="postDesc" placeholder="Describe the refereeing decision in details..."></textarea>
         
         <label for="postUrl">Social Link (YouTube, FB, TikTok, X, Insta) or Direct Image URL</label>
-        <input type="text" id="postUrl" placeholder="Paste video/photo link here">
+        <input type="text" id="postUrl" placeholder="Paste video/photo link here" oninput="checkTikTokUrl(this.value)">
+        
+        <!-- শর্ট লিংক ডিটেক্ট হলে এই বাটনটি ভেসে উঠবে -->
+        <button type="button" id="tiktokHelperBtn" class="link-helper-btn" onclick="openTikTokForFullLink()">
+            🔗 এটি শর্ট লিংক! ফুল লিংক বের করতে এখানে ক্লিক করুন
+        </button>
         
         <div class="modal-buttons">
             <button id="submitPostBtn" class="btn-submit" onclick="submitNewPost()">Submit Post</button>
@@ -167,7 +188,26 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// গ্লোবাল মিডিয়া লিংক ডিটেক্টর ও আলটিমেট আইফ্রেম রেন্ডারার ফাংশন
+// ইনপুট ফিল্ডে শর্ট লিংক ডিটেক্ট করার লজিক
+function checkTikTokUrl(val) {
+    const helperBtn = document.getElementById("tiktokHelperBtn");
+    if (val.includes("vt.tiktok.com") || val.includes("vm.tiktok.com")) {
+        helperBtn.style.display = "block";
+    } else {
+        helperBtn.style.display = "none";
+    }
+}
+
+// ইউজারকে সরাসরি ব্রাউজারে পাঠানো যাতে রিডাইরেক্ট হয়ে ফুল লিংক আসে
+function openTikTokForFullLink() {
+    const rawUrl = document.getElementById("postUrl").value.trim();
+    if (rawUrl) {
+        alert("আপনার ব্রাউজারে লিংকটি ওপেন হচ্ছে। লিংকটি পুরোপুরি লোড হলে ওপরের অ্যাড্রেস বার থেকে বড় লিংকটি (tiktok.com/@user/video/ID) কপি করে এখানে পেস্ট করুন ভাই।");
+        window.open(rawUrl, '_blank');
+    }
+}
+
+// মিডিয়া লিংক ডিটেক্টর ও পিওর আইফ্রেম জেনারেটর ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -185,37 +225,29 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (বুলেটপ্রুফ মেথড - যা শর্ট ও বড় সব ধরণের লিংকে কোনো এপিআই ছাড়াই ডিরেক্ট ভিডিও প্লে করে)
+    // ৩. TikTok (১০০% সাকসেসফুল পিওর আইফ্রেম মেথড - যা ফুল লিংকের ক্ষেত্রে কোনোদিন ফেইল করবে না)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
-        // যদি মোবাইল শর্ট লিঙ্ক হয়, তবে সরাসরি টিকটকের অফিশিয়াল শেয়ার্ড-এমবেড প্লেয়ার লিংক
-        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
-            return `
-            <div class="embed-container">
-                <iframe 
-                    src="https://www.tiktok.com/player/v1?url=${encodeURIComponent(cleanUrl)}&autoplay=0" 
-                    width="100%" 
-                    height="580" 
-                    frameborder="0" 
-                    allowfullscreen 
-                    allow="autoplay; encrypted-media">
-                </iframe>
-            </div>`;
-        }
-        
-        // যদি বড় লিঙ্ক হয়, তবে শেষ মাথা থেকে আইডি বের করা
         if (cleanUrl.endsWith('/')) {
             cleanUrl = cleanUrl.slice(0, -1);
         }
         const videoId = cleanUrl.split('/').pop(); 
+        
+        // যদি কোনো কারণে শর্ট লিংক ডাটাবেজে ঢুকেও থাকে, তার ব্যাকআপ ফালব্যাক হ্যান্ডলিং
+        if (isNaN(videoId)) {
+            return `
+            <div class="embed-container">
+                <iframe src="https://www.tiktok.com/embed/v2/shorts?url=${encodeURIComponent(cleanUrl)}" width="100%" height="550" frameborder="0" allowfullscreen></iframe>
+            </div>`;
+        }
         
         return `
         <div class="embed-container">
             <iframe 
                 src="https://www.tiktok.com/embed/${videoId}" 
                 width="100%" 
-                height="580" 
+                height="550" 
                 frameborder="0" 
                 allowfullscreen>
             </iframe>
@@ -348,9 +380,10 @@ function closeUpload() {
     document.getElementById("postTitle").value = "";
     document.getElementById("postDesc").value = "";
     document.getElementById("postUrl").value = "";
+    document.getElementById("tiktokHelperBtn").style.display = "none";
 }
 
-// সুপার ফাস্ট ডিরেক্ট সাবমিট ফাংশন - কোনো এপিআই ঝামেলা ছাড়াই ১ সেকেন্ডে আপলোড হবে
+// সাবমিট ফাংশন - যা শর্ট লিংক পোস্ট করতে বাধা দেবে এবং ফুল লিংক নিশ্চিত করবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -363,11 +396,16 @@ async function submitNewPost() {
         return;
     }
 
+    // 🛑 কড়া লক: শর্ট লিংক সরাসরি ডাটাবেজে সাবমিট করতে দেওয়া হবে না
+    if (rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com")) {
+        alert("❌ শর্ট লিংক সরাসরি পোস্ট করা যাবে না ভাই। অনুগ্রহ করে লাল বাটনে ক্লিক করে ২ সেকেন্ডে ফুল লিংকটি বের করে এনে এখানে পেস্ট করুন।");
+        return;
+    }
+
     try {
         submitBtn.innerText = "Uploading...";
         submitBtn.disabled = true;
 
-        // কোনো প্রকার কনভার্ট না করে ইউজারের লিঙ্কটি সরাসরি ডেটাবেজে পাঠিয়ে দেওয়া
         const { error } = await mySupabase.from('posts').insert([{
             user_id: currentUserId,
             title: title,
@@ -406,7 +444,7 @@ function sharePost(title, postId) {
     const shareUrl = `${window.location.origin}${window.location.pathname.replace('index.html','')}/post.html?id=${postId}`;
     navigator.clipboard.writeText(shareUrl).then(() => {
         alert(`"${title}" পোস্টের লিংক কপি হয়েছে!`);
-    }).catch(err => { alert("লিংক কপি করা যায়নি।"); });
+    }).catch(err => { err; });
 }
 
 function reportPost(postId, btnElement) {

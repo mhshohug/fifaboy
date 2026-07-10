@@ -1,0 +1,306 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+
+<title>FIFABOY Admin</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+
+body{
+    background:#0d1117;
+    color:#fff;
+    font-family:Poppins,sans-serif;
+    margin:0;
+}
+
+header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    padding:20px;
+    background:#111827;
+    border-bottom:1px solid #222;
+}
+
+.logo{
+    font-size:30px;
+    font-weight:700;
+    color:#ffd700;
+}
+
+.logout{
+    background:#dc2626;
+    color:#fff;
+    border:none;
+    padding:12px 18px;
+    border-radius:10px;
+    cursor:pointer;
+}
+
+.container{
+    max-width:1200px;
+    margin:auto;
+    padding:25px;
+}
+
+.card{
+    background:#151922;
+    border-radius:15px;
+    padding:20px;
+    margin-bottom:25px;
+}
+
+input,textarea{
+    width:100%;
+    padding:15px;
+    margin-top:10px;
+    margin-bottom:18px;
+    border:none;
+    border-radius:10px;
+    background:#232939;
+    color:#fff;
+    font-size:15px;
+}
+
+button{
+    border:none;
+    border-radius:10px;
+    cursor:pointer;
+    padding:14px 20px;
+    font-weight:700;
+}
+
+.publish{
+    background:#ffd700;
+    color:#000;
+}
+
+.post{
+    background:#1b2230;
+    padding:18px;
+    border-radius:12px;
+    margin-top:15px;
+}
+
+.actions{
+    display:flex;
+    gap:10px;
+    margin-top:15px;
+}
+
+.edit{
+    background:#2563eb;
+    color:#fff;
+}
+
+.delete{
+    background:#dc2626;
+    color:#fff;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<header>
+
+<div class="logo">
+⚽ FIFABOY ADMIN
+</div>
+
+<button class="logout" id="logoutBtn">
+Logout
+</button>
+
+</header>
+
+<div class="container">
+
+<div class="card">
+
+<h2>Create Post</h2>
+
+<input id="title" placeholder="Title">
+
+<textarea id="description" rows="5" placeholder="Description"></textarea>
+
+<input id="url" placeholder="Video URL">
+
+<input id="platform" placeholder="Platform" readonly>
+
+<button class="publish" id="publishBtn">
+Publish Post
+</button>
+
+</div>
+
+<div class="card">
+
+<h2>All Posts</h2>
+
+<div id="posts"></div>
+
+</div>
+
+</div>
+
+<script>
+
+async function checkAdmin(){
+
+    const {data:{user}}=await supabase.auth.getUser();
+
+    if(!user){
+        location.href="login.html";
+        return;
+    }
+
+    const {data}=await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id",user.id)
+    .single();
+
+    if(data.role!=="admin"){
+        location.href="index.html";
+    }
+
+}
+
+checkAdmin();
+
+url.oninput=()=>{
+
+    const link=url.value.toLowerCase();
+
+    if(link.includes("youtube")||link.includes("youtu.be"))
+        platform.value="YouTube";
+
+    else if(link.includes("facebook"))
+        platform.value="Facebook";
+
+    else if(link.includes("instagram"))
+        platform.value="Instagram";
+
+    else if(link.includes("tiktok"))
+        platform.value="TikTok";
+
+    else if(link.includes("twitter")||link.includes("x.com"))
+        platform.value="X";
+
+    else
+        platform.value="Unknown";
+
+};
+
+publishBtn.onclick=async()=>{
+
+    const {data:{user}}=await supabase.auth.getUser();
+
+    const {error}=await supabase
+    .from("posts")
+    .insert({
+        user_id:user.id,
+        title:title.value,
+        description:description.value,
+        url:url.value,
+        platform:platform.value
+    });
+
+    if(error){
+        alert(error.message);
+        return;
+    }
+
+    title.value="";
+    description.value="";
+    url.value="";
+    platform.value="";
+
+    loadPosts();
+
+};
+
+async function loadPosts(){
+
+    const {data}=await supabase
+    .from("posts")
+    .select("*")
+    .order("id",{ascending:false});
+
+    posts.innerHTML="";
+
+    data.forEach(post=>{
+
+        posts.innerHTML+=`
+
+        <div class="post">
+
+            <h3>${post.title}</h3>
+
+            <p>${post.description}</p>
+
+            <small>${post.platform}</small>
+
+            <div class="actions">
+
+                <button class="edit" onclick="editPost(${post.id})">
+                Edit
+                </button>
+
+                <button class="delete" onclick="deletePost(${post.id})">
+                Delete
+                </button>
+
+            </div>
+
+        </div>
+
+        `;
+
+    });
+
+}
+
+async function deletePost(id){
+
+    if(!confirm("Delete this post?")) return;
+
+    await supabase
+    .from("posts")
+    .delete()
+    .eq("id",id);
+
+    loadPosts();
+
+}
+
+function editPost(id){
+
+    alert("Edit page will be added next.");
+
+}
+
+logoutBtn.onclick=async()=>{
+
+    await supabase.auth.signOut();
+
+    location.href="login.html";
+
+}
+
+loadPosts();
+
+</script>
+
+</body>
+</html>

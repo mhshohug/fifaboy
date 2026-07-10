@@ -1,307 +1,246 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-
 <meta charset="UTF-8">
-
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-
 <title>FIFABOY | Messi Watch</title>
-
 <meta name="description" content="Community Archive of Football Refereeing Discussions">
-
 <link rel="stylesheet" href="css/style.css">
-
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-
-<script src="js/supabase.js"></script>
-
 </head>
-
 <body>
 
-<!-- NAVBAR -->
-
 <nav class="navbar">
-
 <div class="logo">
-
 ⚽ <span>FIFABOY</span>
-
 </div>
-
 <div class="menu">
-
 <a href="index.html">Home</a>
-
 <a href="#feed">Feed</a>
-
 <a href="login.html" id="loginLink">Login</a>
-
 <a href="register.html" id="registerLink">Register</a>
-
 <a href="profile.html" id="profileLink" style="display:none;">Profile</a>
-
 <a href="admin.html" id="adminLink" style="display:none;">Admin</a>
-
 <a href="#" id="logoutLink" style="display:none;" onclick="logout();return false;">Logout</a>
-
 </div>
-
 </nav>
 
-<!-- HERO -->
-
 <section class="hero">
-
-<h1>
-
-MESSI WATCH
-
-</h1>
-
-<p>
-
-Community Archive of Football Refereeing Discussions Involving Lionel Messi
-
-</p>
-
+<h1>MESSI WATCH</h1>
+<p>Community Archive of Football Refereeing Discussions Involving Lionel Messi</p>
 <div class="buttons">
-
 <button id="explore" onclick="document.getElementById('feed').scrollIntoView({behavior:'smooth'})">
-
 Explore Evidence
-
 </button>
-
 <button id="upload" onclick="openUpload()">
-
 Upload Evidence
-
 </button>
-
 </div>
-
 </section>
-
-<!-- NOTICE -->
 
 <section class="notice">
-
 ⚠️ Community submitted content. Verify information before sharing.
-
 </section>
-
-<!-- SEARCH -->
 
 <section class="search">
-
-<input
-id="search"
-type="text"
-placeholder="Search player, match, tournament...">
-
+<input id="search" type="text" placeholder="Search player, match, tournament...">
 </section>
-
-<!-- CATEGORY -->
 
 <section class="categories">
-
 <button>Latest</button>
-
 <button>Trending</button>
-
 <button>Penalty</button>
-
 <button>Red Card</button>
-
 <button>Handball</button>
-
 <button>VAR</button>
-
 <button>Community</button>
-
 </section>
 
-<!-- FEED -->
-
 <section id="feed">
-
 <div class="loading">
-
 Loading Posts...
-
 </div>
 </section>
 
-<!-- FLOAT BUTTON -->
+<button id="fab" onclick="openUpload()">+</button>
 
-<button id="fab" onclick="openUpload()">
-
-+
-
-</button>
-
-<!-- BACK TO TOP -->
-
-<button id="topBtn" onclick="scrollTopPage()">
-
-⬆
-
-</button>
-
-<!-- FOOTER -->
+<button id="topBtn" onclick="scrollTopPage()">⬆</button>
 
 <footer>
-
-<h2>
-
-⚽ FIFABOY
-
-</h2>
-
-<p>
-
-Watch • Verify • Discuss
-
-</p>
-
-<p>
-
-©2026 FIFABOY
-
-</p>
-
+<h2>⚽ FIFABOY</h2>
+<p>Watch • Verify • Discuss</p>
+<p>©2026 FIFABOY</p>
 </footer>
 
-<script src="js/app.js"></script>
-
 <script>
+// ১. আপনার আসল Supabase ক্রেডেনশিয়াল সরাসরি এখানেই ইনিশিয়াল করা হলো
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let POSTS = []; // গ্লোবাল ভ্যারিয়েবল যাতে সার্চ ফিল্টার কাজ করতে পারে
+
+// ২. ইউজার লগইন স্টেট এবং মেনুবার বাটন কন্ট্রোল ফাংশন
 async function initPage(){
+    try {
+        const { data: { user }, error: userError } = await mySupabase.auth.getUser();
 
-try{
+        const login = document.getElementById("loginLink");
+        const register = document.getElementById("registerLink");
+        const profile = document.getElementById("profileLink");
+        const admin = document.getElementById("adminLink");
+        const logoutBtn = document.getElementById("logoutLink");
 
-const user=await getUser();
+        if(user){
+            if(login) login.style.display = "none";
+            if(register) register.style.display = "none";
+            if(profile) profile.style.display = "inline-block";
+            if(logoutBtn) logoutBtn.style.display = "inline-block";
 
-const login=document.getElementById("loginLink");
-const register=document.getElementById("registerLink");
-const profile=document.getElementById("profileLink");
-const admin=document.getElementById("adminLink");
-const logout=document.getElementById("logoutLink");
+            // profiles টেবিল থেকে রোল চেক (ইউজার এডমিন কিনা)
+            const { data: profileData } = await mySupabase
+                .from('profiles')
+                .select('role')
+                .eq('id', user.id)
+                .single();
 
-if(user){
-
-login.style.display="none";
-register.style.display="none";
-
-profile.style.display="inline-block";
-logout.style.display="inline-block";
-
-if(await isAdmin()){
-
-admin.style.display="inline-block";
-
+            if(profileData && profileData.role === 'admin' && admin){
+                admin.style.display = "inline-block";
+            }
+        } else {
+            if(login) login.style.display = "inline-block";
+            if(register) register.style.display = "inline-block";
+            if(profile) profile.style.display = "none";
+            if(admin) admin.style.display = "none";
+            if(logoutBtn) logoutBtn.style.display = "none";
+        }
+    } catch(e) {
+        console.error("Init Error:", e);
+    }
 }
 
-}else{
+// ৩. Supabase থেকে সব পোস্ট বা এভিডেন্স ডাটা তুলে আনার ফাংশন
+async function loadPosts() {
+    const feedSection = document.getElementById("feed");
+    try {
+        const { data, error } = await mySupabase
+            .from('posts')
+            .select('*')
+            .order('created_at', { ascending: false });
 
-login.style.display="inline-block";
-register.style.display="inline-block";
+        if (error) throw error;
 
-profile.style.display="none";
-admin.style.display="none";
-logout.style.display="none";
-
+        POSTS = data || [];
+        renderPosts(POSTS);
+    } catch (e) {
+        console.error("Load Posts Error:", e);
+        if(feedSection) {
+            feedSection.innerHTML = `<div class="error" style="color:#ff6b6b; text-align:center; padding:20px;">Failed to load posts: ${e.message}</div>`;
+        }
+    }
 }
 
-}catch(e){
+// ৪. ডাটাবেজের পোস্টগুলো HTML আকারে ফিডে দেখানোর ফাংশন
+function renderPosts(postsList) {
+    const feedSection = document.getElementById("feed");
+    if (!feedSection) return;
 
-console.error(e);
+    if (!postsList || postsList.length === 0) {
+        feedSection.innerHTML = `<div class="no-posts" style="text-align:center; padding:20px; color:#aaa;">No evidence or posts found in database.</div>`;
+        return;
+    }
 
+    feedSection.innerHTML = "";
+    postsList.forEach(post => {
+        const postCard = document.createElement("div");
+        postCard.className = "post-card";
+        
+        // যদি পোস্টে কোনো ইমেজ বা মিডিয়া ফাইল থাকে
+        let mediaHTML = "";
+        if (post.url) {
+            mediaHTML = `<img src="${post.url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px;">`;
+        }
+
+        postCard.innerHTML = `
+            <div class="post-header" style="display:flex; justify-content:between; align-items:center;">
+                <h3 style="margin:0; color:#3ecf8e;">${post.title || "Untitled Discussion"}</h3>
+                <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px; margin-left:10px;">${post.platform || "Community"}</span>
+            </div>
+            <p class="post-desc" style="color:#ccc; margin-top:10px;">${post.description || "No description provided."}</p>
+            ${mediaHTML}
+            <div class="post-footer" style="margin-top:10px; font-size:12px; color:#777;">
+                <small>Posted on: ${new Date(post.created_at).toLocaleDateString()}</small>
+            </div>
+        `;
+        feedSection.appendChild(postCard);
+    });
 }
 
+// ৫. লগআউট হ্যান্ডেল করার ফাংশন
+async function logout() {
+    try {
+        const { error } = await mySupabase.auth.signOut();
+        if (error) throw error;
+        alert("Logged out successfully!");
+        window.location.reload();
+    } catch(e) {
+        alert("Logout failed: " + e.message);
+    }
 }
 
-window.addEventListener("load",initPage);
-
-window.addEventListener("scroll",()=>{
-
-const top=document.getElementById("topBtn");
-
-if(window.scrollY>250){
-
-top.style.display="flex";
-
-}else{
-
-top.style.display="none";
-
+// ৬. আপলোড বাটন ওপেন করার বেসিক ফাংশন (টেস্ট অ্যালার্ট তুলে এখানে আপনার লিংক বা মডাল দিতে পারেন)
+function openUpload() {
+    alert("Upload module ready! You can now create your upload workflow.");
 }
 
-});
-
-document.getElementById("search").addEventListener("input",e=>{
-
-const q=e.target.value.toLowerCase();
-
-if(typeof POSTS==="undefined") return;
-
-const filtered=POSTS.filter(post=>
-
-(post.title||"").toLowerCase().includes(q)||
-
-(post.description||"").toLowerCase().includes(q)||
-
-(post.platform||"").toLowerCase().includes(q)
-
-);
-
-renderPosts(filtered);
-
-});
-  document.getElementById("fab").addEventListener("click",()=>{
-
-openUpload();
-
-});
-
-window.addEventListener("online",()=>{
-
-loadPosts();
-
-});
-
-window.addEventListener("focus",()=>{
-
-loadPosts();
-
-});
-
-window.addEventListener("keydown",e=>{
-
-if(e.key==="Escape"){
-
-const search=document.getElementById("search");
-
-search.value="";
-
-renderPosts(POSTS);
-
+// স্ক্রল টপ ফাংশন
+function scrollTopPage() {
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+// ইভেন্ট লিসেনারস (পুরোনো ফাইল থেকে এনে ঠিক করা হয়েছে)
+window.addEventListener("scroll", () => {
+    const top = document.getElementById("topBtn");
+    if(top) {
+        if (window.scrollY > 250) {
+            top.style.display = "flex";
+        } else {
+            top.style.display = "none";
+        }
+    }
 });
 
-window.addEventListener("load",()=>{
-
-loadPosts();
-
+document.getElementById("search").addEventListener("input", e => {
+    const q = e.target.value.toLowerCase();
+    const filtered = POSTS.filter(post =>
+        (post.title || "").toLowerCase().includes(q) ||
+        (post.description || "").toLowerCase().includes(q) ||
+        (post.platform || "").toLowerCase().includes(q)
+    );
+    renderPosts(filtered);
 });
 
+window.addEventListener("online", loadPosts);
+window.addEventListener("focus", loadPosts);
+
+window.addEventListener("keydown", e => {
+    if (e.key === "Escape") {
+        const search = document.getElementById("search");
+        if(search) {
+            search.value = "";
+            renderPosts(POSTS);
+        }
+    }
+});
+
+// পেজ লোড হলেই রান হবে
+window.addEventListener("DOMContentLoaded", () => {
+    initPage();
+    loadPosts();
+});
 </script>
 
 </body>
-
 </html>

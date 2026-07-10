@@ -163,7 +163,7 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook (Direct Iframe Injection - No API, No CORS restrictions)
+    // ২. Facebook (ফিক্সড লজিক: টোকেন অক্ষত রেখে ডিরেক্টলি প্লেয়ারে পুশ)
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
         setTimeout(() => {
             fetchFacebookEmbed(url, containerId);
@@ -200,9 +200,9 @@ async function fetchFacebookEmbed(facebookUrl, targetId) {
     if (!container) return;
 
     try {
-        let cleanUrl = facebookUrl.split("?")[0].split("&")[0].split("#")[0];
+        // ফিক্সড: শুধুমাত্র ইউআরএল এর পেছনের ট্র্যাকিং প্যারামিটার (?mibextid=...) কাটবে, মেইন লিঙ্ক ও টোকেন অক্ষত থাকবে
+        let cleanUrl = facebookUrl.split("?")[0];
         
-        // পাইথন বা এপিআই-এর ঝামেলা বাদ দিয়ে সরাসরি লিংকটিকে স্ট্যান্ডার্ড এমবেড আইফ্রেমে পাঞ্চ করা
         let fallbackUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
         container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>';
         

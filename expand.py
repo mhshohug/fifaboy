@@ -13,9 +13,8 @@ def get_full_url(short_url: str) -> str:
     if not short_url:
         return short_url
 
-    # ফেসবুকের কড়া স্ক্র্যাপিং ব্লকিং এড়াতে একটি স্ট্যান্ডার্ড ডেস্কটপ ব্রাউজার হেডার
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
         'Accept-Language': 'en-US,en;q=0.5',
     }
@@ -24,30 +23,41 @@ def get_full_url(short_url: str) -> str:
         session = requests.Session()
         session.headers.update(headers)
 
-        # allow_redirects=True রাখার ফলে /share/ লিংকটি রিডাইরেক্ট হয়ে আসল লিংকে চলে যাবে
         response = session.get(short_url, timeout=15, allow_redirects=True)
         final_url = response.url
+        html = response.text
 
         check_url = final_url.lower()
         check_short = short_url.lower()
 
         # ====================== 📸 INSTAGRAM CLEAN LINK ======================
         if "instagram.com" in check_url or "instagram.com" in check_short:
-            clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
-            if not clean_url.endswith('/'):
-                clean_url += '/'
-            return clean_url
-
-        # ====================== 📘 FACEBOOK (১০০% ফিক্সড মেথড) ======================
-        if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
-            # 🎯 জ্যাম কাটানোর ট্রিক: রিডাইরেক্ট হওয়া ফাইনাল ইউআরএল থেকে সরাসরি সব ট্র্যাকিং (?share, ?mibextid, ?igsh) কেটে ফেলা
+            # পেছনের সব ট্র্যাকিং কোড (?igsh=...) এক কোপে কেটে বাদ দেওয়া
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
             
-            # ট্র্যাকিং কাটার পর শেষে স্ল্যাশ থাকলে ওটা প্রমিত করার জন্য কেটে দেওয়া
-            if clean_url.endswith('/'):
-                clean_url = clean_url[:-1]
+            # শেষে স্ল্যাশ না থাকলে একটা স্ল্যাশ যোগ করে দেওয়া (আপনার চাওয়া ফরম্যাট)
+            if not clean_url.endswith('/'):
+                clean_url += '/'
                 
             return clean_url
+
+        # ====================== 📘 FACEBOOK ======================
+        if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
+            if "reel/" in final_url or "videos/" in final_url:
+                clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
+                if clean_url.endswith('/'):
+                    clean_url = clean_url[:-1]
+                return clean_url
+
+            og_url_match = re.search(r'<meta\s+property=["\']og:url["\']\s+content=["\']([^"\']+)["\']', html)
+            if og_url_match:
+                fb_real_url = og_url_match.group(1)
+                clean_url = fb_real_url.split("?")[0].split("&")[0].split("#")[0]
+                if clean_url.endswith('/'):
+                    clean_url = clean_url[:-1]
+                return clean_url
+
+            return final_url.split("?")[0].split("&")[0].split("#")[0]
 
         # ====================== 🎵 TIKTOK ======================
         if "tiktok.com" in check_url or "tiktok.com" in check_short:

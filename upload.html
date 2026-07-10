@@ -2,55 +2,136 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 <title>Upload Post | FIFABOY</title>
-
 <link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="js/supabase.js"></script>
+<style>
+    body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; margin: 0; padding-bottom: 40px; }
+    nav { background: #2a2a2a; padding: 15px 30px; box-shadow: 0 2px 5px rgba(0,0,0,0.3); display: flex; justify-content: space-between; align-items: center; }
+    nav .logo { font-size: 20px; font-weight: bold; color: #3ecf8e; text-decoration: none; }
+    .btn-back { color: #ccc; text-decoration: none; font-size: 14px; background: #333; padding: 6px 12px; border-radius: 4px; }
+    .btn-back:hover { background: #444; color: white; }
+    
+    .container { max-width: 500px; margin: 40px auto; background: #2a2a2a; padding: 30px; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); width: 90%; box-sizing: border-box; }
+    h1 { margin-top: 0; color: #3ecf8e; text-align: center; font-size: 24px; }
+    
+    .input { margin-bottom: 18px; text-align: left; }
+    .input label { display: block; margin-bottom: 6px; font-size: 14px; color: #3ecf8e; font-weight: 500; }
+    .input input, .input textarea, .input select {
+        width: 100%; padding: 12px; background: #333; border: 1px solid #444; border-radius: 6px; color: white; box-sizing: border-box; font-family: inherit; font-size: 15px;
+    }
+    .input textarea { resize: none; }
+    .input input:focus, .input textarea:focus, .input select:focus { outline: none; border-color: #3ecf8e; }
+    
+    button[type="submit"] { width: 100%; background: #3ecf8e; color: white; border: none; padding: 14px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; margin-top: 10px; }
+    button[type="submit"]:disabled { background: #555; cursor: not-allowed; }
+</style>
 </head>
-
 <body>
 
 <nav>
-    <div class="logo">⚽ FIFABOY</div>
+    <a href="index.html" class="logo">⚽ FIFABOY</a>
+    <a href="index.html" class="btn-back">← Home</a>
 </nav>
 
 <div class="container">
+    <h1>Create New Post</h1>
 
-<h1>Create New Post</h1>
+    <form id="uploadForm" onsubmit="submitPost(event)">
+        <div class="input">
+            <label>Title / Match Name</label>
+            <input type="text" id="title" placeholder="e.g., Real Madrid vs Barcelona - VAR Check" required>
+        </div>
 
-<form id="uploadForm">
+        <div class="input">
+            <label>Category / Platform</label>
+            <select id="platform" required>
+                <option value="Penalty">Penalty</option>
+                <option value="Red Card">Red Card</option>
+                <option value="Handball">Handball</option>
+                <option value="VAR">VAR</option>
+                <option value="Community">Community</option>
+            </select>
+        </div>
 
-<div class="input">
-<label>Title</label>
-<input type="text" id="title" required>
+        <div class="input">
+            <label>Description / Detailed Analysis</label>
+            <textarea id="description" rows="5" placeholder="Explain what happened..."></textarea>
+        </div>
+
+        <div class="input">
+            <label>Evidence Link (YouTube, Facebook, TikTok, X, Insta, or Direct Image URL)</label>
+            <input type="url" id="url" placeholder="Paste the link here...">
+        </div>
+
+        <button type="submit" id="submitBtn">Publish Post</button>
+    </form>
 </div>
 
-<div class="input">
-<label>Description</label>
-<textarea id="description" rows="6"></textarea>
-</div>
+<script>
+// সুপাবেস কানেকশন
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-<div class="input">
-<label>Video Link</label>
-<input type="url" id="url" placeholder="https://..." required>
-</div>
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUserId = null;
 
-<div class="input">
-<label>Platform</label>
-<input type="text" id="platform" readonly>
-</div>
+// পেজ লোড হলেই চেক করবে ইউজার লগইন আছে কিনা
+window.addEventListener('DOMContentLoaded', async () => {
+    const { data: { user } } = await mySupabase.auth.getUser();
+    if (!user) {
+        alert("পোস্ট করতে প্রথমে লগইন করুন!");
+        window.location.href = "login.html";
+    } else {
+        currentUserId = user.id;
+    }
+});
 
-<button type="submit">
-Publish Post
-</button>
+// ফর্ম সাবমিট হ্যান্ডেল করার মেইন ফাংশন
+async function submitPost(event) {
+    event.preventDefault(); // পেজ রিফ্রেশ হওয়া বন্ধ করা
+    
+    if (!currentUserId) return;
 
-</form>
+    const title = document.getElementById("title").value.trim();
+    const platform = document.getElementById("platform").value;
+    const description = document.getElementById("description").value.trim();
+    const url = document.getElementById("url").value.trim();
+    const submitBtn = document.getElementById("submitBtn");
 
-</div>
+    try {
+        submitBtn.innerText = "Publishing...";
+        submitBtn.disabled = true;
 
-<script src="js/upload.js"></script>
+        // সুপাবেসের posts টেবিলে ডাটা ইনসার্ট
+        const { error } = await mySupabase
+            .from('posts')
+            .insert([
+                {
+                    user_id: currentUserId,
+                    title: title,
+                    platform: platform,
+                    description: description,
+                    url: url || null
+                }
+            ]);
+
+        if (error) throw error;
+
+        alert("আপনার পোস্টটি সফলভাবে পাবলিশ হয়েছে!");
+        window.location.href = "index.html"; // সফল হলে সরাসরি হোম পেজে ফেরত যাবে
+
+    } catch (e) {
+        alert("ভুল হয়েছে: " + e.message);
+        console.error(e);
+    } finally {
+        submitBtn.innerText = "Publish Post";
+        submitBtn.disabled = false;
+    }
+}
+</script>
 
 </body>
 </html>

@@ -47,14 +47,14 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* এমবেড করা মিডিয়া বক্সের সুন্দর সাইজ */
+/* এমবেড করা মিডিয়া বক্সের ডিজাইন */
 .embed-container {
     margin-top: 12px;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
     border-radius: 8px;
-    background: #1f1f1f;
+    background: transparent;
     display: flex;
     justify-content: center;
 }
@@ -167,35 +167,7 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// 🔥 ব্রাউজারের মতো ব্যাকগ্রাউন্ডে ফুল রিডাইরেক্ট ইউআরএল বের করার নতুন বুলেটপ্রুফ ফাংশন
-async function getTikTokRealUrl(shortUrl) {
-    if (!shortUrl || (!shortUrl.includes("vt.tiktok.com") && !shortUrl.includes("vm.tiktok.com"))) {
-        return shortUrl; 
-    }
-    try {
-        // নতুন ও ফাস্ট রিডাইরেক্ট ডিটেক্টর এপিআই
-        const response = await fetch(`https://api.followredirects.com/v1/trace?url=${encodeURIComponent(shortUrl)}`);
-        const data = await response.json();
-        
-        if (data && data.finalUrl) {
-            return data.finalUrl;
-        }
-        
-        // ফালব্যাক মেথড (যদি উপরের এপিআই কোনো কারণে রেসপন্স না করে)
-        const altResponse = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(shortUrl)}`);
-        const altData = await altResponse.json();
-        if (altData && altData.status && altData.status.url) {
-            return altData.status.url;
-        }
-        
-        return shortUrl;
-    } catch (e) {
-        console.error("Redirect trace failed, using regex code logic instead", e);
-        return shortUrl;
-    }
-}
-   
-// স্মার্ট মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর ফাংশন
+// মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -213,23 +185,33 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (ডিরেক্ট আইডি দিয়ে ১০০% ওয়ার্কিং ডাইরেক্ট প্লেয়ার)
+    // ৩. TikTok (আপনার দেওয়া ওয়ার্কিং কোডের মতো ডিরেক্ট ব্লককোট ও অফিশিয়াল স্ক্রিপ্ট ইনজেকশন)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
-        let videoId = "";
         
-        if (cleanUrl.includes("/video/")) {
-            let parts = cleanUrl.split("/video/");
-            if (parts[1]) {
-                videoId = parts[1].split("/")[0];
-            }
+        // টিকটকের অফিশিয়াল উইজেট স্ক্রিপ্ট পেজে ইনজেক্ট করা (যদি না থাকে)
+        if (!document.getElementById("tiktok-js")) {
+            const script = document.createElement("script");
+            script.id = "tiktok-js";
+            script.src = "https://www.tiktok.com/embed.js";
+            script.async = true;
+            document.body.appendChild(script);
+        } else {
+            // যদি স্ক্রিপ্ট অলরেডি থাকে, তাহলে নতুন পোস্টের উইজেটটি রেন্ডার করার জন্য রিলোড পুশ
+            setTimeout(() => {
+                if (window.tiktokEmbed) window.tiktokEmbed.render();
+            }, 500);
         }
-        
-        if (videoId) {
-            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
-        }
-        
-        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
+
+        // হুবহু ডিরেক্ট লিঙ্ক দিয়ে অফিশিয়াল ব্লককোট তৈরি
+        return `
+        <div class="embed-container">
+            <blockquote class="tiktok-embed" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; width:100%; margin: 0 auto;">
+                <section>
+                    <a target="_blank" href="${cleanUrl}">Loading Video...</a>
+                </section>
+            </blockquote>
+        </div>`;
     }
 
     // ৪. Twitter/X
@@ -342,6 +324,7 @@ function renderPosts(postsList) {
 
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
     if(window.FB) window.FB.XFBML.parse();
+    if(window.tiktokEmbed) window.tiktokEmbed.render();
 }
 
 function openUpload() {
@@ -360,7 +343,7 @@ function closeUpload() {
     document.getElementById("postUrl").value = "";
 }
 
-// সাবমিট ফাংশন - যা আপলোডের সময় শর্ট লিংক অটোমেটিক ব্রাউজারের মতো ভেঙে ফুল লিংক বানাবে
+// 🎯 ডিরেক্ট সাবমিট ফাংশন - কোনো এপিআই চেক বা বাধা ছাড়াই ইউজার যা দেবে ওটাই পোস্ট হবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -374,19 +357,15 @@ async function submitNewPost() {
     }
 
     try {
-        submitBtn.innerText = "Processing Link...";
+        submitBtn.innerText = "Uploading...";
         submitBtn.disabled = true;
 
-        // 💡 কোড নিজে থেকেই ব্রাউজারের মতো শর্ট লিংক ভেঙে ফুল লিংকে রূপান্তর করবে
-        const finalUrl = await getTikTokRealUrl(rawUrl);
-
-        submitBtn.innerText = "Uploading...";
         const { error } = await mySupabase.from('posts').insert([{
             user_id: currentUserId,
             title: title,
             platform: platform,
             description: description,
-            url: finalUrl || null
+            url: rawUrl || null // হুবহু ইউজারের দেওয়া লিঙ্ক সেভ হবে
         }]);
 
         if (error) throw error;

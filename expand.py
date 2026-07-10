@@ -30,26 +30,16 @@ def get_full_url(short_url: str) -> str:
         check_url = final_url.lower()
         check_short = short_url.lower()
 
-        # ====================== 📸 INSTAGRAM DIRECT FIXED ======================
+        # ====================== 📸 INSTAGRAM CLEAN LINK ======================
         if "instagram.com" in check_url or "instagram.com" in check_short:
+            # পেছনের সব ট্র্যাকিং কোড (?igsh=...) এক কোপে কেটে বাদ দেওয়া
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
-            if clean_url.endswith('/'):
-                clean_url = clean_url[:-1]
             
-            # ইনস্টাগ্রামের আসল রিল/পোস্ট আইডি টেনে বের করা
-            # যেমন: /reel/DaFmuqwOnZ3 থেকে 'DaFmuqwOnZ3' নিবে
-            parts = clean_url.split('/')
-            video_id = ""
-            for i, part in enumerate(parts):
-                if part in ["reel", "p", "tv"] and i + 1 < len(parts):
-                    video_id = parts[i+1]
-                    break
-            
-            if video_id:
-                # 🎯 ম্যাজিক লিংক: এই স্পেশাল লিংকটা কোনো স্ক্রিপ্ট বা বাটন ছাড়াই সরাসরি আইফ্রেমে ভিডিও দেখায়!
-                return f"https://www.instagram.com/p/{video_id}/embed/captioned/"
-            
-            return f"{clean_url}/embed/"
+            # শেষে স্ল্যাশ না থাকলে একটা স্ল্যাশ যোগ করে দেওয়া (আপনার চাওয়া ফরম্যাট)
+            if not clean_url.endswith('/'):
+                clean_url += '/'
+                
+            return clean_url
 
         # ====================== 📘 FACEBOOK ======================
         if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
@@ -100,10 +90,9 @@ def process_posts():
             print(f"Processing → {current_url[:80]}...")
             new_url = get_full_url(current_url)
             
-            # যদি ডেটাবেজের লিংক আর নতুন জেনারেট হওয়া লিংক আলাদা হয়, তবেই আপডেট করবে
             if new_url != current_url:
                 supabase.table("posts").update({"url": new_url}).eq("id", post["id"]).execute()
-                print(f"✅ Updated: {new_url}")
+                print(f"✅ Updated to Clean URL: {new_url}")
                 updated += 1
 
     print(f"\n🎉 Finished! {updated} posts updated.")

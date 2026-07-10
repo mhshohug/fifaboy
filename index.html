@@ -188,28 +188,21 @@ function getMediaEmbedHTML(url) {
     // ৩. TikTok (শর্ট লিংক ও সব লিংকের অফিশিয়াল ডাইনামিক ফিক্স)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
-        
-        // ডাইনামিকালি অফিশিয়াল স্ক্রিপ্ট ইনজেক্ট করা
-        if (!document.getElementById("tiktok-js")) {
-            const script = document.createElement("script");
-            script.id = "tiktok-js";
-            script.src = "https://www.tiktok.com/embed.js";
-            script.async = true;
-            document.head.appendChild(script);
-        } else {
-            setTimeout(() => { if (window.tiktokEmbed) window.tiktokEmbed.render(); }, 600);
-        }
+        let videoId = "";
 
-        // অফিশিয়াল ব্লককোড যা vt.tiktok.com শর্ট লিংককে ব্রাউজারে অটো-লোডেড প্লেয়ারে রূপান্তর করবে
-        return `
-        <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
-            <blockquote class="tiktok-embed" data-unique-id="" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
-                <section>
-                    <a target="_blank" title="Watch on TikTok" href="${cleanUrl}">Loading Live TikTok Video...</a>
-                </section>
-            </blockquote>
-        </div>`;
+        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
+            // শর্ট লিংকের শেষ অংশ থেকে আইডি বা কোড বের করা
+            let parts = cleanUrl.split("/");
+            videoId = parts[parts.length - 1] || parts[parts.length - 2];
+            return `<div class="embed-container"><iframe src="https://www.tiktok.com/player/v1/${videoId}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
+        } else if (cleanUrl.includes("/video/")) {
+            videoId = cleanUrl.split("/video/")[1];
+            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
+        }
+        
+        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
     }
+
 
     // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {

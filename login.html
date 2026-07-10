@@ -1,1 +1,214 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
 
+<title>FIFABOY | Login</title>
+
+<link rel="stylesheet" href="css/style.css">
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+
+<style>
+
+body{
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    min-height:100vh;
+    background:#090b13;
+    font-family:Poppins,sans-serif;
+}
+
+.login-box{
+    width:100%;
+    max-width:420px;
+    background:#151922;
+    padding:35px;
+    border-radius:18px;
+    box-shadow:0 10px 30px rgba(0,0,0,.35);
+}
+
+.logo{
+    font-size:34px;
+    color:#ffd700;
+    font-weight:700;
+    text-align:center;
+    margin-bottom:8px;
+}
+
+.sub{
+    text-align:center;
+    color:#bbb;
+    margin-bottom:25px;
+}
+
+.input{
+    width:100%;
+    margin-bottom:15px;
+}
+
+.input input{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:#202534;
+    color:#fff;
+    font-size:15px;
+    outline:none;
+}
+
+button{
+    width:100%;
+    padding:15px;
+    border:none;
+    border-radius:10px;
+    background:#ffd700;
+    color:#000;
+    font-size:16px;
+    font-weight:700;
+    cursor:pointer;
+    margin-top:10px;
+}
+
+.social{
+    display:grid;
+    gap:10px;
+    margin-top:15px;
+}
+
+.google{
+    background:#fff;
+    color:#000;
+}
+
+.facebook{
+    background:#1877F2;
+    color:#fff;
+}
+
+.bottom{
+    text-align:center;
+    margin-top:20px;
+}
+
+.bottom a{
+    color:#ffd700;
+    text-decoration:none;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="login-box">
+
+<div class="logo">
+⚽ FIFABOY
+</div>
+
+<div class="sub">
+Login to Continue
+</div>
+
+<div class="input">
+<input type="email" id="email" placeholder="Email">
+</div>
+
+<div class="input">
+<input type="password" id="password" placeholder="Password">
+</div>
+
+<button id="loginBtn">
+Login
+</button>
+
+<div class="social">
+
+<button class="google" id="googleBtn">
+Continue with Google
+</button>
+
+<button class="facebook" id="facebookBtn">
+Continue with Facebook
+</button>
+
+</div>
+
+<div class="bottom">
+
+<a href="register.html">
+Create Account
+</a>
+
+</div>
+
+</div>
+
+<script>
+
+loginBtn.onclick=async()=>{
+
+    const {error}=await supabase.auth.signInWithPassword({
+
+        email:email.value,
+
+        password:password.value
+
+    });
+
+    if(error){
+
+        alert(error.message);
+
+        return;
+
+    }
+
+    const {data}=await supabase
+    .from("profiles")
+    .select("role")
+    .eq("id",(await supabase.auth.getUser()).data.user.id)
+    .single();
+
+    if(data.role==="admin"){
+
+        location.href="admin.html";
+
+    }else{
+
+        location.href="index.html";
+
+    }
+
+};
+
+googleBtn.onclick=async()=>{
+
+    await supabase.auth.signInWithOAuth({
+
+        provider:"google"
+
+    });
+
+};
+
+facebookBtn.onclick=async()=>{
+
+    await supabase.auth.signInWithOAuth({
+
+        provider:"facebook"
+
+    });
+
+};
+
+</script>
+
+</body>
+</html>

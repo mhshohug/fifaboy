@@ -220,9 +220,39 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
 
-    // ২. Facebook
-    if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
+        // ২. Facebook (Video, Reels, Photo Post - অল-ইন-ওয়ান ডাইনামিক উইজেট)
+    if (url.includes("facebook.com") || url.includes("fb.watch") || url.includes("share/v") || url.includes("share/r")) {
+        let cleanUrl = url.split("?")[0];
+        
+        // ফেসবুকের অফিশিয়াল উইজেট স্ক্রিপ্ট পেজে ইনজেক্ট করা (যদি না থাকে)
+        if (!document.getElementById("facebook-jssdk")) {
+            const script = document.createElement("script");
+            script.id = "facebook-jssdk";
+            script.src = "https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0";
+            script.async = true;
+            script.defer = true;
+            script.crossOrigin = "anonymous";
+            document.body.appendChild(script);
+        } else {
+            // যদি স্ক্রিপ্ট অলরেডি থাকে, নতুন পোস্ট আসার পর উইজেট রি-রেন্ডার করার কমান্ড
+            setTimeout(() => {
+                if (window.FB) window.FB.XFBML.parse();
+            }, 500);
+        }
+
+        // রিল বা ভিডিও পোস্টের জন্য আলাদা ক্লাস এবং সাধারণ ফটো পোস্টের জন্য আলাদা ক্লাস হ্যান্ডলিং
+        if (cleanUrl.includes("/share/v/") || cleanUrl.includes("/share/r/") || cleanUrl.includes("/videos/") || cleanUrl.includes("fb.watch")) {
+            return `
+            <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center;">
+                <div class="fb-video" data-href="${cleanUrl}" data-width="500" data-show-text="false" data-allowfullscreen="true"></div>
+            </div>`;
+        } else {
+            // নরমাল ফটো বা টেক্সট পোস্টের জন্য
+            return `
+            <div class="embed-container" style="width:100%; max-width:500px; margin:15px auto; display:flex; justify-content:center; background:#222; border-radius:8px; padding:10px;">
+                <div class="fb-post" data-href="${cleanUrl}" data-width="500" data-show-text="true"></div>
+            </div>`;
+        }
     }
 
     // ৩. TikTok (১০০% সাকসেসফুল পিওর আইফ্রেম মেথড - যা ফুল লিংকের ক্ষেত্রে কোনোদিন ফেইল করবে না)

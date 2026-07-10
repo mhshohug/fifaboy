@@ -13,20 +13,29 @@ def get_full_url(short_url: str) -> str:
     if not short_url:
         return short_url
 
+    # ফেসবুকের রিডাইরেক্ট ভাঙার জন্য কড়া মোবাইল ব্রাউজার হেডার
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,video/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
+        'User-Agent': 'Mozilla/5.0 (Linux; Android 10; K) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Mobile Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,*/*;q=0.8',
+        'Accept-Language': 'en-US,en;q=0.5',
+        'Connection': 'keep-alive',
+        'Upgrade-Insecure-Requests': '1'
     }
 
     try:
         session = requests.Session()
         session.headers.update(headers)
 
-        # ১. শর্ট লিংকের আসল রিডাইরেক্ট লোকেশন বের করা
+        # রিডাইরেক্ট ফলো করে মেইন ইউআরএল হিট করা
         response = session.get(short_url, timeout=15, allow_redirects=True)
         final_url = response.url
-        html_content = response.text
+        
+        # ট্রিক: যদি ডিরেক্ট response.url এও ফেসবুকের মেইন লিংক না আসে, তবে রিডাইরেক্ট হিস্ট্রি চেক করা
+        if response.history:
+            for resp in response.history:
+                if "facebook.com/reel/" in resp.headers.get('Location', '') or "facebook.com/videos/" in resp.headers.get('Location', ''):
+                    final_url = resp.headers['Location']
+                    break
 
         check_url = final_url.lower()
         check_short = short_url.lower()
@@ -38,39 +47,37 @@ def get_full_url(short_url: str) -> str:
                 clean_url += '/'
             return clean_url
 
-        # ====================== 📘 FACEBOOK OEMBED API HACK (১০০% ফুলপ্রুফ) ======================
+        # ====================== 📘 FACEBOOK FIXED METHOD ======================
         if "facebook.com" in check_url or "fb.watch" in check_url or "facebook.com" in check_short:
             
-            # ট্রিক: ফেসবুক যদি লগইন পেজে আটকে দেয়, তবে মেটার অফিশিয়াল এপিআই রেসপন্স থেকে ওরিজিনাল ইউআরএল বের করা
-            if "/share/" in final_url or "fb.watch" in final_url or "login" in final_url:
-                # ফেসবুকের ওরিজিনাল ওএমবেড এন্ডপয়েন্ট যা কোনো ব্লক ছাড়াই ডাটা দেয়
-                oembed_url = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
-                try:
-                    api_res = session.get(oembed_url, timeout=10)
-                    if api_res.status_code == 200:
-                        api_data = api_res.json()
-                        # এপিআই ডাটা থেকে ওরিজিনাল রিল/ভিডিও ইউআরএল নেওয়া
-                        author_url = api_data.get("author_url", "")
-                        html_box = api_data.get("html", "")
-                        
-                        # এইচটিএমএল ব্লকের ভেতর থেকে ওরিজিনাল রিল আইডি লিংক টেনে বের করা
-                        href_match = re.search(r'href=["\'](https://www\.facebook\.com/[^"\']+)["\']', html_box)
-                        if href_match:
-                            final_url = href_match.group(1)
-                except Exception as api_err:
-                    print(f"oEmbed API Error, falling back to regex: {api_err}")
+            # ফেসবুকের যদি মোবাইল বা ডেস্কটপ আসল রিল/ভিডিও লোকেশন চলে আসে
+            if "reel/" in final_url or "reels/" in final_url or "videos/" in final_url or "watch/" in final_url:
+                clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
+                if clean_url.endswith('/'):
+                    clean_url = clean_url[:-1]
+                
+                # যদি লিংকে /reels/ থাকে, সেটাকে স্ট্যান্ডার্ড /reel/ করে দেওয়া যেন আইফ্রেম রিড করতে পারে
+                if "/reels/" in clean_url:
+                    clean_url = clean_url.replace("/reels/", "/reel/")
+                    
+                return clean_url
 
-            # যদি এপিআই ফেইল করে, তবে সেকেন্ডারি ব্যাকআপ হিসেবে মেটা ট্যাগ চেক
-            if "/share/" in final_url or "fb.watch" in final_url or "login" in final_url:
-                meta_match = re.search(r'<meta\s+property=["\']og:url["\']\s+content=["\']([^"\']+)["\']', html_content)
-                if meta_match:
-                    final_url = meta_match.group(1)
+            # ব্যাকআপ রেগুলার এক্সপ্রেশন (যদি রিডাইরেক্টের পরেও /share/ থেকে যায়)
+            html = response.text
+            og_url_match = re.search(r'<meta\s+property=["\']og:url["\']\s+content=["\']([^"\']+)["\']', html)
+            if og_url_match:
+                fb_real_url = og_url_match.group(1)
+                clean_url = fb_real_url.split("?")[0].split("&")[0].split("#")[0]
+                if clean_url.endswith('/'):
+                    clean_url = clean_url[:-1]
+                if "/reels/" in clean_url:
+                    clean_url = clean_url.replace("/reels/", "/reel/")
+                return clean_url
 
-            # পেছনের ট্র্যাকিং জাবিজাবি সব সাফ
+            # কোনো লজিক কাজ না করলে একদম ফ্রেশ ট্র্যাকিং কাটা লিংক
             clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
             if clean_url.endswith('/'):
                 clean_url = clean_url[:-1]
-                
             return clean_url
 
         # ====================== 🎵 TIKTOK ======================
@@ -85,7 +92,7 @@ def get_full_url(short_url: str) -> str:
 
 
 def process_posts():
-    print("🚀 Starting URL Processor with oEmbed Fix...")
+    print("🚀 Starting URL Processor...")
     response = supabase.table("posts").select("*").execute()
     posts = response.data or []
     

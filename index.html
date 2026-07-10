@@ -158,7 +158,7 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
     
-    // ২. Facebook (টিকটকের মতোই ওরিজিনাল এমবেড প্লেয়ার সরাসরি সাইটে চলবে ভাই!)
+    // ২. Facebook (পাইথনের ওরিজিনাল ক্লিন লিংক সরাসরি আইফ্রেমে প্লে হবে)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let finalUrl = url;
         if (!url.includes("video/embed") && !url.includes("plugins/video.php")) {
@@ -168,7 +168,7 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="${finalUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
     }
     
-    // ৩. TikTok (একদম আগের মতোই ডিরেক্ট সাইটে প্লে হবে)
+    // ৩. TikTok (সরাসরি সাইটেই প্লে হবে)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -180,9 +180,9 @@ function getMediaEmbedHTML(url) {
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
-        // ৫. Instagram (মেটার রিফিউজ টু কানেক্ট ব্লকিং ভাঙার জন্য অফিশিয়াল এমবেড উইজেট)
+    
+    // ৫. Instagram (মেতার রিফিউজ টু কানেক্ট ব্লকিং ভাঙার জন্য অফিশিয়াল এমবেড উইজেট)
     if (url.includes("instagram.com")) {
-        // পেছনের সব জাবিজাবি কেটে ক্লিন লিংক নেওয়া
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
@@ -193,11 +193,11 @@ function getMediaEmbedHTML(url) {
             </div>
             <script async src="//www.instagram.com/embed.js"></script>
         `;
-    
-
+    }
     
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 async function initPage(){
     try {

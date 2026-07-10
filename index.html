@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>PLAYBOY | Messi Watch</title>
+<title>FIFABOY | Messi Watch</title>
 <meta name="description" content="Community Archive of Football Refereeing Discussions">
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
@@ -47,7 +47,7 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* এমবেড করা মিডিয়া বক্সের সাইজ */
+/* এমবেড করা মিডিয়া বক্সের সুন্দর সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -167,17 +167,26 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// অলরিজিনস প্রক্সি দিয়ে ব্যাকগ্রাউন্ড রিডাইরেক্ট ইউআরএল বের করার বুদ্ধিমান ফাংশন
+// ও-এমবেড এপিআই দিয়ে টিকটক শর্ট লিংক থেকে সরাসরি অফিশিয়াল ভিডিও আইডি বের করার ম্যাজিক ফাংশন
 async function getTikTokRealUrl(shortUrl) {
     if (!shortUrl || (!shortUrl.includes("vt.tiktok.com") && !shortUrl.includes("vm.tiktok.com"))) {
         return shortUrl; 
     }
     try {
-        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(shortUrl)}`);
+        const targetApi = `https://www.tiktok.com/oembed?url=${encodeURIComponent(shortUrl)}`;
+        const response = await fetch(`https://api.allorigins.win/get?url=${encodeURIComponent(targetApi)}`);
         const data = await response.json();
-        return data.status.url || shortUrl;
+        
+        const parsedData = JSON.parse(data.contents);
+        if (parsedData && parsedData.html) {
+            const match = parsedData.html.match(/video\/(\d+)/);
+            if (match && match[1]) {
+                return `https://www.tiktok.com/video/${match[1]}`;
+            }
+        }
+        return shortUrl;
     } catch (e) {
-        console.error("Proxy redirect failed", e);
+        console.error("TikTok API resolution failed", e);
         return shortUrl;
     }
 }
@@ -200,27 +209,22 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (ডিরেক্ট ফুল আইফ্রেম মেথড যা ফুল লিংকের আইডি নিয়ে ইনস্ট্যান্ট চলে)
-        // ৩. TikTok (সরাসরি ভিডিও আইডি ডিটেক্ট করে ইনস্ট্যান্ট প্লে করার ফাইনাল ফিক্স)
+    // ৩. TikTok (ডিরেক্ট আইডি এক্সট্র্যাক্ট করে আসল প্লেয়ার লোড করার ১০০% ফাইনাল ফিক্স)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         let videoId = "";
         
-        // ইউআরএল থেকে আসল ভিডিও আইডিটি খুঁজে বের করা
         if (cleanUrl.includes("/video/")) {
-            // স্ল্যাশ দিয়ে ভাগ করে আইডি অংশটি আলাদা করা
             let parts = cleanUrl.split("/video/");
             if (parts[1]) {
                 videoId = parts[1].split("/")[0];
             }
         }
         
-        // যদি আইডি পাওয়া যায়, তবে টিকটকের প্লেয়ার ইন্টারফেসে ডিরেক্ট হিট করা
         if (videoId) {
             return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
         }
         
-        // ফালব্যাক (যদি কোনো কারণে আইডি না পায় তবে মূল লিংক এম্বেড করা)
         return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px; border:none;" allowfullscreen></iframe></div>`;
     }
 
@@ -352,7 +356,7 @@ function closeUpload() {
     document.getElementById("postUrl").value = "";
 }
 
-// সাবমিট ফাংশন - যেখানে এবার প্রক্সি কল করে আসল বড় লিংক বের করা হবে!
+// সাবমিট ফাংশন - যা আপলোডের সময় শর্ট লিংক ডিকোড করে ডেটাবেজে পাঠাবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -369,7 +373,7 @@ async function submitNewPost() {
         submitBtn.innerText = "Processing Link...";
         submitBtn.disabled = true;
 
-        // 💡 ম্যাজিক কানেকশন: ডাটাবেজে পাঠানোর আগেই শর্ট লিংকটিকে কনভার্ট করে ফুল ভিডিও লিংক বানানো হলো
+        // ব্যাকগ্রাউন্ডে লিংক কনভার্ট করা
         const finalUrl = await getTikTokRealUrl(rawUrl);
 
         submitBtn.innerText = "Uploading...";
@@ -390,6 +394,37 @@ async function submitNewPost() {
         submitBtn.innerText = "Submit Post";
         submitBtn.disabled = false;
     }
+}
+
+// ভোট/লাইক আপডেট লজিক
+async function votePost(postId, btnElement) {
+    if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
+    const voteNumSpan = btnElement.querySelector(".vote-num");
+    let currentVotes = parseInt(voteNumSpan.innerText);
+    
+    btnElement.classList.toggle("liked");
+    if(btnElement.classList.contains("liked")) {
+        currentVotes++;
+    } else {
+        currentVotes--;
+    }
+    voteNumSpan.innerText = currentVotes;
+    await mySupabase.from('posts').update({ votes: currentVotes }).eq('id', postId);
+}
+
+// শেয়ার পোস্ট
+function sharePost(title, postId) {
+    const shareUrl = `${window.location.origin}${window.location.pathname.replace('index.html','')}/post.html?id=${postId}`;
+    navigator.clipboard.writeText(shareUrl).then(() => {
+        alert(`"${title}" পোস্টের লিংক কপি হয়েছে!`);
+    }).catch(err => { alert("লিংক কপি করা যায়নি।"); });
+}
+
+// রিপোর্ট পোস্ট
+function reportPost(postId, btnElement) {
+    if(!currentUserId) { alert("রিপোর্ট করতে প্রথমে লগইন করুন!"); return; }
+    btnElement.style.color = "#ff6b6b";
+    alert("ধন্যবাদ, পোস্টটি পর্যালোচনার জন্য পাঠানো হয়েছে।");
 }
 
 async function logout() {

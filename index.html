@@ -9,8 +9,6 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
- <!-- TikTok Embed Script -->
-    <script async src="https://www.tiktok.com/embed.js"></script>
 <div id="fb-root"></div>
 <script async defer crossorigin="anonymous" src="https://connect.facebook.net/en_US/sdk.js#xfbml=1&version=v18.0"></script>
 <style>
@@ -49,14 +47,14 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* এমবেড করা মিডিয়া বক্সের প্রপার স্টাইল */
+/* এমবেড করা মিডিয়া বক্সের সুন্দর সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
     max-width: 100%;
     overflow: hidden;
     border-radius: 8px;
-    background: transparent;
+    background: #1f1f1f;
     display: flex;
     justify-content: center;
 }
@@ -169,10 +167,10 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// স্মার্ট মিডিয়া এমবেড এইচটিএমএল জেনারেটর
+// মিডিয়া লিংক ডিটেক্টর ও এমবেড জেনারেটর ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
-
+    
     // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
@@ -187,45 +185,43 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (আপনার দেওয়া আইফ্রেম মেথডের ফাইনাল ওয়ার্কিং ভার্সন)
+    // ৩. TikTok (আপনার দেওয়া চমৎকার পিওর আইফ্রেম ভার্সন)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
-        // ১. যদি মোবাইল শর্ট লিংক (vt.tiktok.com বা vm.tiktok.com) হয়
+        // যদি মোবাইল শর্ট লিংক (vt.tiktok.com বা vm.tiktok.com) হয়
         if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
             return `
-            <div class="embed-container" style="width:100%; max-width:605px; margin:15px auto;">
+            <div class="embed-container">
                 <iframe 
                     src="https://www.tiktok.com/embed/v2/shorts?url=${encodeURIComponent(cleanUrl)}" 
                     width="100%" 
                     height="550" 
                     frameborder="0" 
                     allowfullscreen 
-                    style="border-radius:8px; border:none;">
+                    style="border-radius:8px;">
                 </iframe>
             </div>`;
         }
         
-        // ২. যদি ফুল ভিডিও লিংক থাকে, তবে আপনার দেওয়া চমৎকার .pop() লজিক
-        // (লিংকের শেষে যদি / থাকে তবে ওটা কেটে ফ্রেশ করে নেওয়া)
+        // যদি ফুল লিংক হয়, তবে শেষ মাথা থেকে আইডি বের করা
         if (cleanUrl.endsWith('/')) {
             cleanUrl = cleanUrl.slice(0, -1);
         }
-        const videoId = cleanUrl.split('/').pop(); // নিখুঁতভাবে ১৭ ডিজিটের আইডি বের করা
+        const videoId = cleanUrl.split('/').pop(); 
         
         return `
-        <div class="embed-container" style="width:100%; max-width:605px; margin:15px auto;">
+        <div class="embed-container">
             <iframe 
                 src="https://www.tiktok.com/embed/${videoId}" 
                 width="100%" 
                 height="550" 
                 frameborder="0" 
                 allowfullscreen 
-                style="border-radius:8px; border:none;">
+                style="border-radius:8px;">
             </iframe>
         </div>`;
     }
-
 
     // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
@@ -234,15 +230,12 @@ function getMediaEmbedHTML(url) {
 
     // ৫. Instagram
     if (url.includes("instagram.com")) {
-        let cleanUrl = url.split("?")[0];
-        if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px; width:100%;" allowfullscreen></iframe></div>`;
+        let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
+        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
     }
 
-    // অন্য কোনো ইমেজ বা লিঙ্ক
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
-
 
 async function initPage(){
     try {
@@ -338,18 +331,8 @@ function renderPosts(postsList) {
         feedSection.appendChild(postCard);
     });
 
-    // ডাইনামিকালি উইজেট স্ক্রিপ্টগুলোকে পেজ রেন্ডারের পর রি-ট্রিগার করা
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
     if(window.FB) window.FB.XFBML.parse();
-
-    // TikTok Embed Refresh
-    
-    // টিকটক উইজেট রেন্ডারার কল
-    setTimeout(() => {
-        if (window.tiktokEmbed && typeof window.tiktokEmbed.render === 'function') {
-            window.tiktokEmbed.render();
-        }
-    }, 500);
 }
 
 function openUpload() {
@@ -368,7 +351,7 @@ function closeUpload() {
     document.getElementById("postUrl").value = "";
 }
 
-// ইউজারের ইনপুট করা ডিরেক্ট লিঙ্ক আপলোড ফাংশন
+// ইউজারের দেওয়া লিংক হুবহু ডেটাবেজে সাবমিট করার ফাংশন
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -459,7 +442,5 @@ window.addEventListener("DOMContentLoaded", () => {
     loadPosts();
 });
 </script>
-</body>
-</html>
 </body>
 </html>

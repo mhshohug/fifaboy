@@ -171,76 +171,53 @@ let currentUserId = null;
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
-    // ১. YouTube ভিডিও অথবা Shorts ডিটেকশন
+    // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
-        if (url.includes("shorts/")) {
-            videoId = url.split("shorts/")[1].split("?")[0];
-        } else if (url.includes("v=")) {
-            videoId = url.split("v=")[1].split("&")[0];
-        } else if (url.includes("youtu.be/")) {
-            videoId = url.split("youtu.be/")[1].split("?")[0];
-        }
+        if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
+        else if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
+        else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].split("?")[0];
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
 
-    // ২. Facebook ভিডিও অথবা পোস্ট ডিটেকশন
+    // ২. Facebook
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok ভিডিও ডিটেকশন (vt.tiktok.com বা সাধারণ লিংক দুটোর জন্যই)
+    // ৩. TikTok (শর্ট লিংক ও ফুল লিংকের ইউনিভার্সাল প্লেয়ার)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
-        // ডাইনামিকালি টিকটকের অফিশিয়াল এমবেড স্ক্রিপ্ট লোড করা
-        if (!document.getElementById("tiktok-js")) {
-            const script = document.createElement("script");
-            script.id = "tiktok-js";
-            script.src = "https://www.tiktok.com/embed.js";
-            script.async = true;
-            document.head.appendChild(script);
-        } else {
-            setTimeout(() => {
-                if (window.tiktokEmbed) window.tiktokEmbed.render();
-            }, 500);
-        }
-
-        // যদি vt.tiktok.com বা vm.tiktok.com শর্ট লিংক হয়
+        // vt.tiktok.com শর্ট লিংকের ক্ষেত্রে সরাসরি টিকটকের গ্লোবাল এমবেড গেটওয়ে ব্যবহার করা
         if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
-            // টিকটকের এমবেড প্লেয়ার শর্ট লিংকও সাপোর্ট করে যদি অফিশিয়াল ব্লককোড ঠিক থাকে
-            return `
-            <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
-                <blockquote class="tiktok-embed" data-unique-id="" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
-                    <section><a target="_blank" href="${cleanUrl}">Loading TikTok Video...</a></section>
-                </blockquote>
-            </div>`;
+            return `<div class="embed-container"><iframe src="https://www.tiktok.com/player/v1/${cleanUrl.split(".com/")[1]}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
         }
-
-        // সাধারণ বড় লিংক হলে (/video/id ফরম্যাট)
-        return `
-        <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
-            <blockquote class="tiktok-embed" data-music-id="" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
-                <section><a target="_blank" href="${cleanUrl}">Loading TikTok Video...</a></section>
-            </blockquote>
-        </div>`;
+        
+        // ফুল লিংক হলে আইডি কাট করা
+        let videoId = cleanUrl.split("/video/")[1];
+        if (videoId) {
+            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
+        }
+        
+        // ফালব্যাক
+        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
     }
 
-    // ৪. Twitter/X পোস্ট ডিটেকশন
+    // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
 
-    // ৫. Instagram পোস্ট বা রিল ডিটেকশন
+    // ৫. Instagram
     if (url.includes("instagram.com")) {
-        let cleanUrl = url.split("?")[0];
-        if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px; width:100%; max-width:500px; margin:0 auto;"></iframe></div>`;
+        let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
+        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
     }
 
-    // ৬. যদি কোনো সোশ্যাল লিংক না হয়ে সাধারণ ইমেজের লিংক হয়
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 
 async function initPage(){
@@ -298,27 +275,49 @@ function renderPosts(postsList) {
         const postCard = document.createElement("div");
         postCard.className = "post-card";
         
-        // এখানে লিংক অনুযায়ী সঠিক এমবেড কোড জেনারেট হচ্ছে
         let mediaHTML = getMediaEmbedHTML(post.url);
+        let voteCount = post.votes || 0;
 
         postCard.innerHTML = `
             <div class="post-header" style="display:flex; justify-content:space-between; align-items:center;">
-                <h3 style="margin:0; color:#3ecf8e;">${post.title || "Untitled"}</h3>
+                <h3 style="margin:0; color:#3ecf8e; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+                    ${post.title || "Untitled"}
+                </h3>
                 <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px;">${post.platform || "Community"}</span>
             </div>
-            <p class="post-desc" style="color:#ccc; margin-top:10px; line-height:1.5;">${post.description || ""}</p>
+            
+            <p class="post-desc" style="color:#ccc; margin-top:10px; line-height:1.5; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+                ${post.description || ""}
+            </p>
+            
             ${mediaHTML}
-            <div class="post-footer" style="margin-top:12px; font-size:11px; color:#666;">
+            
+            <div class="interaction-bar">
+                <button class="action-btn" onclick="votePost(${post.id}, this)">
+                    <i class="fa-regular fa-thumbs-up"></i> <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
+                </button>
+                <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'">
+                    <i class="fa-regular fa-comment"></i> <span>Comment</span>
+                </button>
+                <button class="action-btn" onclick="sharePost('${post.title}', ${post.id})">
+                    <i class="fa-regular fa-share-from-square"></i> <span>Share</span>
+                </button>
+                <button class="action-btn reported" onclick="reportPost(${post.id}, this)">
+                    <i class="fa-regular fa-flag"></i> <span>Report</span>
+                </button>
+            </div>
+            
+            <div class="post-footer" style="margin-top:12px; font-size:11px; color:#555; text-align:left;">
                 <small>Posted on: ${new Date(post.created_at).toLocaleDateString()}</small>
             </div>
         `;
         feedSection.appendChild(postCard);
     });
 
-    // টুইটার এবং ফেসবুকের কন্টেন্ট স্ক্রিনে রেন্ডার হওয়ার পর রিফ্রেশ করা
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
     if(window.FB) window.FB.XFBML.parse();
 }
+
 
 function openUpload() {
     if (!currentUserId) {

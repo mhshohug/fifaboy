@@ -146,6 +146,7 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let POSTS = [];
+let USER_VOTES = []; // 🎯 লগইন করা ইউজারের আগের দেওয়া ভোটের ট্র্যাকিং ডাটা রাখার জন্য
 let currentUserId = null;
 
 function getMediaEmbedHTML(url) {
@@ -217,6 +218,11 @@ async function initPage(){
             if(profileData && profileData.role === 'admin' && admin){
                 admin.style.display = "inline-block";
             }
+            
+            // 🎯 লগইন করা ইউজারের ভোটের লকিং ডাটা সুপাবেস থেকে তুলে আনা
+            const { data: votesData } = await mySupabase.from('votes').select('post_id, vote').eq('user_id', user.id);
+            USER_VOTES = votesData || [];
+            
         } else {
             currentUserId = null;
             if(login) login.style.display = "inline-block";
@@ -224,6 +230,7 @@ async function initPage(){
             if(profile) profile.style.display = "none";
             if(admin) admin.style.display = "none";
             if(logoutBtn) logoutBtn.style.display = "none";
+            USER_VOTES = [];
         }
     } catch(e) { console.error(e); }
 }
@@ -254,9 +261,17 @@ function renderPosts(postsList) {
         
         let mediaHTML = getMediaEmbedHTML(post.url);
         let voteCount = post.likes ? parseInt(post.likes) : 0;
-        // 🎯 ডিসলাইক কাউন্ট ডাটাবেজ থেকে রিড করা
         let dislikeCount = post.dislikes ? parseInt(post.dislikes) : 0;
         const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
+
+        // 🎯 চেক করা হচ্ছে এই ইউজার অলরেডি লাইক বা ডিসলাইক দিয়ে রেখেছে কি না
+        const userVoted = USER_VOTES.find(v => v.post_id === post.id);
+        let likeClass = "";
+        let dislikeClass = "";
+        if(userVoted) {
+            if(userVoted.vote === 1) likeClass = "liked";
+            if(userVoted.vote === -1) dislikeClass = "disliked";
+        }
 
         postCard.innerHTML = `
             <div class="post-header" style="display:flex; justify-content:space-between; align-items:center;">
@@ -277,10 +292,10 @@ function renderPosts(postsList) {
             ${mediaHTML}
             
             <div class="interaction-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:12px; border-top:1px solid #383838; width: 100%;">
-                <button class="action-btn" onclick="votePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                <button class="action-btn ${likeClass}" onclick="votePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
                      👍 <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
                 </button>
-                <button class="action-btn" onclick="dislikePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                <button class="action-btn ${dislikeClass}" onclick="dislikePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
                      👎 <span>Dislike (<span class="dislike-num">${dislikeCount}</span>)</span>
                 </button>
                 <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
@@ -338,64 +353,71 @@ async function submitNewPost() {
     finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }
 
+// 🎯 ডাবল ভোট লকিং মেকানিজম সহ ফিক্সড লাইক ফাংশন
 async function votePost(postId, btnElement) {
     if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
     
+    // ১. চেক করা যে ইউজার আগে থেকেই ভোট দিয়ে রেখেছে কি না
+    const existingVote = USER_VOTES.find(v => v.post_id === postId);
+    if(existingVote) {
+        alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!");
+        return;
+    }
+    
     const voteNumSpan = btnElement.querySelector(".vote-num");
     let currentVotes = parseInt(voteNumSpan.innerText) || 0;
+    currentVotes++;
     
-    btnElement.classList.toggle("liked");
-    if(btnElement.classList.contains("liked")) {
-        currentVotes++;
-    } else {
-        currentVotes = Math.max(0, currentVotes - 1);
-    }
+    // UI পরিবর্তন
+    btnElement.classList.add("liked");
     voteNumSpan.innerText = currentVotes;
     
     try {
-        const { error } = await mySupabase
-            .from('posts')
-            .update({ likes: currentVotes })
-            .eq('id', postId);
-            
-        if(error) throw error;
+        // সুপাবেসের মেইন পোস্টে লাইক সংখ্যা বাড়ানো
+        await mySupabase.from('posts').update({ likes: currentVotes }).eq('id', postId);
         
-        const targetPost = POSTS.find(p => p.id === postId);
-        if(targetPost) targetPost.likes = currentVotes;
+        // সুপাবেসের 'votes' সিকিউরিটি টেবিলে এন্ট্রি মেরে লক করা (vote: 1 মানে লাইক)
+        await mySupabase.from('votes').insert([{ post_id: postId, user_id: currentUserId, vote: 1 }]);
+        
+        // লোকাল মেমরিতেও লক পুশ করা যেন পেজ রিলোড দেওয়ার আগে আর চাপতে না পারে
+        USER_VOTES.push({ post_id: postId, vote: 1 });
         
     } catch(err) {
-        console.error("ভোট সেভ করতে সমস্যা হয়েছে:", err.message);
+        print("Error saving vote:", err.message);
     }
 }
 
-// 🎯 নতুন ডিসলাইক আপডেট ফাংশন যা সরাসরি 'dislikes' কলামে হিট করবে
+// 🎯 ডাবল ডিসলাইক লকিং মেকানিজম সহ ফিক্সড ডিসলাইক ফাংশন
 async function dislikePost(postId, btnElement) {
     if(!currentUserId) { alert("ডিসলাইক করতে প্রথমে লগইন করুন!"); return; }
     
+    // ১. চেক করা যে ইউজার আগে থেকেই ভোট দিয়ে রেখেছে কি না
+    const existingVote = USER_VOTES.find(v => v.post_id === postId);
+    if(existingVote) {
+        alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!");
+        return;
+    }
+    
     const dislikeNumSpan = btnElement.querySelector(".dislike-num");
     let currentDislikes = parseInt(dislikeNumSpan.innerText) || 0;
+    currentDislikes++;
     
-    btnElement.classList.toggle("disliked");
-    if(btnElement.classList.contains("disliked")) {
-        currentDislikes++;
-    } else {
-        currentDislikes = Math.max(0, currentDislikes - 1);
-    }
+    // UI পরিবর্তন
+    btnElement.classList.add("disliked");
     dislikeNumSpan.innerText = currentDislikes;
     
     try {
-        const { error } = await mySupabase
-            .from('posts')
-            .update({ dislikes: currentDislikes })
-            .eq('id', postId);
-            
-        if(error) throw error;
+        // সুপাবেসের মেইন পোস্টে ডিসলাইক সংখ্যা বাড়ানো
+        await mySupabase.from('posts').update({ dislikes: currentDislikes }).eq('id', postId);
         
-        const targetPost = POSTS.find(p => p.id === postId);
-        if(targetPost) targetPost.dislikes = currentDislikes;
+        // সুপাবেসের 'votes' সিকিউরিটি টেবিলে এন্ট্রি মেরে লক করা (vote: -1 মানে ডিসলাইক)
+        await mySupabase.from('votes').insert([{ post_id: postId, user_id: currentUserId, vote: -1 }]);
+        
+        // লোকাল মেমরিতেও লক পুশ করা
+        USER_VOTES.push({ post_id: postId, vote: -1 });
         
     } catch(err) {
-        console.error("ডিসলাইক সেভ করতে সমস্যা হয়েছে:", err.message);
+        print("Error saving dislike:", err.message);
     }
 }
 

@@ -61,6 +61,7 @@
 }
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
 .action-btn.liked { color: #3ecf8e !important; font-weight: bold; }
+.action-btn.disliked { color: #ff6b6b !important; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -182,7 +183,7 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram (ক্লিন ওরিজিনাল লিংকের উপর বেস করে ডিরেক্ট সলিড আইফ্রেম)
+    // ৫. Instagram
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
@@ -252,8 +253,9 @@ function renderPosts(postsList) {
         postCard.className = "post-card";
         
         let mediaHTML = getMediaEmbedHTML(post.url);
-        // ডাটাবেজে নাল থাকলে ওটাকে ০ ধরে নেওয়া
-        let voteCount = post.votes ? parseInt(post.votes) : 0;
+        let voteCount = post.likes ? parseInt(post.likes) : 0;
+        // 🎯 ডিসলাইক কাউন্ট ডাটাবেজ থেকে রিড করা
+        let dislikeCount = post.dislikes ? parseInt(post.dislikes) : 0;
         const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
 
         postCard.innerHTML = `
@@ -277,6 +279,9 @@ function renderPosts(postsList) {
             <div class="interaction-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:12px; border-top:1px solid #383838; width: 100%;">
                 <button class="action-btn" onclick="votePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
                      👍 <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
+                </button>
+                <button class="action-btn" onclick="dislikePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                     👎 <span>Dislike (<span class="dislike-num">${dislikeCount}</span>)</span>
                 </button>
                 <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
                      💬 <span>Comment</span>
@@ -325,7 +330,7 @@ async function submitNewPost() {
     try {
         submitBtn.innerText = "Uploading..."; submitBtn.disabled = true;
         const { error } = await mySupabase.from('posts').insert([{
-            user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null, votes: 0
+            user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null, likes: 0, dislikes: 0
         }]);
         if (error) throw error;
         alert("সফলভাবে আপলোড হয়েছে! ব্যাকগ্রাউন্ডে ভিডিও প্রসেস হচ্ছে ভাই।"); closeUpload(); loadPosts();
@@ -333,14 +338,12 @@ async function submitNewPost() {
     finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }
 
-// 🎯 ডাইনামিক সুপাবেস কাউন্টার ফিক্স সহ নতুন ভোট ফাংশন
 async function votePost(postId, btnElement) {
     if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
     
     const voteNumSpan = btnElement.querySelector(".vote-num");
     let currentVotes = parseInt(voteNumSpan.innerText) || 0;
     
-    // UI ইনস্ট্যান্ট আপডেট করা
     btnElement.classList.toggle("liked");
     if(btnElement.classList.contains("liked")) {
         currentVotes++;
@@ -350,20 +353,49 @@ async function votePost(postId, btnElement) {
     voteNumSpan.innerText = currentVotes;
     
     try {
-        // সুপাবেসে নিখুঁতভাবে রি-আপডেট পাঠানো যেন রিলোডেও ডেটা না হারায়
         const { error } = await mySupabase
             .from('posts')
-            .update({ votes: currentVotes })
+            .update({ likes: currentVotes })
             .eq('id', postId);
             
         if(error) throw error;
         
-        // ব্যাকগ্রাউন্ড মেমরির ওরিজিনাল অবজেক্টটাও আপডেট করে দেওয়া
         const targetPost = POSTS.find(p => p.id === postId);
-        if(targetPost) targetPost.votes = currentVotes;
+        if(targetPost) targetPost.likes = currentVotes;
         
     } catch(err) {
         console.error("ভোট সেভ করতে সমস্যা হয়েছে:", err.message);
+    }
+}
+
+// 🎯 নতুন ডিসলাইক আপডেট ফাংশন যা সরাসরি 'dislikes' কলামে হিট করবে
+async function dislikePost(postId, btnElement) {
+    if(!currentUserId) { alert("ডিসলাইক করতে প্রথমে লগইন করুন!"); return; }
+    
+    const dislikeNumSpan = btnElement.querySelector(".dislike-num");
+    let currentDislikes = parseInt(dislikeNumSpan.innerText) || 0;
+    
+    btnElement.classList.toggle("disliked");
+    if(btnElement.classList.contains("disliked")) {
+        currentDislikes++;
+    } else {
+        currentDislikes = Math.max(0, currentDislikes - 1);
+    }
+    dislikeNumSpan.innerText = currentDislikes;
+    
+    try {
+        const { error } = await mySupabase
+            .from('posts')
+            .update({ dislikes: currentDislikes })
+            .eq('id', postId);
+            
+        if(error) throw error;
+        
+        const targetPost = POSTS.find(p => p.id === postId);
+        if(targetPost) targetPost.dislikes = currentDislikes;
+        
+    } catch(err) {
+        console.error("ডিসলাইক সেভ করতে সমস্যা হয়েছে:", err.message);
     }
 }
 

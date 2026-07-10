@@ -185,23 +185,30 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (শর্ট লিংক ও ফুল লিংকের ইউনিভার্সাল প্লেয়ার)
+    // ৩. TikTok (শর্ট লিংক ও সব লিংকের অফিশিয়াল ডাইনামিক ফিক্স)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
-        // vt.tiktok.com শর্ট লিংকের ক্ষেত্রে সরাসরি টিকটকের গ্লোবাল এমবেড গেটওয়ে ব্যবহার করা
-        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
-            return `<div class="embed-container"><iframe src="https://www.tiktok.com/player/v1/${cleanUrl.split(".com/")[1]}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
+        // ডাইনামিকালি অফিশিয়াল স্ক্রিপ্ট ইনজেক্ট করা
+        if (!document.getElementById("tiktok-js")) {
+            const script = document.createElement("script");
+            script.id = "tiktok-js";
+            script.src = "https://www.tiktok.com/embed.js";
+            script.async = true;
+            document.head.appendChild(script);
+        } else {
+            setTimeout(() => { if (window.tiktokEmbed) window.tiktokEmbed.render(); }, 600);
         }
-        
-        // ফুল লিংক হলে আইডি কাট করা
-        let videoId = cleanUrl.split("/video/")[1];
-        if (videoId) {
-            return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/v2/${videoId}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
-        }
-        
-        // ফালব্যাক
-        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed?url=${encodeURIComponent(cleanUrl)}" style="width:100%; height:550px;" allowfullscreen></iframe></div>`;
+
+        // অফিশিয়াল ব্লককোড যা vt.tiktok.com শর্ট লিংককে ব্রাউজারে অটো-লোডেড প্লেয়ারে রূপান্তর করবে
+        return `
+        <div class="embed-container" style="background:transparent; display:flex; justify-content:center; width:100%;">
+            <blockquote class="tiktok-embed" data-unique-id="" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; margin: 0 auto; width:100%;" >
+                <section>
+                    <a target="_blank" title="Watch on TikTok" href="${cleanUrl}">Loading Live TikTok Video...</a>
+                </section>
+            </blockquote>
+        </div>`;
     }
 
     // ৪. Twitter/X

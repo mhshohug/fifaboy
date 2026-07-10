@@ -170,7 +170,7 @@ let currentUserId = null;
 // স্মার্ট মিডিয়া এমবেড এইচটিএমএল জেনারেটর
 function getMediaEmbedHTML(url) {
     if (!url) return "";
-    
+
     // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
@@ -185,26 +185,18 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (CORS ব্লকিং ছাড়াই সরাসরি অফিশিয়াল লাইভ উইজেট মেথড)
-    if (url.includes("tiktok.com")) {
-        let cleanUrl = url.split("?")[0];
-        
-        // টিকটকের অফিশিয়াল স্ক্রিপ্ট ডাইনামিক লোড করা
-        if (!document.getElementById("tiktok-js")) {
-            const script = document.createElement("script");
-            script.id = "tiktok-js";
-            script.src = "https://www.tiktok.com/embed.js";
-            script.async = true;
-            document.body.appendChild(script);
-        }
+    // ৩. TikTok (এখন সঠিকভাবে কাজ করবে)
+    if (url.includes("tiktok.com") || url.includes("vt.tiktok.com")) {
+        // শর্ট লিঙ্ক সাপোর্ট সহ
+        const cleanUrl = url.split("?")[0];
 
-        // আপনার ফাইলে থাকা হুবহু ডাইরেক্ট ব্লককোট
         return `
-        <div class="embed-container" style="width:100%;">
-            <blockquote class="tiktok-embed" data-embed-from="embed_page" style="max-width: 605px; min-width: 325px; width:100%; margin: 0 auto;">
-                <section>
-                    <a target="_blank" href="${cleanUrl}">Loading Video...</a>
-                </section>
+        <div class="embed-container" style="width:100%; max-width:605px; margin:15px auto; background:#000; border-radius:8px; overflow:hidden;">
+            <blockquote class="tiktok-embed" 
+                        cite="${cleanUrl}" 
+                        data-video-id="" 
+                        style="max-width: 605px; min-width: 325px; width:100%; margin:0 auto;">
+                <section></section>
             </blockquote>
         </div>`;
     }
@@ -214,14 +206,17 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
 
-    // ۵. Instagram
+    // ৫. Instagram
     if (url.includes("instagram.com")) {
-        let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
+        let cleanUrl = url.split("?")[0];
+        if (!cleanUrl.endsWith("/")) cleanUrl += "/";
+        return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px; width:100%;" allowfullscreen></iframe></div>`;
     }
 
+    // অন্য কোনো ইমেজ বা লিঙ্ক
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 async function initPage(){
     try {
@@ -320,7 +315,14 @@ function renderPosts(postsList) {
     // ডাইনামিকালি উইজেট স্ক্রিপ্টগুলোকে পেজ রেন্ডারের পর রি-ট্রিগার করা
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
     if(window.FB) window.FB.XFBML.parse();
-    
+
+    // TikTok Embed Refresh
+    setTimeout(() => {
+        const tiktokScript = document.createElement('script');
+        tiktokScript.src = "https://www.tiktok.com/embed.js";
+        tiktokScript.async = true;
+        document.body.appendChild(tiktokScript);
+    }, 600);
     // টিকটক উইজেট রেন্ডারার কল
     setTimeout(() => {
         if (window.tiktokEmbed && typeof window.tiktokEmbed.render === 'function') {
@@ -436,5 +438,11 @@ window.addEventListener("DOMContentLoaded", () => {
     loadPosts();
 });
 </script>
+    <!-- অন্যান্য স্ক্রিপ্ট আছে... -->
+
+    <!-- TikTok Embed Script -->
+    <script async src="https://www.tiktok.com/embed.js"></script>
+</body>
+</html>
 </body>
 </html>

@@ -181,16 +181,14 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
     
-    // ২. Facebook (ফেসবুক আইফ্রেম ব্লক করে, তাই এর জন্য বাটনই বেস্ট)
+    // ২. Facebook (কোনো বাটন নেই, টিকটকের মতোই সরাসরি সাইটের ভেতর প্লে হবে ভাই!)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        return `
-        <div class="instant-btn-holder">
-            <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">📘 ফেসবুক ভিডিও</p>
-            <a href="${url}" target="_blank" class="instant-btn fb-btn">▶️ Watch Video on Facebook</a>
-        </div>`;
+        let cleanUrl = url.split("?")[0];
+        let finalFbUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500`;
+        return `<div class="embed-container"><iframe src="${finalFbUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
     }
     
-    // ৩. TikTok (আপনার সেই ওরিজিনাল কোড - একদম ডিরেক্ট প্লে হবে, কোনো বাটন থাকবে না!)
+    // ৩. TikTok (একদম আগের মতোই সরাসরি সাইটে প্লে হবে)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -211,6 +209,7 @@ function getMediaEmbedHTML(url) {
     
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 
 async function initPage(){

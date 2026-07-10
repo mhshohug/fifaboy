@@ -1,12 +1,14 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
+
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
 
 <title>FIFABOY | Messi Watch</title>
 
-<meta name="description" content="Community archive of football incidents and refereeing discussions involving Lionel Messi.">
+<meta name="description" content="Community Archive of Football Refereeing Discussions">
 
 <link rel="stylesheet" href="css/style.css">
 
@@ -14,13 +16,15 @@
 
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 
+<script src="js/supabase.js"></script>
+
 </head>
 
 <body>
 
 <!-- NAVBAR -->
 
-<nav>
+<nav class="navbar">
 
 <div class="logo">
 
@@ -30,20 +34,23 @@
 
 <div class="menu">
 
-<a href="#">Home</a>
+<a href="index.html">Home</a>
 
-<a href="#">Incidents</a>
+<a href="#feed">Feed</a>
 
-<a href="#">Trending</a>
+<a href="login.html" id="loginLink">Login</a>
 
-<a href="#">Upload</a>
+<a href="register.html" id="registerLink">Register</a>
 
-<a href="#">Login</a>
+<a href="profile.html" id="profileLink" style="display:none;">Profile</a>
+
+<a href="admin.html" id="adminLink" style="display:none;">Admin</a>
+
+<a href="#" id="logoutLink" style="display:none;" onclick="logout();return false;">Logout</a>
 
 </div>
 
 </nav>
-
 
 <!-- HERO -->
 
@@ -57,20 +64,19 @@ MESSI WATCH
 
 <p>
 
-Community Archive of Football Refereeing Discussions
-Involving Lionel Messi
+Community Archive of Football Refereeing Discussions Involving Lionel Messi
 
 </p>
 
 <div class="buttons">
 
-<button id="explore">
+<button id="explore" onclick="document.getElementById('feed').scrollIntoView({behavior:'smooth'})">
 
 Explore Evidence
 
 </button>
 
-<button id="upload">
+<button id="upload" onclick="openUpload()">
 
 Upload Evidence
 
@@ -80,32 +86,26 @@ Upload Evidence
 
 </section>
 
-
-<!-- DISCLAIMER -->
+<!-- NOTICE -->
 
 <section class="notice">
 
-⚠️ Community-submitted content. Opinions expressed by users do not necessarily reflect verified facts or official decisions.
+⚠️ Community submitted content. Verify information before sharing.
 
 </section>
-
 
 <!-- SEARCH -->
 
 <section class="search">
 
 <input
-
 id="search"
-
-placeholder="Search player, match, tournament..."
-
-type="text">
+type="text"
+placeholder="Search player, match, tournament...">
 
 </section>
 
-
-<!-- CATEGORIES -->
+<!-- CATEGORY -->
 
 <section class="categories">
 
@@ -125,24 +125,32 @@ type="text">
 
 </section>
 
-
 <!-- FEED -->
 
 <section id="feed">
 
-<!-- Posts Load Here -->
+<div class="loading">
 
+Loading Posts...
+
+</div>
 </section>
 
+<!-- FLOAT BUTTON -->
 
-<!-- FLOATING BUTTON -->
-
-<button id="fab">
+<button id="fab" onclick="openUpload()">
 
 +
 
 </button>
 
+<!-- BACK TO TOP -->
+
+<button id="topBtn" onclick="scrollTopPage()">
+
+⬆
+
+</button>
 
 <!-- FOOTER -->
 
@@ -168,10 +176,132 @@ Watch • Verify • Discuss
 
 </footer>
 
-
-<script src="js/supabase.js"></script>
-
 <script src="js/app.js"></script>
 
+<script>
+
+async function initPage(){
+
+try{
+
+const user=await getUser();
+
+const login=document.getElementById("loginLink");
+const register=document.getElementById("registerLink");
+const profile=document.getElementById("profileLink");
+const admin=document.getElementById("adminLink");
+const logout=document.getElementById("logoutLink");
+
+if(user){
+
+login.style.display="none";
+register.style.display="none";
+
+profile.style.display="inline-block";
+logout.style.display="inline-block";
+
+if(await isAdmin()){
+
+admin.style.display="inline-block";
+
+}
+
+}else{
+
+login.style.display="inline-block";
+register.style.display="inline-block";
+
+profile.style.display="none";
+admin.style.display="none";
+logout.style.display="none";
+
+}
+
+}catch(e){
+
+console.error(e);
+
+}
+
+}
+
+window.addEventListener("load",initPage);
+
+window.addEventListener("scroll",()=>{
+
+const top=document.getElementById("topBtn");
+
+if(window.scrollY>250){
+
+top.style.display="flex";
+
+}else{
+
+top.style.display="none";
+
+}
+
+});
+
+document.getElementById("search").addEventListener("input",e=>{
+
+const q=e.target.value.toLowerCase();
+
+if(typeof POSTS==="undefined") return;
+
+const filtered=POSTS.filter(post=>
+
+(post.title||"").toLowerCase().includes(q)||
+
+(post.description||"").toLowerCase().includes(q)||
+
+(post.platform||"").toLowerCase().includes(q)
+
+);
+
+renderPosts(filtered);
+
+});
+  document.getElementById("fab").addEventListener("click",()=>{
+
+openUpload();
+
+});
+
+window.addEventListener("online",()=>{
+
+loadPosts();
+
+});
+
+window.addEventListener("focus",()=>{
+
+loadPosts();
+
+});
+
+window.addEventListener("keydown",e=>{
+
+if(e.key==="Escape"){
+
+const search=document.getElementById("search");
+
+search.value="";
+
+renderPosts(POSTS);
+
+}
+
+});
+
+window.addEventListener("load",()=>{
+
+loadPosts();
+
+});
+
+</script>
+
 </body>
+
 </html>

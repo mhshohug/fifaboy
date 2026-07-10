@@ -181,40 +181,18 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
     
-    // ২. Facebook
+    // ২. Facebook (ফেসবুক আইফ্রেম ব্লক করে, তাই এর জন্য বাটনই বেস্ট)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        // যদি পাইথন এখনো ব্যাকগ্রাউন্ডে কনভার্ট না করে থাকে (শর্ট লিংক অবস্থায় থাকে), তবে ব্যাকআপ বাটন দেখাবে
-        if (url.includes("fb.watch") || url.includes("facebook.com/share")) {
-            return `
-            <div class="instant-btn-holder">
-                <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">📘 ফেসবুক শর্ট লিংক (ব্যাকগ্রাউন্ডে প্রসেস হচ্ছে)</p>
-                <a href="${url}" target="_blank" class="instant-btn fb-btn">▶️ Watch Video on Facebook</a>
-            </div>`;
-        }
-        
-        // পাইথন কনভার্ট করে ওরিজিনাল এমবেড লিংক বানালে বা ফুল লিংক দিলে সরাসরি আইফ্রেমে ভিডিও চলবে
-        let finalFbUrl = url;
-        if (!url.includes("plugins/video.php")) {
-            let cleanUrl = url.split("?")[0];
-            finalFbUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false`;
-        }
-        return `<div class="embed-container"><iframe src="${finalFbUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
+        return `
+        <div class="instant-btn-holder">
+            <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">📘 ফেসবুক ভিডিও</p>
+            <a href="${url}" target="_blank" class="instant-btn fb-btn">▶️ Watch Video on Facebook</a>
+        </div>`;
     }
     
-    // ৩. TikTok (আপনার ওরিজিনাল অক্ষত টিকটক প্লেয়ার কোড)
+    // ৩. TikTok (আপনার সেই ওরিজিনাল কোড - একদম ডিরেক্ট প্লে হবে, কোনো বাটন থাকবে না!)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
-        
-        // পাইথন কনভার্ট করার আগ পর্যন্ত ৫ মিনিটের গ্যাপে ব্যাকআপ বাটন দেখাবে
-        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
-            return `
-            <div class="instant-btn-holder">
-                <p style="font-size: 14px; color: #aaa; margin-bottom: 12px;">🎵 টিকটক শর্ট লিংক (ওপেন করতে ক্লিক করুন)</p>
-                <a href="${url}" target="_blank" class="instant-btn tiktok-btn">▶️ Watch Video on TikTok</a>
-            </div>`;
-        }
-        
-        // পাইথন ফুল লিংক বানিয়ে ফেলার পর ডিরেক্ট আপনার চেনা ওরিজিনাল প্লেয়ার চালু হবে
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
         return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
@@ -233,6 +211,7 @@ function getMediaEmbedHTML(url) {
     
     return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
 }
+
 
 async function initPage(){
     try {

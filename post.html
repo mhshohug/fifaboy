@@ -29,7 +29,6 @@ body {
 .post-desc { color: #ccc; line-height: 1.6; margin: 15px 0; }
 .badge { background: #444; color: #3ecf8e; font-size: 12px; padding: 4px 10px; border-radius: 4px; display: inline-block; }
 
-/* এমবেড করা মিডিয়া বক্সের প্রপার সাইজ */
 .embed-container {
     margin-top: 15px;
     width: 100%;
@@ -76,7 +75,6 @@ body {
         <div style="text-align:center; padding:40px; color:#aaa;">Loading post...</div>
     </div>
 
-    <!-- কমেন্ট সেকশন -->
     <div class="comment-section">
         <h3>💬 Comments</h3>
         <div class="comment-input-box">
@@ -105,7 +103,6 @@ let currentPostId = null;
 let currentUserId = null;
 let currentUserEmail = "";
 
-// ইউআরএল থেকে আইডি এবং ডাটাবেজ থেকে ডাটা লোড করার মেইন ফাংশন
 async function loadPostDetails() {
     const urlParams = new URLSearchParams(window.location.search);
     const idParam = urlParams.get('id');
@@ -115,18 +112,15 @@ async function loadPostDetails() {
         return;
     }
     
-    // আইডিটিকে ইন্টিজারে রূপান্তর (যদি আইডি ডেটাবেজে int8/int4 হয়)
     currentPostId = isNaN(idParam) ? idParam : parseInt(idParam);
 
     try {
-        // ১. লগইন ইউজার চেক
         const { data: { user } } = await mySupabase.auth.getUser();
         if (user) {
             currentUserId = user.id;
             currentUserEmail = user.email;
         }
 
-        // ২. পোস্ট ডাটা কুয়েরি
         const { data: post, error } = await mySupabase
             .from('posts')
             .select('*')
@@ -139,10 +133,7 @@ async function loadPostDetails() {
             return;
         }
 
-        // ৩. পেজে ডাটা রেন্ডার করা
         renderPostData(post);
-        
-        // ৪. কমেন্ট লোড করা
         loadComments();
 
     } catch (e) {
@@ -151,11 +142,9 @@ async function loadPostDetails() {
     }
 }
 
-// মিডিয়া এম্বেড জেনারেটর (১০০% ফিক্সড ও বুলেটপ্রুফ আইফ্রেম মেথড)
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
-    // ১. YouTube
     if (url.includes("youtube.com") || url.includes("youtu.be")) {
         let videoId = "";
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
@@ -164,7 +153,6 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
     }
 
-    // ২. Facebook (Video & Reels ফুল লিংকের ১০০% ওয়ার্কিং আইফ্রেম)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let cleanUrl = url.split("?")[0];
         return `
@@ -182,7 +170,6 @@ function getMediaEmbedHTML(url) {
         </div>`;
     }
 
-    // ৩. TikTok (ফুল লিংকের জন্য পিওর এমবেড আইফ্রেম)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -193,12 +180,10 @@ function getMediaEmbedHTML(url) {
         </div>`;
     }
 
-    // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
         return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
 
-    // ৫. Instagram
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0]; if (!cleanUrl.endsWith("/")) cleanUrl += "/";
         return `<div class="embed-container"><iframe src="${cleanUrl}embed" style="min-height:450px;"></iframe></div>`;
@@ -247,9 +232,12 @@ async function loadComments() {
             card.className = "comment-card";
             const userDisplay = c.user_email ? c.user_email.split('@')[0] : "Anonymous";
             
+            // 💡 আপনার টেবিলে কলামের নাম 'comment' বা 'comment_text' বা 'content' যা-ই হোক না কেন, ওটা ডাইনামিকালি নিয়ে নেবে
+            const commentBody = c.comment || c.comment_text || c.content || "";
+            
             card.innerHTML = `
                 <div class="comment-user">👤 ${userDisplay}</div>
-                <p class="comment-text">${c.comment_text || ""}</p>
+                <p class="comment-text">${commentBody}</p>
             `;
             container.appendChild(card);
         });
@@ -259,7 +247,7 @@ async function loadComments() {
     }
 }
 
-// কমেন্ট সাবমিট করার ফাংশن
+// কমেন্ট সাবমিট করার ফাংশন
 async function submitComment() {
     if (!currentUserId) {
         alert("কমেন্ট করতে প্রথমে লগইন করুন!");
@@ -276,17 +264,29 @@ async function submitComment() {
     }
 
     try {
+        // 💡 এখানে 'comment' কলামে ডাটা পাঠানো হচ্ছে
         const { error } = await mySupabase.from('comments').insert([{
             post_id: currentPostId,
             user_id: currentUserId,
             user_email: currentUserEmail,
-            comment_text: text
+            comment: text 
         }]);
 
-        if (error) throw error;
+        // যদি আপনার টেবিলে কলামের নাম 'comment' না হয়ে 'comment_text' থাকে, তবে প্রথমবার ফেইল করলে এই ক্যাচ ব্লকে এসে 'comment_text' দিয়ে ট্রাই করবে
+        if (error && error.message.includes("comment_text")) {
+             const { error: retryError } = await mySupabase.from('comments').insert([{
+                post_id: currentPostId,
+                user_id: currentUserId,
+                user_email: currentUserEmail,
+                comment_text: text 
+            }]);
+            if (retryError) throw retryError;
+        } else if (error) {
+            throw error;
+        }
 
         input.value = "";
-        loadComments(); // কমেন্ট লিস্ট রিফ্রেশ
+        loadComments(); 
     } catch (e) {
         alert("Error posting comment: " + e.message);
     }

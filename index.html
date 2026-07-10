@@ -146,6 +146,7 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
+// 🎯 মিডিয়া এমবেড হ্যান্ডেল করার একদম সঠিক ও ক্লিন জাভাস্ক্রিপ্ট ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -155,17 +156,17 @@ function getMediaEmbedHTML(url) {
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
         else if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
         else if (url.includes("youtu.be/")) videoId = url.split("youtu.be/")[1].split("?")[0];
-        return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${videoId}" allowfullscreen></iframe></div>`;
+        return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook (পাইথনের ওরিজিনাল ক্লিন লিংক সরাসরি আইফ্রেমে প্লে হবে)
+    // ২. Facebook (পাইথনের ওরিজিনাল ক্লিন রিল লিংক সরাসরি আইফ্রেমে প্লে হবে)
     if (url.includes("facebook.com") || url.includes("fb.watch")) {
         let finalUrl = url;
         if (!url.includes("video/embed") && !url.includes("plugins/video.php")) {
             let cleanUrl = url.split("?")[0];
-            finalUrl = `https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500`;
+            finalUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
         }
-        return `<div class="embed-container"><iframe src="${finalUrl}" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>`;
+        return '<div class="embed-container"><iframe src="' + finalUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>';
     }
     
     // ৩. TikTok (সরাসরি সাইটেই প্লে হবে)
@@ -173,29 +174,23 @@ function getMediaEmbedHTML(url) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
-        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
+        return '<div class="embed-container"><iframe src="https://www.tiktok.com/embed/' + videoId + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
     
     // ৪. Twitter/X
     if (url.includes("twitter.com") || url.includes("x.com")) {
-        return `<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
+        return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram (মেতার রিফিউজ টু কানেক্ট ব্লকিং ভাঙার জন্য অফিশিয়াল এমবেড উইজেট)
+    // ৫. Instagram (পাইথনের জেনারেট করা /embed ফরম্যাট আইফ্রেম দিয়ে সরাসরি সুন্দরভাবে লোড হবে)
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
-        if (cleanUrl.endsWith("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
+        if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        
-        return `
-            <div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center;">
-                <blockquote class="instagram-media" data-instgrm-permalink="${cleanUrl}" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff;"></blockquote>
-            </div>
-            <script async src="//www.instagram.com/embed.js"></script>
-        `;
+        return '<div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center;"><iframe src="' + cleanUrl + 'embed" style="width:100%; min-height:450px; border:none; border-radius:8px;"></iframe></div>';
     }
     
-    return `<img src="${url}" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">`;
+    return '<img src="' + url + '" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">';
 }
 
 

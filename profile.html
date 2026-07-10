@@ -1,64 +1,173 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>User Profile | FIFABOY</title>
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <style>
-        body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .profile-container { background: #2a2a2a; padding: 30px; border-radius: 12px; width: 90%; max-width: 400px; box-shadow: 0 4px 15px rgba(0,0,0,0.4); text-align: center; }
-        .avatar-box { width: 100px; height: 100px; background: #3ecf8e; border-radius: 50%; margin: 0 auto 15px; display: flex; justify-content: center; align-items: center; font-size: 40px; font-weight: bold; color: white; overflow: hidden; border: 3px solid #3ecf8e; }
-        .avatar-box img { width: 100%; height: 100%; object-fit: cover; }
-        h2 { margin: 10px 0; color: #3ecf8e; }
-        p { color: #aaa; margin: 5px 0; font-size: 14px; }
-        .info-group { background: #333; padding: 12px; border-radius: 6px; margin: 15px 0; text-align: left; }
-        .info-group div { margin-bottom: 8px; font-size: 15px; }
-        .info-group div:last-child { margin-bottom: 0; }
-        .info-group strong { color: #3ecf8e; }
-        
-        /* Edit Form Styling */
-        .edit-form { display: none; margin-top: 15px; text-align: left; background: #222; padding: 15px; border-radius: 8px; border: 1px solid #444; }
-        .edit-form label { font-size: 13px; color: #3ecf8e; display: block; margin-top: 8px; }
-        .edit-form input { width: 100%; padding: 10px; margin-top: 5px; box-sizing: border-box; background: #333; border: 1px solid #555; border-radius: 4px; color: white; }
-        
-        .btn { display: inline-block; width: 100%; border: none; padding: 12px; cursor: pointer; border-radius: 6px; font-weight: bold; font-size: 16px; text-decoration: none; box-sizing: border-box; margin-top: 10px; text-align: center; }
-        .btn-green { background: #3ecf8e; color: white; }
-        .btn-green:hover { background: #34b279; }
-        .btn-outline { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e; }
-        .btn-outline:hover { background: rgba(62, 207, 142, 0.1); }
-        .btn-save { background: #2196F3; color: white; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>FIFABOY | Profile</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+body {
+    background-color: #121212;
+    color: white;
+    font-family: 'Poppins', sans-serif;
+    margin: 0;
+    padding: 0;
+}
+.profile-container {
+    max-width: 500px;
+    margin: 30px auto;
+    background: #1e1e1e;
+    padding: 30px 20px;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 4px 25px rgba(0,0,0,0.5);
+    box-sizing: border-box;
+}
+.avatar-circle {
+    width: 120px;
+    height: 120px;
+    background: #3ecf8e;
+    color: white;
+    font-size: 50px;
+    font-weight: bold;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    border-radius: 50%;
+    margin: 0 auto 20px;
+}
+.username { font-size: 26px; font-weight: 700; color: #3ecf8e; margin: 0; }
+.email { font-size: 14px; color: #aaa; margin: 5px 0 20px; }
+
+.info-box {
+    background: #2a2a2a;
+    padding: 15px;
+    border-radius: 10px;
+    text-align: left;
+    margin-bottom: 25px;
+}
+.info-row { margin-bottom: 10px; font-size: 15px; }
+.info-row:last-child { margin-bottom: 0; }
+.info-label { color: #3ecf8e; font-weight: 600; }
+
+.profile-btn {
+    display: block;
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 12px;
+    border: none;
+    border-radius: 8px;
+    font-size: 16px;
+    font-weight: bold;
+    cursor: pointer;
+    font-family: inherit;
+    text-align: center;
+    text-decoration: none;
+    box-sizing: border-box;
+}
+.btn-edit { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e; }
+.btn-back { background: #3ecf8e; color: white; }
+
+/* 🌟 আমার পোস্ট সেকশনের চমৎকার ছোট সাইজের স্টাইল */
+.user-posts-section {
+    max-width: 500px;
+    margin: 20px auto 40px;
+    padding: 0 10px;
+    box-sizing: border-box;
+}
+.section-title {
+    font-size: 18px;
+    color: #3ecf8e;
+    border-bottom: 2px solid #2a2a2a;
+    padding-bottom: 8px;
+    margin-bottom: 15px;
+    text-align: left;
+}
+.my-posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+.mini-post-card {
+    background: #1e1e1e;
+    border: 1px solid #2a2a2a;
+    border-radius: 8px;
+    padding: 12px 15px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    cursor: pointer;
+    transition: background 0.2s, transform 0.2s;
+}
+.mini-post-card:hover {
+    background: #252525;
+    transform: translateY(-2px);
+}
+.mini-post-left {
+    text-align: left;
+    overflow: hidden;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+    padding-right: 10px;
+}
+.mini-post-title {
+    font-size: 14px;
+    font-weight: 600;
+    color: #fff;
+    margin: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+.mini-post-date {
+    font-size: 11px;
+    color: #666;
+    margin-top: 4px;
+}
+.mini-post-badge {
+    background: #2a2a2a;
+    color: #3ecf8e;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    font-weight: 500;
+    flex-shrink: 0;
+}
+.no-posts {
+    text-align: center;
+    color: #666;
+    font-size: 14px;
+    padding: 20px 0;
+}
+.loading-posts {
+    text-align: center;
+    color: #aaa;
+    font-size: 13px;
+}
+</style>
 </head>
 <body>
 
 <div class="profile-container">
-    <div id="profileView">
-        <div id="avatarContainer" class="avatar-box">⚽</div>
-        <h2 id="profUsername">Loading...</h2>
-        <p id="profEmail">Please wait...</p>
-        
-        <div class="info-group">
-            <div><strong>Role:</strong> <span id="profRole">User</span></div>
-            <div><strong>Account Created:</strong> <span id="profCreated">N/A</span></div>
-        </div>
-        
-        <button class="btn btn-outline" onclick="toggleEdit(true)">Edit Profile</button>
-        <a href="index.html" class="btn btn-green">Back to Home</a>
+    <div class="avatar-circle" id="userInitial">M</div>
+    <h2 class="username" id="profileName">Loading...</h2>
+    <p class="email" id="profileEmail">Loading...</p>
+    
+    <div class="info-box">
+        <div class="info-row"><span class="info-label">Role:</span> <span id="profileRole">user</span></div>
+        <div class="info-row"><span class="info-label">Account Created:</span> <span id="profileCreated">--/--/----</span></div>
     </div>
+    
+    <button class="profile-btn btn-edit" onclick="alert('Edit functionality coming soon!')">Edit Profile</button>
+    <a href="index.html" class="profile-btn btn-back">Back to Home</a>
+</div>
 
-    <div id="editSection" class="edit-form">
-        <h3 style="margin: 0 0 10px 0; color: #3ecf8e; text-align: center;">⚙️ Edit Info</h3>
-        
-        <label for="editUsername">Display Name / Username</label>
-        <input type="text" id="editUsername" placeholder="Enter new username">
-        
-        <label for="editAvatar">Avatar Image URL</label>
-        <input type="text" id="editAvatar" placeholder="Paste image direct link (https://...)">
-        
-        <button id="saveBtn" class="btn btn-save" onclick="saveProfileChanges()">Save Changes</button>
-        <button class="btn btn-outline" style="border-color: #ff6b6b; color: #ff6b6b;" onclick="toggleEdit(false)">Cancel</button>
+<!-- 🌟 ইউজারের করা পোস্টগুলো দেখার ছোট লিস্ট এরিয়া -->
+<div class="user-posts-section">
+    <h3 class="section-title">📝 My Evidence Posts</h3>
+    <div id="myPostsContainer" class="my-posts-list">
+        <div class="loading-posts">Loading your posts...</div>
     </div>
 </div>
 
@@ -67,110 +176,92 @@ const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let loggedInUser = null;
 
-// পেজ লোড হলে ডাটা আনা
-window.addEventListener('DOMContentLoaded', loadProfileData);
-
-async function loadProfileData() {
+async function loadProfileAndPosts() {
     try {
-        const { data: { user }, error: userError } = await mySupabase.auth.getUser();
-
-        if (userError || !user) {
-            alert("আপনি লগইন করা নন! প্রথমে লগইন করুন।");
+        // ১. কারেন্ট লগইন থাকা ইউজারকে গেট করা
+        const { data: { user }, error: authError } = await mySupabase.auth.getUser();
+        if (authError || !user) {
+            alert("সেশন শেষ! দয়া করে আবার লগইন করুন।");
             window.location.href = "login.html";
             return;
         }
 
-        loggedInUser = user;
-
-        // ডিফল্ট ভ্যালু সেট
-        let defaultUsername = user.user_metadata?.username || user.email.split('@')[0];
-        document.getElementById("profEmail").innerText = user.email;
-        document.getElementById("profCreated").innerText = new Date(user.created_at).toLocaleDateString();
-        document.getElementById("profUsername").innerText = defaultUsername;
-        document.getElementById("profRole").innerText = "User";
+        // প্রোফাইল ইউআই আপডেট
+        const userEmail = user.email;
+        const defaultName = userEmail.split('@')[0];
         
-        // এডিট ইনপুট বক্সে ডিফল্ট ভ্যালু বসানো
-        document.getElementById("editUsername").value = defaultUsername;
+        document.getElementById("profileEmail").innerText = userEmail;
+        document.getElementById("userInitial").innerText = defaultName.charAt(0).toUpperCase();
 
-        const avatarContainer = document.getElementById("avatarContainer");
-        avatarContainer.innerText = defaultUsername.charAt(0).toUpperCase();
-
-        // public.profiles টেবিল থেকে কাস্টম ডাটা চেক করা
-        const { data: profileData } = await mySupabase
-            .from('profiles')
-            .select('*')
-            .eq('id', user.id);
-
-        if (profileData && profileData.length > 0) {
-            const p = profileData[0];
-            if (p.username) {
-                document.getElementById("profUsername").innerText = p.username;
-                document.getElementById("editUsername").value = p.username;
-            }
-            if (p.role) document.getElementById("profRole").innerText = p.role;
-            if (p.avatar) {
-                avatarContainer.innerHTML = `<img src="${p.avatar}" alt="Avatar">`;
-                document.getElementById("editAvatar").value = p.avatar;
-            } else {
-                avatarContainer.innerText = (p.username || defaultUsername).charAt(0).toUpperCase();
-            }
+        // প্রোফাইল টেবিল থেকে ডাটা আনা (যদি এক্সিস্ট করে)
+        const { data: profileData } = await mySupabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
+        if (profileData) {
+            document.getElementById("profileName").innerText = profileData.username || defaultName;
+            document.getElementById("profileRole").innerText = profileData.role || "user";
+        } else {
+            document.getElementById("profileName").innerText = defaultName;
         }
 
+        // অ্যাকাউন্ট তৈরির ডেট ফরম্যাট করা
+        if (user.created_at) {
+            const dateObj = new Date(user.created_at);
+            document.getElementById("profileCreated").innerText = dateObj.toLocaleDateString('en-GB');
+        }
+
+        // ২. 🎯 শুধুমাত্র এই ইউজারের করা পোস্টগুলো Supabase থেকে ফিল্টার করে আনা
+        const { data: myPosts, error: postsError } = await mySupabase
+            .from('posts')
+            .select('*')
+            .eq('user_id', user.id)
+            .order('created_at', { ascending: false });
+
+        if (postsError) throw postsError;
+
+        renderMyPosts(myPosts);
+
     } catch (e) {
-        console.error("Profile load error:", e);
+        console.error(e);
+        document.getElementById("myPostsContainer").innerHTML = `<div class="no-posts" style="color:#ff6b6b;">Failed to load posts.</div>`;
     }
 }
 
-// এডিট ফর্ম অন/অফ করার ফাংশন
-function toggleEdit(show) {
-    document.getElementById("editSection").style.display = show ? "block" : "none";
-}
+// ছোট ছোট আকারে পোস্টের লিস্ট রেন্ডার করার ফাংশন
+function renderMyPosts(posts) {
+    const container = document.getElementById("myPostsContainer");
+    if (!container) return;
 
-// নাম ও ছবি ডেটাবেজে আপডেট করার ফাংশn
-async function saveProfileChanges() {
-    if (!loggedInUser) return;
-    
-    const newUsername = document.getElementById("editUsername").value.trim();
-    const newAvatarUrl = document.getElementById("editAvatar").value.trim();
-    const saveBtn = document.getElementById("saveBtn");
-
-    if (!newUsername) {
-        alert("ইউজারনেম খালি রাখা যাবে না!");
+    if (!posts || posts.length === 0) {
+        container.innerHTML = `<div class="no-posts">আপনি এখনও কোনো এভিডেন্স পোস্ট করেননি।</div>`;
         return;
     }
 
-    try {
-        saveBtn.innerText = "Saving...";
-        saveBtn.disabled = true;
+    container.innerHTML = ""; // লোডিং টেক্সট ক্লিয়ার করা
 
-        // Profiles টেবিলে ডাটা আপসার্ট (Upsert - থাকলে আপডেট করবে না থাকলে নতুন বানাবে)
-        const { error } = await mySupabase
-            .from('profiles')
-            .upsert({
-                id: loggedInUser.id,
-                username: newUsername,
-                avatar: newAvatarUrl || null,
-                updated_at: new Date()
-            });
+    posts.forEach(post => {
+        const postDate = new Date(post.created_at).toLocaleDateString('en-GB');
+        const card = document.createElement("div");
+        card.className = "mini-post-card";
+        
+        // কার্ডে ক্লিক করলে সরাসরি post.html পেজে আইডি প্যারামিটারসহ রিডাইরেক্ট হবে
+        card.onclick = () => {
+            window.location.href = `post.html?id=${post.id}`;
+        };
 
-        if (error) throw error;
-
-        alert("প্রোফাইল সফলভাবে আপডেট হয়েছে!");
-        toggleEdit(false);
-        // পেজের ডেটা রিফ্রেশ করা
-        loadProfileData();
-
-    } catch (e) {
-        alert("আপডেট করা যায়নি: " + e.message);
-        console.error(e);
-    } finally {
-        saveBtn.innerText = "Save Changes";
-        saveBtn.disabled = false;
-    }
+        card.innerHTML = `
+            <div class="mini-post-left">
+                <h4 class="mini-post-title">${post.title || "Untitled Match"}</h4>
+                <div class="mini-post-date">📅 ${postDate}</div>
+            </div>
+            <div class="mini-post-badge">${post.platform || "Evidence"}</div>
+        `;
+        
+        container.appendChild(card);
+    });
 }
-</script>
 
+// পেজ লোড হলে ফাংশনটি রান করানো
+window.addEventListener("DOMContentLoaded", loadProfileAndPosts);
+</script>
 </body>
 </html>

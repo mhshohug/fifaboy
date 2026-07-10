@@ -4,19 +4,15 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Register | FIFABOY</title>
-    <link rel="stylesheet" href="css/style.css">
-    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Supabase SDK -->
+    <script src="https://cdn.jsdelivr.net/npm/eruda"></script>
+    <script>eruda.init();</script>
+    
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 100%; max-width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; }
-        .auth-container h2 { margin-bottom: 20px; color: #3ecf8e; }
-        .auth-container input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #333; border: 1px solid #444; border-radius: 4px; color: white; }
-        .auth-container button { width: 100%; background: #3ecf8e; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; margin-top: 10px; }
-        .auth-container button:disabled { background: #555; cursor: not-allowed; }
-        .auth-container p { margin-top: 15px; font-size: 14px; }
-        .auth-container a { color: #3ecf8e; text-decoration: none; }
+        body { font-family: Arial, sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
+        .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 90%; max-width: 360px; text-align: center; }
+        input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #333; border: 1px solid #444; border-radius: 4px; color: white; }
+        button { width: 100%; background: #3ecf8e; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; }
     </style>
 </head>
 <body>
@@ -25,60 +21,48 @@
     <h2>⚽ Create Account</h2>
     <input type="text" id="username" placeholder="Enter Username">
     <input type="email" id="email" placeholder="Enter Email">
-    <input type="password" id="password" placeholder="Enter Password (Min 6 chars)">
-    <button id="regBtn" onclick="registerUser()">Create Account</button>
-    <p>Already have an account? <a href="login.html">Login here</a></p>
+    <input type="password" id="password" placeholder="Enter Password">
+    <button id="regBtn">Create Account</button>
 </div>
 
 <script>
-// সরাসরি আপনার প্রজেক্টের সাথে কানেক্ট করা হলো
-const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+window.addEventListener('DOMContentLoaded', () => {
+    const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-async function registerUser() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
-    const username = document.getElementById("username").value.trim();
+    const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const submitBtn = document.getElementById("regBtn");
-    
-    if(!email || !password) {
-        alert("দয়া করে ইমেইল এবং পাসওয়ার্ড দুটিই দিন!");
-        return;
-    }
-    if(password.length < 6) {
-        alert("পাসওয়ার্ড অন্তত ৬ অক্ষরের হতে হবে!");
-        return;
-    }
 
-    try {
-        submitBtn.innerText = "Creating Account...";
-        submitBtn.disabled = true;
+    submitBtn.addEventListener('click', async () => {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
+        const username = document.getElementById("username").value.trim();
 
-        const { data, error } = await supabase.auth.signUp({
-            email: email,
-            password: password,
-            options: {
-                data: { username: username || email.split('@')[0] }
-            }
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-            alert("রেজিস্ট্রেশন সফল হয়েছে! এবার লগইন করুন।");
-            window.location.href = "login.html";
+        if(!email || !password) {
+            alert("ইমেইল এবং পাসওয়ার্ড দিন!");
+            return;
         }
-    } catch (e) {
-        console.error(e);
-        alert("ঝামেলা হয়েছে: " + e.message);
-    } finally {
-        submitBtn.innerText = "Create Account";
-        submitBtn.disabled = false;
-    }
-}
-</script>
 
+        try {
+            submitBtn.innerText = "Processing...";
+            const { data, error } = await mySupabase.auth.signUp({
+                email: email,
+                password: password,
+                options: { data: { username: username || email.split('@')[0] } }
+            });
+
+            if (error) throw error;
+            if (data.user) {
+                alert("সফল হয়েছে!");
+                window.location.href = "login.html";
+            }
+        } catch (e) {
+            alert("ভুল: " + e.message);
+        } finally {
+            submitBtn.innerText = "Create Account";
+        }
+    });
+});
+</script>
 </body>
 </html>

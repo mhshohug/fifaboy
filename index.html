@@ -141,7 +141,7 @@
 
 <script>
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCIOiJIUkc4NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
@@ -149,7 +149,6 @@ let POSTS = [];
 let USER_VOTES = [];
 let currentUserId = null;
 
-// ইনস্টাগ্রাম, টিকটক এবং ইউটিউব আগের মতোই সুপারহিট রাখার জন্য মেইন ফাংশন
 function getMediaEmbedHTML(url, containerId) {
     if (!url) return "";
     
@@ -164,16 +163,15 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook (লাইভ ব্রাউজার ওএমবেড মেথড - পাইথনের কোনো দরকারই পড়বে না)
+    // ২. Facebook
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
-        // ব্যাকগ্রাউন্ডে এপিআই কল করার জন্য একটা ইউনিক কন্টেইনার আইডি দেওয়া হলো
         setTimeout(() => {
             fetchFacebookEmbed(url, containerId);
         }, 50);
         return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
     
-    // ৩. TikTok (১০০% অক্ষত)
+    // ৩. TikTok
     if (checkUrl.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -181,12 +179,12 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.tiktok.com/embed/' + videoId + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
     
-    // ৪. Twitter/X
+    // ۴. Twitter/X
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram (১০০% অক্ষত)
+    // ৫. Instagram
     if (checkUrl.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
@@ -197,14 +195,12 @@ function getMediaEmbedHTML(url, containerId) {
     return '<img src="' + url + '" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">';
 }
 
-// ফেসবুকের শর্ট লিংক লাইভ কনভার্ট করে আইফ্রেম লোড করার মাস্টার ফাংশন
 async function fetchFacebookEmbed(facebookUrl, targetId) {
     const container = document.getElementById(targetId);
     if (!container) return;
 
     try {
         let cleanUrl = facebookUrl.split("?")[0].split("&")[0].split("#")[0];
-        // মেটার অফিশিয়াল গেটওয়ে যা ব্রাউজার থেকে ব্লক হয় না
         let oembedUrl = "https://www.facebook.com/plugins/video/oembed.json?url=" + encodeURIComponent(cleanUrl);
         
         let res = await fetch(oembedUrl);
@@ -212,7 +208,6 @@ async function fetchFacebookEmbed(facebookUrl, targetId) {
             let data = await res.json();
             let htmlBox = data.html || "";
             
-            // এপিআই রেসপন্স থেকে ওরিজিনাল আইডি রেগুলার এক্সপ্রেশন দিয়ে চিপে বের করা
             let match = htmlBox.match(/(?:reel|reels|video|v)\/([0-9]+)/);
             if (match && match[1]) {
                 let reelId = match[1];
@@ -222,7 +217,6 @@ async function fetchFacebookEmbed(facebookUrl, targetId) {
             }
         }
         
-        // ব্যাকআপ: যদি এপিআই কোন কারণে ডাটা না দেয়, তবে ডিরেক্ট ক্লিন ইউআরএল আইফ্রেমে পুশ করা
         let fallbackUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
         container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true"></iframe>';
         
@@ -292,7 +286,6 @@ function renderPosts(postsList) {
         const postCard = document.createElement("div");
         postCard.className = "post-card";
         
-        // প্রতিটা পোস্টের জন্য ডাইনামিক কন্টেইনার আইডি জেনারেট
         let fbContainerId = "fb-embed-" + post.id;
         let mediaHTML = getMediaEmbedHTML(post.url, fbContainerId);
         

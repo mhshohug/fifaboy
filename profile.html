@@ -3,171 +3,58 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FIFABOY | Profile</title>
+<title>TRACKBOY | Profile</title>
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-body {
-    background-color: #121212;
-    color: white;
-    font-family: 'Poppins', sans-serif;
-    margin: 0;
-    padding: 0;
-}
-.profile-container {
-    max-width: 500px;
-    margin: 30px auto;
-    background: #1e1e1e;
-    padding: 30px 20px;
-    border-radius: 16px;
-    text-align: center;
-    box-shadow: 0 4px 25px rgba(0,0,0,0.5);
-    box-sizing: border-box;
-}
-.avatar-circle {
-    width: 120px;
-    height: 120px;
-    background: #3ecf8e;
-    color: white;
-    font-size: 50px;
-    font-weight: bold;
-    display: flex;
-    justify-content: center;
-    align-items: center;
-    border-radius: 50%;
-    margin: 0 auto 20px;
-}
-.username { font-size: 26px; font-weight: 700; color: #3ecf8e; margin: 0; }
-.email { font-size: 14px; color: #aaa; margin: 5px 0 20px; }
+    body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
+    .profile-card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 25px; }
+    .profile-info { margin-bottom: 15px; font-size: 16px; }
+    .profile-info span { color: #3ecf8e; font-weight: 600; }
+    
+    .btn { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: inherit; }
+    .btn-outline { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e !important; }
+    .btn-solid { background: #3ecf8e; color: white; }
+    .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; }
 
-.info-box {
-    background: #2a2a2a;
-    padding: 15px;
-    border-radius: 10px;
-    text-align: left;
-    margin-bottom: 25px;
-}
-.info-row { margin-bottom: 10px; font-size: 15px; }
-.info-row:last-child { margin-bottom: 0; }
-.info-label { color: #3ecf8e; font-weight: 600; }
-
-.profile-btn {
-    display: block;
-    width: 100%;
-    padding: 12px;
-    margin-bottom: 12px;
-    border: none;
-    border-radius: 8px;
-    font-size: 16px;
-    font-weight: bold;
-    cursor: pointer;
-    font-family: inherit;
-    text-align: center;
-    text-decoration: none;
-    box-sizing: border-box;
-}
-.btn-edit { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e; }
-.btn-back { background: #3ecf8e; color: white; }
-
-/* 🌟 আমার পোস্ট সেকশনের চমৎকার ছোট সাইজের স্টাইল */
-.user-posts-section {
-    max-width: 500px;
-    margin: 20px auto 40px;
-    padding: 0 10px;
-    box-sizing: border-box;
-}
-.section-title {
-    font-size: 18px;
-    color: #3ecf8e;
-    border-bottom: 2px solid #2a2a2a;
-    padding-bottom: 8px;
-    margin-bottom: 15px;
-    text-align: left;
-}
-.my-posts-list {
-    display: flex;
-    flex-direction: column;
-    gap: 10px;
-}
-.mini-post-card {
-    background: #1e1e1e;
-    border: 1px solid #2a2a2a;
-    border-radius: 8px;
-    padding: 12px 15px;
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    cursor: pointer;
-    transition: background 0.2s, transform 0.2s;
-}
-.mini-post-card:hover {
-    background: #252525;
-    transform: translateY(-2px);
-}
-.mini-post-left {
-    text-align: left;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
-    padding-right: 10px;
-}
-.mini-post-title {
-    font-size: 14px;
-    font-weight: 600;
-    color: #fff;
-    margin: 0;
-    overflow: hidden;
-    text-overflow: ellipsis;
-}
-.mini-post-date {
-    font-size: 11px;
-    color: #666;
-    margin-top: 4px;
-}
-.mini-post-badge {
-    background: #2a2a2a;
-    color: #3ecf8e;
-    font-size: 11px;
-    padding: 3px 8px;
-    border-radius: 4px;
-    font-weight: 500;
-    flex-shrink: 0;
-}
-.no-posts {
-    text-align: center;
-    color: #666;
-    font-size: 14px;
-    padding: 20px 0;
-}
-.loading-posts {
-    text-align: center;
-    color: #aaa;
-    font-size: 13px;
-}
+    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 30px; display: flex; justify-content: space-between; align-items: center; }
+    
+    /* Post List with Selection */
+    .post-list { max-width: 500px; margin: 0 auto; }
+    .post-item { 
+        background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
+        display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
+    }
+    .post-checkbox { width: 20px; height: 20px; accent-color: #3ecf8e; cursor: pointer; }
+    .post-details { flex-grow: 1; }
+    .post-title { font-weight: 600; font-size: 16px; margin: 0; color: #fff; }
+    .post-meta { font-size: 12px; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
+    .badge { background: #2d2d2d; color: #3ecf8e; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: auto; }
 </style>
 </head>
 <body>
 
-<div class="profile-container">
-    <div class="avatar-circle" id="userInitial">M</div>
-    <h2 class="username" id="profileName">Loading...</h2>
-    <p class="email" id="profileEmail">Loading...</p>
+<div class="profile-card">
+    <h2 id="userName" style="margin-top:0;">Loading...</h2>
+    <p id="userEmail" style="color:#aaa; margin-bottom:20px;">Loading...</p>
     
-    <div class="info-box">
-        <div class="info-row"><span class="info-label">Role:</span> <span id="profileRole">user</span></div>
-        <div class="info-row"><span class="info-label">Account Created:</span> <span id="profileCreated">--/--/----</span></div>
-    </div>
+    <div class="profile-info">Role: <span id="userRole">user</span></div>
+    <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
     
-    <button class="profile-btn btn-edit" onclick="alert('Edit functionality coming soon!')">Edit Profile</button>
-    <a href="index.html" class="profile-btn btn-back">Back to Home</a>
+    <button class="btn btn-outline">Edit Profile</button>
+    <button class="btn btn-solid" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
-<!-- 🌟 ইউজারের করা পোস্টগুলো দেখার ছোট লিস্ট এরিয়া -->
-<div class="user-posts-section">
-    <h3 class="section-title">📝 My Evidence Posts</h3>
-    <div id="myPostsContainer" class="my-posts-list">
-        <div class="loading-posts">Loading your posts...</div>
+<div class="post-list">
+    <div class="section-title">
+        <span>📝 My Evidence Posts</span>
+    </div>
+    
+    <button id="deleteSelectedBtn" class="btn btn-danger" onclick="deleteSelectedPosts()">🗑️ Delete Selected Posts (<span id="selectedCount">0</span>)</button>
+    
+    <div id="myPostsContainer">
+        <p style="text-align:center; color:#888;">Loading your posts...</p>
     </div>
 </div>
 
@@ -176,92 +63,145 @@ const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let currentUserId = null;
+let selectedPostIds = [];
 
-async function loadProfileAndPosts() {
+// ১. পেজ ইনিশিয়াল ও ইউজার ডাটা লোড
+async function initProfile() {
     try {
-        // ১. কারেন্ট লগইন থাকা ইউজারকে গেট করা
-        const { data: { user }, error: authError } = await mySupabase.auth.getUser();
-        if (authError || !user) {
-            alert("সেশন শেষ! দয়া করে আবার লগইন করুন।");
+        const { data: { user } } = await mySupabase.auth.getUser();
+        if (!user) {
             window.location.href = "login.html";
             return;
         }
-
-        // প্রোফাইল ইউআই আপডেট
-        const userEmail = user.email;
-        const defaultName = userEmail.split('@')[0];
         
-        document.getElementById("profileEmail").innerText = userEmail;
-        document.getElementById("userInitial").innerText = defaultName.charAt(0).toUpperCase();
-
-        // প্রোফাইল টেবিল থেকে ডাটা আনা (যদি এক্সিস্ট করে)
-        const { data: profileData } = await mySupabase.from('profiles').select('*').eq('id', user.id).maybeSingle();
-        if (profileData) {
-            document.getElementById("profileName").innerText = profileData.username || defaultName;
-            document.getElementById("profileRole").innerText = profileData.role || "user";
-        } else {
-            document.getElementById("profileName").innerText = defaultName;
-        }
-
+        currentUserId = user.id;
+        
+        // ইউজার ইনফো বসানো
+        document.getElementById("userEmail").innerText = user.email;
+        document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
+        
         // অ্যাকাউন্ট তৈরির ডেট ফরম্যাট করা
         if (user.created_at) {
-            const dateObj = new Date(user.created_at);
-            document.getElementById("profileCreated").innerText = dateObj.toLocaleDateString('en-GB');
+            const date = new Date(user.created_at);
+            document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
-        // ২. 🎯 শুধুমাত্র এই ইউজারের করা পোস্টগুলো Supabase থেকে ফিল্টার করে আনা
-        const { data: myPosts, error: postsError } = await mySupabase
+        // প্রোফাইল রোল চেক
+        const { data: pData } = await mySupabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
+        if (pData && pData.role) {
+            document.getElementById("userRole").innerText = pData.role;
+        }
+        
+        // ইউজারের নিজস্ব পোস্টগুলো লোড করা
+        loadUserPosts();
+        
+    } catch (e) { console.error(e); }
+}
+
+// ২. ইউজারের পোস্টগুলো চেকবক্সসহ লিস্ট আকারে আনা
+async function loadUserPosts() {
+    const container = document.getElementById("myPostsContainer");
+    try {
+        const { data: posts, error } = await mySupabase
             .from('posts')
             .select('*')
-            .eq('user_id', user.id)
+            .eq('user_id', currentUserId)
             .order('created_at', { ascending: false });
+            
+        if (error) throw error;
+        
+        if (!posts || posts.length === 0) {
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">You haven\'t posted any evidence yet.</p>';
+            return;
+        }
+        
+        container.innerHTML = "";
+        selectedPostIds = [];
+        updateDeleteButtonState();
 
-        if (postsError) throw postsError;
+        posts.forEach(post => {
+            const item = document.createElement("div");
+            item.className = "post-item";
+            
+            const rawDate = post.created_at ? new Date(post.created_at).toLocaleDateString('en-GB') : '-';
+            const platform = post.platform || "Penalty";
 
-        renderMyPosts(myPosts);
-
+            item.innerHTML = `
+                <input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)">
+                <div class="post-details">
+                    <p class="post-title">${post.title || 'Untitled'}</p>
+                    <div class="post-meta">
+                        📅 <span>${rawDate}</span>
+                    </div>
+                </div>
+                <span class="badge">${platform}</span>
+            `;
+            container.appendChild(item);
+        });
+        
     } catch (e) {
-        console.error(e);
-        document.getElementById("myPostsContainer").innerHTML = `<div class="no-posts" style="color:#ff6b6b;">Failed to load posts.</div>`;
+        container.innerHTML = `<p style="text-align:center; color:#ff4a4a;">Error: ${e.message}</p>`;
     }
 }
 
-// ছোট ছোট আকারে পোস্টের লিস্ট রেন্ডার করার ফাংশন
-function renderMyPosts(posts) {
-    const container = document.getElementById("myPostsContainer");
-    if (!container) return;
-
-    if (!posts || posts.length === 0) {
-        container.innerHTML = `<div class="no-posts">আপনি এখনও কোনো এভিডেন্স পোস্ট করেননি।</div>`;
-        return;
+// ৩. চেকবক্স সিলেক্ট/আনসিলেক্ট হ্যান্ডেল করা
+function togglePostSelection(checkbox) {
+    const postId = parseInt(checkbox.value);
+    if (checkbox.checked) {
+        if (!selectedPostIds.includes(postId)) selectedPostIds.push(postId);
+    } else {
+        selectedPostIds = selectedPostIds.filter(id => id !== postId);
     }
-
-    container.innerHTML = ""; // লোডিং টেক্সট ক্লিয়ার করা
-
-    posts.forEach(post => {
-        const postDate = new Date(post.created_at).toLocaleDateString('en-GB');
-        const card = document.createElement("div");
-        card.className = "mini-post-card";
-        
-        // কার্ডে ক্লিক করলে সরাসরি post.html পেজে আইডি প্যারামিটারসহ রিডাইরেক্ট হবে
-        card.onclick = () => {
-            window.location.href = `post.html?id=${post.id}`;
-        };
-
-        card.innerHTML = `
-            <div class="mini-post-left">
-                <h4 class="mini-post-title">${post.title || "Untitled Match"}</h4>
-                <div class="mini-post-date">📅 ${postDate}</div>
-            </div>
-            <div class="mini-post-badge">${post.platform || "Evidence"}</div>
-        `;
-        
-        container.appendChild(card);
-    });
+    updateDeleteButtonState();
 }
 
-// পেজ লোড হলে ফাংশনটি রান করানো
-window.addEventListener("DOMContentLoaded", loadProfileAndPosts);
+// ৪. ডিলিট বাটনের আপডেট ও সংখ্যা দেখানো
+function updateDeleteButtonState() {
+    const btn = document.getElementById("deleteSelectedBtn");
+    const countSpan = document.getElementById("selectedCount");
+    
+    countSpan.innerText = selectedPostIds.length;
+    
+    if (selectedPostIds.length > 0) {
+        btn.style.display = "block";
+    } else {
+        btn.style.display = "none";
+    }
+}
+
+// ৫. সিলেক্ট করা সব পোস্ট এক ক্লিকে সুপাবেস থেকে ডিলিট করা
+async function deleteSelectedPosts() {
+    if (selectedPostIds.length === 0) return;
+    
+    const confirmDelete = confirm(`আপনি কি নিশ্চিতভাবে এই ${selectedPostIds.length}টি পোস্ট ডিলিট করতে চান ভাই?`);
+    if (!confirmDelete) return;
+    
+    const btn = document.getElementById("deleteSelectedBtn");
+    try {
+        btn.innerText = "Deleting...";
+        btn.disabled = true;
+        
+        // সুapabase এ একসাথে সব সিলেক্টেড আইডি ডিলিট করার ইন-কুয়েরি (in_)
+        const { error } = await mySupabase
+            .from('posts')
+            .delete()
+            .in('id', selectedPostIds);
+            
+        if (error) throw error;
+        
+        alert("পোস্টগুলো সফলভাবে ডিলিট হয়েছে ভাই!");
+        loadUserPosts(); // লিস্ট রিফ্রেশ করা
+        
+    } catch (e) {
+        alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message);
+    } finally {
+        btn.innerText = "🗑️ Delete Selected Posts";
+        btn.disabled = false;
+    }
+}
+
+window.addEventListener("DOMContentLoaded", initProfile);
 </script>
 </body>
 </html>

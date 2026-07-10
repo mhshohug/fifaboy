@@ -293,8 +293,9 @@ function renderPosts(postsList) {
         `;
         feedSection.appendChild(postCard);
     });
-    if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
-        if (window.instgrm && window.instgrm.Embeds) {
+        if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
+    
+    if (window.instgrm && window.instgrm.Embeds) {
         window.instgrm.Embeds.process();
     } else {
         const oldScript = document.querySelector('script[src*="instagram.com/embed.js"]');
@@ -305,8 +306,8 @@ function renderPosts(postsList) {
         script.async = true;
         document.body.appendChild(script);
     }
-
 }
+
 
 function viewPublicProfile(uid) {
     if(!uid) return;

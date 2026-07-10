@@ -1,1 +1,166 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile | FIFABOY</title>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <style>
+        body { 
+            font-family: 'Poppins', sans-serif; 
+            background: #1a1a1a; 
+            color: white; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            height: 100vh; 
+            margin: 0; 
+        }
+        .profile-container { 
+            background: #2a2a2a; 
+            padding: 30px; 
+            border-radius: 12px; 
+            width: 90%; 
+            max-width: 400px; 
+            box-shadow: 0 4px 15px rgba(0,0,0,0.4); 
+            text-align: center; 
+        }
+        .avatar-box { 
+            width: 100px; 
+            height: 100px; 
+            background: #3ecf8e; 
+            border-radius: 50%; 
+            margin: 0 auto 15px; 
+            display: flex; 
+            justify-content: center; 
+            align-items: center; 
+            font-size: 40px; 
+            font-weight: bold; 
+            color: white; 
+            overflow: hidden; 
+        }
+        .avatar-box img { 
+            width: 100%; 
+            height: 100%; 
+            object-fit: cover; 
+        }
+        h2 { 
+            margin: 10px 0; 
+            color: #3ecf8e; 
+        }
+        p { 
+            color: #aaa; 
+            margin: 5px 0; 
+            font-size: 14px; 
+        }
+        .info-group { 
+            background: #333; 
+            padding: 12px; 
+            border-radius: 6px; 
+            margin: 15px 0; 
+            text-align: left; 
+        }
+        .info-group div { 
+            margin-bottom: 8px; 
+            font-size: 15px; 
+        }
+        .info-group div:last-child { 
+            margin-bottom: 0; 
+        }
+        .info-group strong { 
+            color: #3ecf8e; 
+        }
+        .btn-home { 
+            display: inline-block; 
+            width: 100%; 
+            background: #3ecf8e; 
+            color: white; 
+            border: none; 
+            padding: 12px; 
+            cursor: pointer; 
+            border-radius: 6px; 
+            font-weight: bold; 
+            font-size: 16px; 
+            text-decoration: none; 
+            box-sizing: border-box; 
+            margin-top: 10px; 
+        }
+        .btn-home:hover { 
+            background: #34b279; 
+        }
+    </style>
+</head>
+<body>
+
+<div class="profile-container">
+    <div id="avatarContainer" class="avatar-box">⚽</div>
+    
+    <h2 id="profUsername">Loading...</h2>
+    <p id="profEmail">Please wait...</p>
+    
+    <div class="info-group">
+        <div><strong>Role:</strong> <span id="profRole">User</span></div>
+        <div><strong>Account Created:</strong> <span id="profCreated">N/A</span></div>
+    </div>
+    
+    <a href="index.html" class="btn-home">Back to Home</a>
+</div>
+
+<script>
+window.addEventListener('DOMContentLoaded', async () => {
+    // ১. আপনার আসল সুপাবেস ক্রেডেনশিয়ালস সরাসরি সেট করা হলো
+    const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+
+    const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+    try {
+        // ২. বর্তমান লগইন থাকা ইউজারকে গেট করা
+        const { data: { user }, error: userError } = await mySupabase.auth.getUser();
+
+        if (userError || !user) {
+            alert("আপনি লগইন করা নন! প্রথমে লগইন করুন।");
+            window.location.href = "login.html";
+            return;
+        }
+
+        // ৩. ইন্টারনাল মেটাডাটা থেকে ডিফল্ট ভ্যালু স্ক্রিনে সেট করা (যাতে রো না থাকলেও পেজ সাদা না হয়)
+        let defaultUsername = user.user_metadata?.username || user.email.split('@')[0];
+        document.getElementById("profEmail").innerText = user.email;
+        document.getElementById("profCreated").innerText = new Date(user.created_at).toLocaleDateString();
+        document.getElementById("profUsername").innerText = defaultUsername;
+        document.getElementById("profRole").innerText = "User";
+
+        // প্রথম অক্ষর দিয়ে ডিফল্ট গোল অবতার তৈরি করা
+        const avatarContainer = document.getElementById("avatarContainer");
+        avatarContainer.innerText = defaultUsername.charAt(0).toUpperCase();
+
+        // ৪. public.profiles টেবিল থেকে কাস্টম ডাটা চেক করা
+        const { data: profileData, error: profileError } = await mySupabase
+            .from('profiles')
+            .select('*')
+            .eq('id', user.id);
+
+        // যদি প্রোফাইল টেবিলে ম্যাচিং ডাটা পাওয়া যায়, তবে তা দিয়ে স্ক্রিন আপডেট করা
+        if (profileData && profileData.length > 0) {
+            const p = profileData[0];
+            if (p.username) document.getElementById("profUsername").innerText = p.username;
+            if (p.role) document.getElementById("profRole").innerText = p.role;
+            if (p.avatar) {
+                avatarContainer.innerHTML = `<img src="${p.avatar}" alt="Avatar">`;
+            } else {
+                avatarContainer.innerText = (p.username || defaultUsername).charAt(0).toUpperCase();
+            }
+        }
+
+    } catch (e) {
+        console.error("Profile page error:", e);
+        document.getElementById("profUsername").innerText = "Error Loading Profile";
+    }
+});
+</script>
+
+</body>
+</html>
 

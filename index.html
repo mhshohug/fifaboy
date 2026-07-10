@@ -295,6 +295,18 @@ function renderPosts(postsList) {
         feedSection.appendChild(postCard);
     });
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
+        if (window.instgrm && window.instgrm.Embeds) {
+        window.instgrm.Embeds.process();
+    } else {
+        const oldScript = document.querySelector('script[src*="instagram.com/embed.js"]');
+        if (oldScript) oldScript.remove();
+        
+        const script = document.createElement("script");
+        script.src = "https://www.instagram.com/embed.js";
+        script.async = true;
+        document.body.appendChild(script);
+    }
+
 }
 
 function viewPublicProfile(uid) {

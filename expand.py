@@ -1,9 +1,9 @@
 import os
 import requests
 import re
-from urllib.parse import quote
 from supabase import create_client, Client
 
+# সুপাবেস ক্লায়েন্ট ইনিশিয়ালাইজেশন
 supabase = create_client(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_ANON_KEY")
@@ -25,8 +25,11 @@ def get_full_url(short_url: str) -> str:
         session = requests.Session()
         session.headers.update(headers)
 
-        # Initial visit to Facebook to set cookies
-        session.get("https://www.facebook.com", timeout=8)
+        # কুকি সেট করার জন্য ফেসবুকে প্রাথমিক ভিজিট
+        try:
+            session.get("https://www.facebook.com", timeout=8)
+        except:
+            pass
 
         response = session.get(short_url, timeout=15, allow_redirects=True)
         final_url = response.url
@@ -35,7 +38,7 @@ def get_full_url(short_url: str) -> str:
         # ====================== FACEBOOK ======================
         if any(x in final_url.lower() for x in ["facebook.com", "fb.watch", "share/r/"]):
             
-            # Multiple patterns to extract Video ID
+            # ভিডিও আইডি এক্সট্র্যাক্ট করার প্যাটার্নসমূহ
             patterns = [
                 r'/video/(\d{10,})',
                 r'v=(\d{10,})',
@@ -52,12 +55,14 @@ def get_full_url(short_url: str) -> str:
                     video_id = match.group(1)
                     break
 
+            # যদি পাইথন আইডি সাকসেসফুলি খুঁজে পায়
             if video_id:
                 return f"https://www.facebook.com/video/embed?video_id={video_id}"
 
-            # Ultimate Fallback
+            # 🎯 ওরিজিনাল সলিউশন: যদি ফেসবুক পাইথনকে ব্লক করে আইডি না দেয়, 
+            # তবে কোনো হিজিবিজি প্লাগইন লিংক বানাবে না ভাই। শুধু ক্লিন ফুল লিংকটা রিটার্ন করবে!
             clean_url = final_url.split("?")[0].split("&")[0]
-            return f"https://www.facebook.com/plugins/video.php?href={quote(clean_url)}&width=500&show_text=false&height=500"
+            return clean_url
 
         # ====================== TIKTOK ======================
         if "tiktok.com" in final_url or "vt.tiktok.com" in short_url or "vm.tiktok.com" in short_url:
@@ -81,9 +86,11 @@ def process_posts():
         if not current_url:
             continue
 
+        # ফেসবুক বা টিকটকের শর্ট/ভুল প্লাগইন লিংক থাকলে প্রসেস করবে
         if ("facebook.com" in current_url or 
             "fb.watch" in current_url or 
-            "tiktok.com" in current_url):
+            "tiktok.com" in current_url or
+            "plugins/video.php" in current_url):
             
             print(f"Processing → {current_url[:80]}...")
             new_url = get_full_url(current_url)

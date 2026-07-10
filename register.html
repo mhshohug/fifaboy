@@ -1,98 +1,48 @@
-<!-- register.html -->
-<!DOCTYPE html>
-<html>
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Register - FIFABOY</title>
-    <link rel="stylesheet" href="css/style.css">
-</head>
-<body>
-    <div class="auth-container">
-        <h1>FIFABOY</h1>
-        <h2>Create Your Account</h2>
-        
-        <div id="error-message" style="color: red; display: none;"></div>
-        
-        <form id="register-form">
-            <input type="text" id="username" placeholder="Username" required>
-            <input type="email" id="email" placeholder="Email" required>
-            <input type="password" id="password" placeholder="Password (min 6 characters)" required>
-            <button type="submit" id="register-btn">Create Account</button>
-        </form>
-        
-        <div class="divider">or</div>
-        
-        <button onclick="googleLogin()" class="social-btn google">
-            Continue with Google
-        </button>
-        <button onclick="facebookLogin()" class="social-btn facebook">
-            Continue with Facebook
-        </button>
-        
-        <p>Already have an account? <a href="login.html">Login</a></p>
-    </div>
+<!-- আপনার register.html এর ফর্মের ইনপুট আইডিগুলো জাস্ট নিচের মতো মিলিয়ে নিন -->
+<script>
+async function registerUser() {
+    const email = document.getElementById("email").value;
+    const password = document.getElementById("password").value;
+    const username = document.getElementById("username").value; // যদি ইউজারনেম ফিল্ড থাকে
     
-    <!-- Supabase JS -->
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    const submitBtn = document.getElementById("registerLink") || document.querySelector("button");
+    const originalText = submitBtn.innerText;
     
-    <!-- Your supabase.js -->
-    <script src="js/supabase.js"></script>
-    
-    <script>
-        // Register form handler
-        document.addEventListener('DOMContentLoaded', () => {
-            const form = document.getElementById('register-form');
-            const errorDiv = document.getElementById('error-message');
-            const btn = document.getElementById('register-btn');
-            
-            if (form) {
-                form.addEventListener('submit', async (e) => {
-                    e.preventDefault();
-                    
-                    const username = document.getElementById('username').value.trim();
-                    const email = document.getElementById('email').value.trim();
-                    const password = document.getElementById('password').value;
-                    
-                    // Validation
-                    errorDiv.style.display = 'none';
-                    
-                    if (!username || !email || !password) {
-                        errorDiv.textContent = 'Please fill all fields';
-                        errorDiv.style.display = 'block';
-                        return;
-                    }
-                    
-                    if (username.length < 3) {
-                        errorDiv.textContent = 'Username must be at least 3 characters';
-                        errorDiv.style.display = 'block';
-                        return;
-                    }
-                    
-                    if (password.length < 6) {
-                        errorDiv.textContent = 'Password must be at least 6 characters';
-                        errorDiv.style.display = 'block';
-                        return;
-                    }
-                    
-                    // Disable button
-                    btn.disabled = true;
-                    btn.textContent = 'Creating...';
-                    
-                    // Call signup function
-                    const result = await signUp(email, password, username);
-                    
-                    // Enable button
-                    btn.disabled = false;
-                    btn.textContent = 'Create Account';
-                    
-                    if (!result) {
-                        errorDiv.textContent = 'Sign up failed. Please try again.';
-                        errorDiv.style.display = 'block';
-                    }
-                });
+    if(!email || !password) {
+        alert("দয়া করে ইমেইল এবং পাসওয়ার্ড দুটিই দিন!");
+        return;
+    }
+
+    try {
+        submitBtn.innerText = "Creating Account...";
+        submitBtn.disabled = true;
+
+        // Supabase-এ সাইন আপ রিকোয়েস্ট
+        const { data, error } = await supabase.auth.signUp({
+            email: email,
+            password: password,
+            options: {
+                data: {
+                    username: username || email.split('@')[0] // ইউজারনেম না থাকলে ইমেইলের প্রথম অংশ নেবে
+                }
             }
         });
-    </script>
-</body>
-</html>
+
+        if (error) throw error;
+
+        if (data.user) {
+            alert("রেজিস্ট্রেশন সফল হয়েছে! এবার লগইন করুন।");
+            window.location.href = "login.html"; // সরাসরি লগইন পেজে নিয়ে যাবে
+        }
+
+    } catch (e) {
+        console.error(e);
+        alert("ঝামেলা হয়েছে: " + e.message); // আটকে না থেকে এরর দেখাবে
+    } finally {
+        submitBtn.innerText = originalText;
+        submitBtn.disabled = false;
+    }
+}
+
+// আপনার রেজিস্ট্রেশন বাটনের onclick="registerUser()" সেট করে দিন
+</script>

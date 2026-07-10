@@ -1,0 +1,28 @@
+name: Auto Expand Social Links
+
+on:
+  schedule:
+    - cron: '*/5 * * * *' # প্রতি ৫ মিনিট পর পর পাইথন স্ক্রিপ্টটি ব্যাকগ্রাউন্ডে অটো রান করবে
+  workflow_dispatch: # যেন আপনি নিজেও Actions ট্যাবে গিয়ে ম্যানুয়ালি যেকোনো সময় রান করতে পারেন
+
+jobs:
+  run-python:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v3
+
+      - name: Set up Python
+        uses: actions/setup-python@v4
+        with:
+          python-version: '3.x'
+
+      - name: Install Dependencies
+        run: |
+          pip install requests supabase
+
+      - name: Run URL Expander
+        env:
+          SUPABASE_URL: "https://zqsjopjkhtofyepjneby.supabase.co"
+          SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU"
+        run: python expand.py

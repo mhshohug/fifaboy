@@ -141,19 +141,22 @@
 
 <script>
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCIOiJIUkc4NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let POSTS = [];
-let USER_VOTES = []; // 🎯 লগইন করা ইউজারের আগের দেওয়া ভোটের ট্র্যাকিং ডাটা রাখার জন্য
+let USER_VOTES = [];
 let currentUserId = null;
 
-function getMediaEmbedHTML(url) {
+// ইনস্টাগ্রাম, টিকটক এবং ইউটিউব আগের মতোই সুপারহিট রাখার জন্য মেইন ফাংশন
+function getMediaEmbedHTML(url, containerId) {
     if (!url) return "";
     
+    let checkUrl = url.toLowerCase();
+    
     // ১. YouTube
-    if (url.includes("youtube.com") || url.includes("youtu.be")) {
+    if (checkUrl.includes("youtube.com") || checkUrl.includes("youtu.be")) {
         let videoId = "";
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
         else if (url.includes("v=")) videoId = url.split("v=")[1].split("&")[0];
@@ -161,18 +164,17 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook
-    if (url.includes("facebook.com") || url.includes("fb.watch")) {
-        let finalUrl = url;
-        if (!url.includes("video/embed") && !url.includes("plugins/video.php")) {
-            let cleanUrl = url.split("?")[0];
-            finalUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
-        }
-        return '<div class="embed-container"><iframe src="' + finalUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe></div>';
+    // ২. Facebook (লাইভ ব্রাউজার ওএমবেড মেথড - পাইথনের কোনো দরকারই পড়বে না)
+    if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
+        // ব্যাকগ্রাউন্ডে এপিআই কল করার জন্য একটা ইউনিক কন্টেইনার আইডি দেওয়া হলো
+        setTimeout(() => {
+            fetchFacebookEmbed(url, containerId);
+        }, 50);
+        return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
     
-    // ৩. TikTok
-    if (url.includes("tiktok.com")) {
+    // ৩. TikTok (১০০% অক্ষত)
+    if (checkUrl.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
@@ -180,22 +182,54 @@ function getMediaEmbedHTML(url) {
     }
     
     // ৪. Twitter/X
-    if (url.includes("twitter.com") || url.includes("x.com")) {
+    if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram
-    if (url.includes("instagram.com")) {
+    // ৫. Instagram (১০০% অক্ষত)
+    if (checkUrl.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
-        
-        return '<div class="embed-container">' +
-               '<iframe src="' + cleanUrl + 'embed/" width="100%" height="480" frameborder="0" scrolling="no" allowtransparency="true" style="border:none; border-radius:8px; background:#1f1f1f;"></iframe>' +
-               '</div>';
+        return '<div class="embed-container"><iframe src="' + cleanUrl + 'embed/" width="100%" height="480" frameborder="0" scrolling="no" allowtransparency="true" style="border:none; border-radius:8px; background:#1f1f1f;"></iframe></div>';
     }
     
     return '<img src="' + url + '" alt="Evidence" style="max-width:100%; border-radius:8px; margin-top:10px; display:block;">';
+}
+
+// ফেসবুকের শর্ট লিংক লাইভ কনভার্ট করে আইফ্রেম লোড করার মাস্টার ফাংশন
+async function fetchFacebookEmbed(facebookUrl, targetId) {
+    const container = document.getElementById(targetId);
+    if (!container) return;
+
+    try {
+        let cleanUrl = facebookUrl.split("?")[0].split("&")[0].split("#")[0];
+        // মেটার অফিশিয়াল গেটওয়ে যা ব্রাউজার থেকে ব্লক হয় না
+        let oembedUrl = "https://www.facebook.com/plugins/video/oembed.json?url=" + encodeURIComponent(cleanUrl);
+        
+        let res = await fetch(oembedUrl);
+        if (res.ok) {
+            let data = await res.json();
+            let htmlBox = data.html || "";
+            
+            // এপিআই রেসপন্স থেকে ওরিজিনাল আইডি রেগুলার এক্সপ্রেশন দিয়ে চিপে বের করা
+            let match = htmlBox.match(/(?:reel|reels|video|v)\/([0-9]+)/);
+            if (match && match[1]) {
+                let reelId = match[1];
+                let finalIframeUrl = "https://www.facebook.com/plugins/video.php?href=https%3A%2F%2Fwww.facebook.com%2Freel%2F" + reelId + "&show_text=false&width=500";
+                container.innerHTML = '<iframe src="' + finalIframeUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>';
+                return;
+            }
+        }
+        
+        // ব্যাকআপ: যদি এপিআই কোন কারণে ডাটা না দেয়, তবে ডিরেক্ট ক্লিন ইউআরএল আইফ্রেমে পুশ করা
+        let fallbackUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
+        container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true"></iframe>';
+        
+    } catch (err) {
+        console.error("Facebook Live Convert Error: ", err);
+        container.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Video temporary unavailable</div>';
+    }
 }
 
 async function initPage(){
@@ -219,7 +253,6 @@ async function initPage(){
                 admin.style.display = "inline-block";
             }
             
-            // 🎯 লগইন করা ইউজারের ভোটের লকিং ডাটা সুপাবেস থেকে তুলে আনা
             const { data: votesData } = await mySupabase.from('votes').select('post_id, vote').eq('user_id', user.id);
             USER_VOTES = votesData || [];
             
@@ -259,12 +292,14 @@ function renderPosts(postsList) {
         const postCard = document.createElement("div");
         postCard.className = "post-card";
         
-        let mediaHTML = getMediaEmbedHTML(post.url);
+        // প্রতিটা পোস্টের জন্য ডাইনামিক কন্টেইনার আইডি জেনারেট
+        let fbContainerId = "fb-embed-" + post.id;
+        let mediaHTML = getMediaEmbedHTML(post.url, fbContainerId);
+        
         let voteCount = post.likes ? parseInt(post.likes) : 0;
         let dislikeCount = post.dislikes ? parseInt(post.dislikes) : 0;
         const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
 
-        // 🎯 চেক করা হচ্ছে এই ইউজার অলরেডি লাইক বা ডিসলাইক দিয়ে রেখেছে কি না
         const userVoted = USER_VOTES.find(v => v.post_id === post.id);
         let likeClass = "";
         let dislikeClass = "";
@@ -348,77 +383,45 @@ async function submitNewPost() {
             user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null, likes: 0, dislikes: 0
         }]);
         if (error) throw error;
-        alert("সফলভাবে আপলোড হয়েছে! ব্যাকগ্রাউন্ডে ভিডিও প্রসেস হচ্ছে ভাই।"); closeUpload(); loadPosts();
+        alert("সফলভাবে আপলোড হয়েছে ভাই!"); closeUpload(); loadPosts();
     } catch (e) { alert("Error: " + e.message); } 
     finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }
 
-// 🎯 ডাবল ভোট লকিং মেকানিজম সহ ফিক্সড লাইক ফাংশন
 async function votePost(postId, btnElement) {
     if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
-    
-    // ১. চেক করা যে ইউজার আগে থেকেই ভোট দিয়ে রেখেছে কি না
     const existingVote = USER_VOTES.find(v => v.post_id === postId);
-    if(existingVote) {
-        alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!");
-        return;
-    }
+    if(existingVote) { alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!"); return; }
     
     const voteNumSpan = btnElement.querySelector(".vote-num");
     let currentVotes = parseInt(voteNumSpan.innerText) || 0;
     currentVotes++;
-    
-    // UI পরিবর্তন
     btnElement.classList.add("liked");
     voteNumSpan.innerText = currentVotes;
     
     try {
-        // সুপাবেসের মেইন পোস্টে লাইক সংখ্যা বাড়ানো
         await mySupabase.from('posts').update({ likes: currentVotes }).eq('id', postId);
-        
-        // সুপাবেসের 'votes' সিকিউরিটি টেবিলে এন্ট্রি মেরে লক করা (vote: 1 মানে লাইক)
         await mySupabase.from('votes').insert([{ post_id: postId, user_id: currentUserId, vote: 1 }]);
-        
-        // লোকাল মেমরিতেও লক পুশ করা যেন পেজ রিলোড দেওয়ার আগে আর চাপতে না পারে
         USER_VOTES.push({ post_id: postId, vote: 1 });
-        
-    } catch(err) {
-        print("Error saving vote:", err.message);
-    }
+    } catch(err) { console.error(err); }
 }
 
-// 🎯 ডাবল ডিসলাইক লকিং মেকানিজম সহ ফিক্সড ডিসলাইক ফাংশন
 async function dislikePost(postId, btnElement) {
     if(!currentUserId) { alert("ডিসলাইক করতে প্রথমে লগইন করুন!"); return; }
-    
-    // ১. চেক করা যে ইউজার আগে থেকেই ভোট দিয়ে রেখেছে কি না
     const existingVote = USER_VOTES.find(v => v.post_id === postId);
-    if(existingVote) {
-        alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!");
-        return;
-    }
+    if(existingVote) { alert("আপনি এই পোস্টে অলরেডি আপনার মতামত দিয়ে দিয়েছেন ভাই!"); return; }
     
     const dislikeNumSpan = btnElement.querySelector(".dislike-num");
     let currentDislikes = parseInt(dislikeNumSpan.innerText) || 0;
     currentDislikes++;
-    
-    // UI পরিবর্তন
     btnElement.classList.add("disliked");
     dislikeNumSpan.innerText = currentDislikes;
     
     try {
-        // সুপাবেসের মেইন পোস্টে ডিসলাইক সংখ্যা বাড়ানো
         await mySupabase.from('posts').update({ dislikes: currentDislikes }).eq('id', postId);
-        
-        // সুপাবেসের 'votes' সিকিউরিটি টেবিলে এন্ট্রি মেরে লক করা (vote: -1 মানে ডিসলাইক)
         await mySupabase.from('votes').insert([{ post_id: postId, user_id: currentUserId, vote: -1 }]);
-        
-        // লোকাল মেমরিতেও লক পুশ করা
         USER_VOTES.push({ post_id: postId, vote: -1 });
-        
-    } catch(err) {
-        print("Error saving dislike:", err.message);
-    }
+    } catch(err) { console.error(err); }
 }
 
 function sharePost(title, postId) {

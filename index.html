@@ -47,7 +47,7 @@
 .btn-submit { background: #3ecf8e; color: white; }
 .btn-close { background: transparent; color: #ff6b6b; border: 2px solid #ff6b6b !important; }
 
-/* এমবেড করা মিডিয়া বক্সের প্রপার সাইজ */
+/* মিডিয়া বক্সের প্রপার ও রেসপন্সিভ সাইজ */
 .embed-container {
     margin-top: 12px;
     width: 100%;
@@ -61,7 +61,7 @@
 .embed-container iframe {
     border: none;
     width: 100%;
-    min-height: 500px;
+    min-height: 580px;
 }
 </style>
 </head>
@@ -167,55 +167,7 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let currentUserId = null;
 
-// JSONP পদ্ধতি ব্যবহার করে শর্ট লিংক ভেঙে ফুল লিংক বের করার ফাংশন
-function resolveTikTokShortLink(shortUrl) {
-    return new Promise((resolve) => {
-        if (!shortUrl || (!shortUrl.includes("vt.tiktok.com") && !shortUrl.includes("vm.tiktok.com"))) {
-            resolve(shortUrl); // যদি শর্ট লিংক না হয়, যা আছে তাই রিটার্ন করবে
-            return;
-        }
-
-        const callbackName = "tiktok_callback_" + Math.floor(Math.random() * 100000);
-        
-        // ৫ সেকেন্ড পর যদি রেসপন্স না আসে তবে রিকোয়েস্ট ফেইল করানোর জন্য টাইমার
-        const timeoutId = setTimeout(() => {
-            cleanup();
-            resolve(null); // ফেইল বুঝাতে null রিটার্ন
-        }, 5000);
-
-        window[callbackName] = function(data) {
-            clearTimeout(timeoutId);
-            if (data && data.author_url && data.html) {
-                const match = data.html.match(/video\/(\d+)/);
-                if (match && match[1]) {
-                    const username = data.author_url.split('/').pop();
-                    const fullUrl = `https://www.tiktok.com/@${username}/video/${match[1]}`;
-                    cleanup();
-                    resolve(fullUrl);
-                    return;
-                }
-            }
-            cleanup();
-            resolve(null);
-        };
-
-        function cleanup() {
-            if (script && script.parentNode) script.parentNode.removeChild(script);
-            delete window[callbackName];
-        }
-
-        const script = document.createElement("script");
-        script.src = `https://www.tiktok.com/oembed?url=${encodeURIComponent(shortUrl)}&callback=${callbackName}`;
-        script.onerror = function() {
-            clearTimeout(timeoutId);
-            cleanup();
-            resolve(null);
-        };
-        document.body.appendChild(script);
-    });
-}
-
-// মিডিয়া লিংক ডিটেক্টর ও পিওর আইফ্রেম জেনারেটর ফাংশন
+// গ্লোবাল মিডিয়া লিংক ডিটেক্টর ও আলটিমেট আইফ্রেম রেন্ডারার ফাংশন
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     
@@ -233,10 +185,26 @@ function getMediaEmbedHTML(url) {
         return `<div class="embed-container"><div class="fb-video" data-href="${url}" data-width="500" data-show-text="false"></div></div>`;
     }
 
-    // ৩. TikTok (পিওর আইফ্রেম মেথড)
+    // ৩. TikTok (বুলেটপ্রুফ মেথড - যা শর্ট ও বড় সব ধরণের লিংকে কোনো এপিআই ছাড়াই ডিরেক্ট ভিডিও প্লে করে)
     if (url.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         
+        // যদি মোবাইল শর্ট লিঙ্ক হয়, তবে সরাসরি টিকটকের অফিশিয়াল শেয়ার্ড-এমবেড প্লেয়ার লিংক
+        if (cleanUrl.includes("vt.tiktok.com") || cleanUrl.includes("vm.tiktok.com")) {
+            return `
+            <div class="embed-container">
+                <iframe 
+                    src="https://www.tiktok.com/player/v1?url=${encodeURIComponent(cleanUrl)}&autoplay=0" 
+                    width="100%" 
+                    height="580" 
+                    frameborder="0" 
+                    allowfullscreen 
+                    allow="autoplay; encrypted-media">
+                </iframe>
+            </div>`;
+        }
+        
+        // যদি বড় লিঙ্ক হয়, তবে শেষ মাথা থেকে আইডি বের করা
         if (cleanUrl.endsWith('/')) {
             cleanUrl = cleanUrl.slice(0, -1);
         }
@@ -247,10 +215,9 @@ function getMediaEmbedHTML(url) {
             <iframe 
                 src="https://www.tiktok.com/embed/${videoId}" 
                 width="100%" 
-                height="550" 
+                height="580" 
                 frameborder="0" 
-                allowfullscreen 
-                style="border-radius:8px;">
+                allowfullscreen>
             </iframe>
         </div>`;
     }
@@ -383,7 +350,7 @@ function closeUpload() {
     document.getElementById("postUrl").value = "";
 }
 
-// 🎯 কড়া কন্ডিশনসহ সাবমিট ফাংশন - লিংক পরিবর্তন না হলে আপলোড বন্ধ রাখবে
+// সুপার ফাস্ট ডিরেক্ট সাবমিট ফাংশন - কোনো এপিআই ঝামেলা ছাড়াই ১ সেকেন্ডে আপলোড হবে
 async function submitNewPost() {
     const title = document.getElementById("postTitle").value.trim();
     const platform = document.getElementById("postPlatform").value;
@@ -397,28 +364,16 @@ async function submitNewPost() {
     }
 
     try {
-        submitBtn.innerText = "Processing Link...";
+        submitBtn.innerText = "Uploading...";
         submitBtn.disabled = true;
 
-        // ব্যাকগ্রাউন্ডে লিংক কনভার্ট করার ট্রাই
-        const finalUrl = await resolveTikTokShortLink(rawUrl);
-
-        // 🛑 কন্ডিশন চেক: ইউজার যদি শর্ট লিংক দেয় এবং ওটা যদি কনভার্ট হতে না পেরে null আসে
-        if ((rawUrl.includes("vt.tiktok.com") || rawUrl.includes("vm.tiktok.com")) && !finalUrl) {
-            alert("⚠️ টিকটক সার্ভার থেকে লিংক ফুল করা যায়নি। অনুগ্রহ করে আবার চেষ্টা করুন বা ব্রাউজার থেকে সরাসরি ফুল লিংক এনে দিন।");
-            return; // এখানেই পোস্ট বন্ধ! আপলোড হবে না।
-        }
-
-        // ইনপুট বক্সে ভিজ্যুয়ালি ফুল লিংক সেট করা
-        document.getElementById("postUrl").value = finalUrl;
-
-        submitBtn.innerText = "Uploading...";
+        // কোনো প্রকার কনভার্ট না করে ইউজারের লিঙ্কটি সরাসরি ডেটাবেজে পাঠিয়ে দেওয়া
         const { error } = await mySupabase.from('posts').insert([{
             user_id: currentUserId,
             title: title,
             platform: platform,
             description: description,
-            url: finalUrl || null
+            url: rawUrl || null
         }]);
 
         if (error) throw error;

@@ -1,1 +1,56 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Upload Post | FIFABOY</title>
 
+<link rel="stylesheet" href="css/style.css">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="js/supabase.js"></script>
+</head>
+
+<body>
+
+<nav>
+    <div class="logo">⚽ FIFABOY</div>
+</nav>
+
+<div class="container">
+
+<h1>Create New Post</h1>
+
+<form id="uploadForm">
+
+<div class="input">
+<label>Title</label>
+<input type="text" id="title" required>
+</div>
+
+<div class="input">
+<label>Description</label>
+<textarea id="description" rows="6"></textarea>
+</div>
+
+<div class="input">
+<label>Video Link</label>
+<input type="url" id="url" placeholder="https://..." required>
+</div>
+
+<div class="input">
+<label>Platform</label>
+<input type="text" id="platform" readonly>
+</div>
+
+<button type="submit">
+Publish Post
+</button>
+
+</form>
+
+</div>
+
+<script src="js/upload.js"></script>
+
+</body>
+</html>

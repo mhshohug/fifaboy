@@ -148,11 +148,9 @@ function initSearch(){
 // =========================
 // CARD
 // =========================
-
 function createCard(post){
 
     return `
-
     <div class="post">
 
         ${getEmbed(post)}
@@ -164,11 +162,11 @@ function createCard(post){
         <div class="actions">
 
             <button onclick="likePostUI(${post.id})">
-                👍 Like
+                👍 ${post.likes||0}
             </button>
 
             <button onclick="dislikePostUI(${post.id})">
-                👎 Dislike
+                👎 ${post.dislikes||0}
             </button>
 
             <button onclick="openComments(${post.id})">
@@ -180,19 +178,13 @@ function createCard(post){
             </button>
 
             ${IS_ADMIN?`
-            <button onclick="editPostUI(${post.id})">
-                ✏ Edit
-            </button>
-
-            <button onclick="deletePostUI(${post.id})">
-                🗑 Delete
-            </button>
+            <button onclick="editPostUI(${post.id})">✏ Edit</button>
+            <button onclick="deletePostUI(${post.id})">🗑 Delete</button>
             `:""}
 
         </div>
 
     </div>
-
     `;
 
 }

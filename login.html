@@ -4,13 +4,11 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login | FIFABOY</title>
-    <link rel="stylesheet" href="css/style.css">
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-    <!-- Supabase SDK -->
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
         body { font-family: 'Poppins', sans-serif; background: #1a1a1a; color: white; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; }
-        .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 100%; max-width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; }
+        .auth-container { background: #2a2a2a; padding: 30px; border-radius: 8px; width: 90%; max-width: 360px; box-shadow: 0 4px 10px rgba(0,0,0,0.3); text-align: center; }
         .auth-container h2 { margin-bottom: 20px; color: #3ecf8e; }
         .auth-container input { width: 100%; padding: 12px; margin: 10px 0; box-sizing: border-box; background: #333; border: 1px solid #444; border-radius: 4px; color: white; }
         .auth-container button { width: 100%; background: #3ecf8e; color: white; border: none; padding: 12px; cursor: pointer; border-radius: 4px; font-weight: bold; font-size: 16px; margin-top: 10px; }
@@ -25,50 +23,52 @@
     <h2>⚽ Login to FIFABOY</h2>
     <input type="email" id="email" placeholder="Enter Email">
     <input type="password" id="password" placeholder="Enter Password">
-    <button id="loginBtn" onclick="loginUser()">Login</button>
+    <button id="loginBtn">Login</button>
     <p>Don't have an account? <a href="register.html">Register here</a></p>
 </div>
 
 <script>
-// সরাসরি আপনার প্রজেক্টের সাথে কানেক্ট করা হলো
-const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+window.addEventListener('DOMContentLoaded', () => {
+    const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-const supabase = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-
-async function loginUser() {
-    const email = document.getElementById("email").value.trim();
-    const password = document.getElementById("password").value.trim();
+    const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const logBtn = document.getElementById("loginBtn");
 
-    if(!email || !password) {
-        alert("ইমেইল এবং পাসওয়ার্ড দিন!");
-        return;
-    }
+    logBtn.addEventListener('click', async () => {
+        const email = document.getElementById("email").value.trim();
+        const password = document.getElementById("password").value.trim();
 
-    try {
-        logBtn.innerText = "Logging in...";
-        logBtn.disabled = true;
-
-        const { data, error } = await supabase.auth.signInWithPassword({
-            email: email,
-            password: password,
-        });
-
-        if (error) throw error;
-
-        if (data.user) {
-            alert("লগইন সফল হয়েছে!");
-            window.location.href = "index.html"; // হোম পেজে নিয়ে যাবে
+        if(!email || !password) {
+            alert("ইমেইল এবং পাসওয়ার্ড দিন!");
+            return;
         }
-    } catch (e) {
-        console.error(e);
-        alert("লগইন করা যায়নি: " + e.message);
-    } finally {
-        logBtn.innerText = "Login";
-        logBtn.disabled = false;
-    }
-}
+
+        try {
+            logBtn.innerText = "Logging in...";
+            logBtn.disabled = true;
+
+            const { data, error } = await mySupabase.auth.signInWithPassword({
+                email: email,
+                password: password,
+                
+            });
+
+            if (error) throw error;
+
+            if (data.user) {
+                alert("লগইন সফল হয়েছে!");
+                window.location.href = "index.html"; // সফল হলে হোম পেজে নিয়ে যাবে
+            }
+        } catch (e) {
+            console.error(e);
+            alert("লগইন করা যায়নি: " + e.message);
+        } finally {
+            logBtn.innerText = "Login";
+            logBtn.disabled = false;
+        }
+    });
+});
 </script>
 
 </body>

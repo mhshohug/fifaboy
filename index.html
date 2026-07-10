@@ -60,6 +60,7 @@
     min-height: 500px;
 }
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.action-btn.liked { color: #3ecf8e !important; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -181,14 +182,14 @@ function getMediaEmbedHTML(url) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram (মেতার কড়া ব্লকিং ভাঙার আসল অফিশিয়াল উইজেট মেথড)
+    // ৫. Instagram (ক্লিন ওরিজিনাল লিংকের উপর বেস করে ডিরেক্ট সলিড আইফ্রেম)
     if (url.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
         if (!cleanUrl.endsWith("/")) cleanUrl += "/";
         
-        return '<div class="embed-container" style="background:#fff; border-radius:8px; padding:10px; display:flex; justify-content:center; width:100%;">' +
-               '<blockquote class="instagram-media" data-instgrm-permalink="' + cleanUrl + '" data-instgrm-version="14" style="width:100%; border:0; margin:0; padding:0; background:#fff; min-height:500px; width:100%;"></blockquote>' +
+        return '<div class="embed-container">' +
+               '<iframe src="' + cleanUrl + 'embed/" width="100%" height="480" frameborder="0" scrolling="no" allowtransparency="true" style="border:none; border-radius:8px; background:#1f1f1f;"></iframe>' +
                '</div>';
     }
     
@@ -251,7 +252,8 @@ function renderPosts(postsList) {
         postCard.className = "post-card";
         
         let mediaHTML = getMediaEmbedHTML(post.url);
-        let voteCount = post.votes || 0;
+        // ডাটাবেজে নাল থাকলে ওটাকে ০ ধরে নেওয়া
+        let voteCount = post.votes ? parseInt(post.votes) : 0;
         const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
 
         postCard.innerHTML = `
@@ -291,19 +293,6 @@ function renderPosts(postsList) {
     });
 
     if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
-
-    // ডাইনামিক পোস্ট লোড হওয়ার পর ইনস্টাগ্রাম উইজেটকে ফোর্স রান করা
-    if (window.instgrm && window.instgrm.Embeds) {
-        window.instgrm.Embeds.process();
-    } else {
-        const oldScript = document.querySelector('script[src*="instagram.com/embed.js"]');
-        if (oldScript) oldScript.remove();
-        
-        const script = document.createElement("script");
-        script.src = "https://www.instagram.com/embed.js";
-        script.async = true;
-        document.body.appendChild(script);
-    }
 }
 
 function viewPublicProfile(uid) {
@@ -336,7 +325,7 @@ async function submitNewPost() {
     try {
         submitBtn.innerText = "Uploading..."; submitBtn.disabled = true;
         const { error } = await mySupabase.from('posts').insert([{
-            user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null
+            user_id: currentUserId, title: title, platform: platform, description: description, url: rawUrl || null, votes: 0
         }]);
         if (error) throw error;
         alert("সফলভাবে আপলোড হয়েছে! ব্যাকগ্রাউন্ডে ভিডিও প্রসেস হচ্ছে ভাই।"); closeUpload(); loadPosts();
@@ -344,14 +333,38 @@ async function submitNewPost() {
     finally { submitBtn.innerText = "Submit Post"; submitBtn.disabled = false; }
 }
 
+// 🎯 ডাইনামিক সুপাবেস কাউন্টার ফিক্স সহ নতুন ভোট ফাংশন
 async function votePost(postId, btnElement) {
     if(!currentUserId) { alert("ভোট দিতে প্রথমে লগইন করুন!"); return; }
+    
     const voteNumSpan = btnElement.querySelector(".vote-num");
-    let currentVotes = parseInt(voteNumSpan.innerText);
+    let currentVotes = parseInt(voteNumSpan.innerText) || 0;
+    
+    // UI ইনস্ট্যান্ট আপডেট করা
     btnElement.classList.toggle("liked");
-    if(btnElement.classList.contains("liked")) currentVotes++; else currentVotes--;
+    if(btnElement.classList.contains("liked")) {
+        currentVotes++;
+    } else {
+        currentVotes = Math.max(0, currentVotes - 1);
+    }
     voteNumSpan.innerText = currentVotes;
-    await mySupabase.from('posts').update({ votes: currentVotes }).eq('id', postId);
+    
+    try {
+        // সুপাবেসে নিখুঁতভাবে রি-আপডেট পাঠানো যেন রিলোডেও ডেটা না হারায়
+        const { error } = await mySupabase
+            .from('posts')
+            .update({ votes: currentVotes })
+            .eq('id', postId);
+            
+        if(error) throw error;
+        
+        // ব্যাকগ্রাউন্ড মেমরির ওরিজিনাল অবজেক্টটাও আপডেট করে দেওয়া
+        const targetPost = POSTS.find(p => p.id === postId);
+        if(targetPost) targetPost.votes = currentVotes;
+        
+    } catch(err) {
+        console.error("ভোট সেভ করতে সমস্যা হয়েছে:", err.message);
+    }
 }
 
 function sharePost(title, postId) {

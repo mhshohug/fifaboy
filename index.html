@@ -174,7 +174,7 @@ function getMediaEmbedHTML(url, containerId) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
-        return '<div class="embed-container"><iframe src="https://www.tiktok.com/embed/' + videoId + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
+        return '<div class="embed-container"><iframe src="' + cleanUrl.replace("tiktok.com", "tiktok.com/embed/v") + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
     
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
@@ -417,20 +417,21 @@ window.addEventListener("scroll", () => {
     if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
 });
 
-// ✅ কলাম নেম 'avatar' ফিক্স করা গ্লোবাল সার্চ মেকানিজম (ইউজার প্রোফাইল কার্ডসহ ১০০% ফিক্সড)
-document.getElementById("search").addEventListener("input", async (e) => {
-    const q = e.target.value.trim();
+// ✅ ইনস্ট্যান্ট ইনপুট ফিক্সসহ গ্লোবাল সার্চ লজিক (ইউজার কার্ড ডাইনামিক রেন্ডার)
+document.getElementById("search").addEventListener("input", async () => {
+    // 📌 ফিক্স: ডম থেকে রিয়েল-টাইম সার্চ স্ট্রিং রিড করা হচ্ছে
+    const q = document.getElementById("search").value.trim();
     const feedSection = document.getElementById("feed");
     
     if (!q) {
-        renderPosts(POSTS); // সার্চ খালি থাকলে নরমাল পোস্ট রেন্ডার করবে
+        renderPosts(POSTS); // সার্চ খালি থাকলে সাথে সাথে সব পুরানো পোস্ট রেন্ডার করবে
         return;
     }
 
     try {
         feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">🔍 Searching...</div>';
 
-        // ১. Profiles টেবিল থেকে ইউজার সার্চ (সঠিক কলাম 'avatar' দিয়ে)
+        // ১. Profiles টেবিল থেকে ইউজার কুয়েরি
         const { data: users, error: userErr } = await mySupabase
             .from('profiles')
             .select('id, username, avatar, role')
@@ -438,7 +439,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
 
         if (userErr) throw userErr;
 
-        // ২. পোস্ট ফিল্টারিং (টাইটেল, ডেসক্রিপশন অথবা ম্যাচিং ইউজারের পোস্ট)
+        // ২. লোকাল পোস্ট অ্যারে ফিল্টারিং
         const filteredPosts = POSTS.filter(post => {
             const matchTitle = (post.title || "").toLowerCase().includes(q.toLowerCase());
             const matchDesc = (post.description || "").toLowerCase().includes(q.toLowerCase());
@@ -451,7 +452,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
             return matchTitle || matchDesc || matchUser;
         });
 
-        // ৩. রেজাল্ট না পাওয়া গেলে
+        // ৩. নো ম্যাচিং রেজাল্ট হ্যান্ডেল
         if ((!users || users.length === 0) && filteredPosts.length === 0) {
             feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">😕 No matching users or evidence found.</div>';
             return;
@@ -459,7 +460,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
 
         feedSection.innerHTML = "";
 
-        // 👥 ৪. ম্যাচিং ইউজার কার্ড রেন্ডার (প্রিমিয়াম ইনলাইন প্রোফাইল কার্ড লুক)
+        // 👥 ৪. ইনলাইন প্রিমিয়াম স্টাইলসহ ডাইনামিক প্রোফাইল কার্ড জেনারেশন
         if (users && users.length > 0) {
             const userTitle = document.createElement('div');
             userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users (${users.length})</h4>`;
@@ -469,7 +470,6 @@ document.getElementById("search").addEventListener("input", async (e) => {
                 const avatar = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
                 const userCard = document.createElement("div");
                 
-                // 🎨 আপনার প্রজেক্ট ডার্ক থিম ম্যাচিং ইনলাইন সিএসএস কার্ড লেআউট
                 userCard.style.background = "#2a2a2a";
                 userCard.style.padding = "15px";
                 userCard.style.borderRadius = "12px";
@@ -502,7 +502,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
             });
         }
 
-        // 📝 ৫. ম্যাচিং এведений্স পোস্ট রেন্ডার
+        // 📝 ৫. ম্যাচিং পোস্ট রেন্ডার
         if (filteredPosts.length > 0) {
             const postTitle = document.createElement('div');
             postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence (${filteredPosts.length})</h4>`;

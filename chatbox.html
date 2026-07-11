@@ -41,16 +41,26 @@
             letter-spacing: 0.3px;
         }
         .btn-call {
-            background: none;
+            background: #3ecf8e;
             border: none;
-            color: #3ecf8e;
-            font-size: 24px;
+            color: #0b0b0c;
+            font-size: 18px;
+            font-weight: bold;
             cursor: pointer;
-            padding: 6px 12px;
+            padding: 8px 16px;
+            border-radius: 30px;
             transition: 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
         }
         .btn-call:active {
-            opacity: 0.6;
+            transform: scale(0.94);
+            opacity: 0.8;
+        }
+        .btn-call:disabled {
+            opacity: 0.4;
+            cursor: not-allowed;
         }
         #chatMessagesBox {
             flex: 1;
@@ -150,17 +160,25 @@
         #call-status {
             font-size: 26px;
             font-weight: 500;
-            margin-bottom: 48px;
+            margin-bottom: 30px;
             background: rgba(255, 255, 255, 0.05);
             padding: 14px 32px;
             border-radius: 60px;
             border: 1px solid rgba(255, 255, 255, 0.08);
+            text-align: center;
+        }
+        #caller-name-display {
+            font-size: 32px;
+            font-weight: 700;
+            color: #3ecf8e;
+            margin-bottom: 10px;
         }
         .call-actions {
             display: flex;
             gap: 40px;
             flex-wrap: wrap;
             justify-content: center;
+            margin-top: 20px;
         }
         .btn-action {
             width: 80px;
@@ -199,15 +217,30 @@
         .back-btn:active {
             opacity: 0.5;
         }
-        /* রিংিং অ্যানিমেশন */
         @keyframes ringingPulse {
-            0% { transform: scale(1); opacity: 1; }
-            50% { transform: scale(1.05); opacity: 0.7; }
-            100% { transform: scale(1); opacity: 1; }
+            0% {
+                transform: scale(1);
+                opacity: 1;
+            }
+            50% {
+                transform: scale(1.05);
+                opacity: 0.7;
+            }
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
         }
         .ringing {
             animation: ringingPulse 0.8s infinite;
             color: #ffd700;
+        }
+        .status-badge {
+            background: #2a2a2e;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #7a7a80;
         }
     </style>
 </head>
@@ -215,7 +248,8 @@
 
     <!-- CALL OVERLAY -->
     <div id="call-ui">
-        <div id="call-status">📞 Calling...</div>
+        <div id="caller-name-display">📞 Calling...</div>
+        <div id="call-status">Connecting...</div>
         <div class="call-actions">
             <button id="btn-accept" class="btn-action">✅ Accept</button>
             <button id="btn-reject" class="btn-action">⛔ End</button>
@@ -225,8 +259,13 @@
     <!-- CHAT HEADER -->
     <div class="chat-header">
         <button class="back-btn" onclick="window.history.back()">←</button>
-        <h3 id="chatPartnerName">Loading...</h3>
-        <button class="btn-call" onclick="initiateCall()">📞</button>
+        <h3 id="chatPartnerName">
+            <span id="partnerDisplayName">Loading...</span>
+            <span class="status-badge" id="connectionStatus">● Connecting</span>
+        </h3>
+        <button class="btn-call" id="callButton" onclick="initiateCall()">
+            📞 Call
+        </button>
     </div>
 
     <!-- MESSAGES -->
@@ -249,52 +288,49 @@
         // ----- state -----
         let currentUserId = null;
         let targetUserId = null;
+        let targetUserName = 'Unknown';
         let currentCall = null;
         let localStream = null;
-        let ringingInterval = null; // রিংিং সাউন্ডের জন্য
+        let ringingInterval = null;
 
         // DOM refs
         const messagesBox = document.getElementById('chatMessagesBox');
         const inputMsg = document.getElementById('chatMessageInput');
         const partnerNameEl = document.getElementById('chatPartnerName');
+        const partnerDisplayName = document.getElementById('partnerDisplayName');
+        const connectionStatus = document.getElementById('connectionStatus');
         const callUI = document.getElementById('call-ui');
         const callStatus = document.getElementById('call-status');
+        const callerNameDisplay = document.getElementById('caller-name-display');
         const btnAccept = document.getElementById('btn-accept');
         const btnReject = document.getElementById('btn-reject');
+        const callButton = document.getElementById('callButton');
 
-        // ========== রিংিং সাউন্ড জেনারেট ==========
+        // ========== রিংিং সাউন্ড ==========
         function startRingingSound() {
             if (ringingInterval) return;
-            
-            // Web Audio API ব্যবহার করে সিম্পল রিংিং সাউন্ড তৈরি
-            const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-            
+            const audioCtx = new(window.AudioContext || window.webkitAudioContext)();
+
             function playBeep() {
                 const oscillator = audioCtx.createOscillator();
                 const gainNode = audioCtx.createGain();
-                
                 oscillator.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-                
-                oscillator.frequency.value = 440; // A4 নোট
+                oscillator.frequency.value = 440;
                 oscillator.type = 'sine';
-                
                 gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
                 gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                
                 oscillator.start(audioCtx.currentTime);
                 oscillator.stop(audioCtx.currentTime + 0.3);
             }
-            
-            // প্রতি 1.2 সেকেন্ডে বিপ শব্দ
+
             ringingInterval = setInterval(() => {
                 if (audioCtx.state === 'suspended') {
                     audioCtx.resume();
                 }
                 playBeep();
             }, 1200);
-            
-            // ক্লাস যোগ করুন (ভিজুয়াল ইফেক্ট)
+
             callStatus.classList.add('ringing');
         }
 
@@ -310,6 +346,12 @@
         function getUrlParam(param) {
             const urlParams = new URLSearchParams(window.location.search);
             return urlParams.get(param);
+        }
+
+        // ========== UPDATE STATUS ==========
+        function updateConnectionStatus(status, color = '#7a7a80') {
+            connectionStatus.textContent = status;
+            connectionStatus.style.color = color;
         }
 
         // ========== RENDER MESSAGES ==========
@@ -373,7 +415,7 @@
             loadPrivateChatHistory();
         }
 
-        // ========== AUDIO PLAYBACK (call) ==========
+        // ========== AUDIO PLAYBACK ==========
         function playAudioStream(stream) {
             const audio = new Audio();
             audio.srcObject = stream;
@@ -383,8 +425,24 @@
 
         // ========== INITIATE CALL (আউটগোয়িং) ==========
         async function initiateCall() {
-            if (!targetUserId) return;
+            console.log('📞 Call button clicked!');
 
+            if (!targetUserId) {
+                alert('❌ No target user found! Please make sure URL has ?target=USER_ID');
+                console.error('targetUserId is null');
+                return;
+            }
+
+            console.log('📞 Calling:', targetUserName, '(ID:', targetUserId + ')');
+
+            // Show who we are calling
+            callUI.style.display = 'flex';
+            callerNameDisplay.textContent = `📞 Calling ${targetUserName}...`;
+            callStatus.textContent = 'Connecting...';
+            btnAccept.style.display = 'none';
+            callButton.disabled = true;
+
+            // Get target peer ID
             const { data: profile, error } = await supabase
                 .from('profiles')
                 .select('peer_id')
@@ -392,33 +450,40 @@
                 .single();
 
             if (error || !profile?.peer_id) {
-                alert('User not available for call.');
+                alert(`❌ ${targetUserName} is not available for call.`);
+                console.error('No peer_id found');
+                callUI.style.display = 'none';
+                callButton.disabled = false;
                 return;
             }
 
-            // শো কল UI
-            callUI.style.display = 'flex';
-            callStatus.innerText = '📞 Calling...';
-            btnAccept.style.display = 'none';
-            
-            // রিংিং সাউন্ড শুরু
+            console.log('✅ Target peer ID:', profile.peer_id);
+
+            // Start ringing
             startRingingSound();
+            callStatus.textContent = '📳 Ringing...';
 
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                 localStream = stream;
+                console.log('✅ Microphone access granted');
 
                 currentCall = peer.call(profile.peer_id, stream);
-                
+                console.log('📞 Call initiated to:', profile.peer_id);
+
                 currentCall.on('stream', remoteStream => {
-                    stopRingingSound(); // রিংিং বন্ধ
+                    stopRingingSound();
                     playAudioStream(remoteStream);
-                    callStatus.innerText = '🔊 Talking...';
+                    callStatus.textContent = '🔊 Talking...';
+                    callerNameDisplay.textContent = `🔊 Talking to ${targetUserName}`;
+                    console.log('🔊 Call connected!');
+                    callButton.disabled = false;
                 });
-                
+
                 currentCall.on('close', () => {
                     stopRingingSound();
-                    callStatus.innerText = 'Call ended';
+                    callStatus.textContent = 'Call ended';
+                    console.log('📴 Call ended');
                     setTimeout(() => {
                         callUI.style.display = 'none';
                         if (localStream) {
@@ -426,13 +491,14 @@
                             localStream = null;
                         }
                         currentCall = null;
+                        callButton.disabled = false;
                     }, 600);
                 });
-                
+
                 currentCall.on('error', err => {
-                    console.warn('call error', err);
+                    console.error('❌ Call error:', err);
                     stopRingingSound();
-                    callStatus.innerText = '❌ Call failed';
+                    callStatus.textContent = '❌ Call failed';
                     setTimeout(() => {
                         callUI.style.display = 'none';
                         if (localStream) {
@@ -440,42 +506,48 @@
                             localStream = null;
                         }
                         currentCall = null;
+                        callButton.disabled = false;
                     }, 1200);
                 });
             } catch (e) {
-                alert('Microphone access denied.');
+                alert('❌ Microphone access denied. Please allow microphone permission.');
+                console.error('❌ Microphone error:', e);
                 stopRingingSound();
                 callUI.style.display = 'none';
-                console.warn(e);
+                callButton.disabled = false;
             }
         }
 
         // ========== INCOMING CALL ==========
         peer.on('call', incomingCall => {
-            // শো ইনকামিং UI
+            console.log('📲 Incoming call from:', incomingCall.peer);
+
+            // Show who is calling
             callUI.style.display = 'flex';
-            callStatus.innerText = '📲 Incoming call...';
+            callerNameDisplay.textContent = `📲 ${targetUserName} is calling...`;
+            callStatus.textContent = '📳 Incoming call...';
             btnAccept.style.display = 'flex';
             currentCall = incomingCall;
-            
-            // ইনকামিং কলেও রিংিং
             startRingingSound();
+            callButton.disabled = true;
 
             btnAccept.onclick = async () => {
                 try {
                     const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
                     localStream = stream;
                     incomingCall.answer(stream);
-                    
-                    stopRingingSound(); // রিংিং বন্ধ
-                    
+                    console.log('✅ Call accepted');
+
+                    stopRingingSound();
+
                     incomingCall.on('stream', remoteStream => {
                         playAudioStream(remoteStream);
-                        callStatus.innerText = '🔊 Talking...';
+                        callStatus.textContent = '🔊 Talking...';
+                        callerNameDisplay.textContent = `🔊 Talking to ${targetUserName}`;
                     });
                     incomingCall.on('close', () => {
                         stopRingingSound();
-                        callStatus.innerText = 'Call ended';
+                        callStatus.textContent = 'Call ended';
                         setTimeout(() => {
                             callUI.style.display = 'none';
                             if (localStream) {
@@ -483,22 +555,24 @@
                                 localStream = null;
                             }
                             currentCall = null;
+                            callButton.disabled = false;
                         }, 600);
                     });
                     btnAccept.style.display = 'none';
                 } catch (e) {
-                    alert('Microphone access denied.');
+                    alert('❌ Microphone access denied.');
+                    console.error('❌ Microphone error:', e);
                     stopRingingSound();
                     callUI.style.display = 'none';
-                    console.warn(e);
+                    callButton.disabled = false;
                 }
             };
         });
 
         // ========== REJECT / END CALL ==========
         btnReject.onclick = () => {
-            stopRingingSound(); // রিংিং বন্ধ
-            
+            console.log('⛔ Call rejected/ended');
+            stopRingingSound();
             if (currentCall) {
                 currentCall.close();
                 currentCall = null;
@@ -508,54 +582,63 @@
                 localStream = null;
             }
             callUI.style.display = 'none';
+            callButton.disabled = false;
         };
 
         // ========== INIT CHAT ==========
         async function initChat() {
+            console.log('🚀 Initializing chat...');
+
             const { data: { user } } = await supabase.auth.getUser();
             if (!user) {
-                alert('Please log in first.');
+                alert('❌ Please log in first.');
+                console.error('No user logged in');
                 return;
             }
             currentUserId = user.id;
+            console.log('✅ Current user ID:', currentUserId);
 
             const target = getUrlParam('target');
             if (!target) {
-                alert('Missing chat target.');
+                alert('❌ Missing chat target. Please add ?target=USER_ID in URL');
+                console.error('No target parameter in URL');
                 return;
             }
             targetUserId = target;
+            console.log('✅ Target user ID:', targetUserId);
 
+            // Get target user name
             const { data: profile } = await supabase
                 .from('profiles')
                 .select('username')
                 .eq('id', targetUserId)
                 .single();
 
-            partnerNameEl.innerText = profile?.username || 'User';
+            targetUserName = profile?.username || 'User';
+            partnerDisplayName.textContent = targetUserName;
+            console.log('✅ Partner name:', targetUserName);
 
+            // Update connection status
+            updateConnectionStatus('● Connected', '#3ecf8e');
+
+            // Update peer ID
             const { data: myProfile } = await supabase
                 .from('profiles')
                 .select('peer_id')
                 .eq('id', currentUserId)
                 .single();
 
-            if (!myProfile?.peer_id) {
+            if (!myProfile?.peer_id || myProfile.peer_id !== peer.id) {
                 await supabase
                     .from('profiles')
                     .update({ peer_id: peer.id })
                     .eq('id', currentUserId);
-            } else {
-                if (myProfile.peer_id !== peer.id) {
-                    await supabase
-                        .from('profiles')
-                        .update({ peer_id: peer.id })
-                        .eq('id', currentUserId);
-                }
+                console.log('✅ Peer ID updated in database:', peer.id);
             }
 
             await loadPrivateChatHistory();
 
+            // Realtime subscriptions
             supabase
                 .channel('chat-realtime')
                 .on('postgres_changes', {
@@ -565,6 +648,7 @@
                     filter: `receiver_id=eq.${currentUserId}`,
                 }, (payload) => {
                     if (payload.new && payload.new.sender_id === targetUserId) {
+                        console.log('📩 New message received from', targetUserName);
                         loadPrivateChatHistory();
                     }
                 })
@@ -579,6 +663,7 @@
                     filter: `sender_id=eq.${currentUserId}`,
                 }, (payload) => {
                     if (payload.new && payload.new.receiver_id === targetUserId) {
+                        console.log('📤 Message sent to', targetUserName);
                         loadPrivateChatHistory();
                     }
                 })
@@ -590,29 +675,44 @@
                     sendLiveMessage();
                 }
             });
+
+            console.log('✅ Chat initialized successfully!');
+            console.log(`📞 To call ${targetUserName}, click the "📞 Call" button`);
         }
 
         // ========== START ==========
         let initialized = false;
-        const originalInit = initChat;
-        initChat = async function() {
-            if (initialized) return;
-            initialized = true;
-            await originalInit();
-        };
 
         peer.on('open', () => {
-            console.log('PeerJS ready, id:', peer.id);
-            initChat();
+            console.log('🔗 PeerJS ready, ID:', peer.id);
+            if (!initialized) {
+                initialized = true;
+                initChat();
+            }
         });
 
+        peer.on('error', (err) => {
+            console.error('❌ PeerJS error:', err);
+            updateConnectionStatus('● Error', '#ff4444');
+        });
+
+        // If peer already open
         if (peer.open) {
-            initChat();
+            console.log('🔗 PeerJS already open, ID:', peer.id);
+            if (!initialized) {
+                initialized = true;
+                initChat();
+            }
         }
 
-        // attach to global
+        // Attach to global
         window.sendLiveMessage = sendLiveMessage;
         window.initiateCall = initiateCall;
+
+        console.log('📱 TRACKBOY Chat App Loaded!');
+        console.log('ℹ️ To call, click the "📞 Call" button');
+        console.log('ℹ️ Make sure URL has ?target=USER_ID');
+        console.log('ℹ️ Check console for any errors');
     </script>
 </body>
 </html>

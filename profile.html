@@ -3,13 +3,79 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>FIFABOY | Profile</title>
+<title>TRACKBOY | Profile</title>
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
     body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
-    .profile-card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 25px; text-align: center; }
+    
+    .profile-card { 
+        background: #1e1e1e; 
+        padding: 25px 20px; 
+        border-radius: 12px; 
+        max-width: 500px; 
+        margin: 0 auto 25px; 
+        text-align: center;
+        position: relative;
+        z-index: 10;
+        box-sizing: border-box;
+    }
+
+    /* ৩-ডট মেনুর সিএসএস */
+    .menu-container {
+        position: absolute;
+        top: 15px;
+        right: 15px;
+        z-index: 2000;
+    }
+    .three-dot-btn {
+        background: transparent;
+        border: none;
+        color: #888;
+        font-size: 24px;
+        cursor: pointer;
+        padding: 5px 10px;
+        border-radius: 50%;
+        line-height: 1;
+        transition: color 0.2s, background 0.2s;
+    }
+    .three-dot-btn:hover {
+        color: #3ecf8e;
+        background: rgba(255, 255, 255, 0.05);
+    }
+    .dropdown-menu {
+        display: none;
+        position: absolute;
+        top: 35px;
+        right: 0;
+        background: #2a2a2a;
+        border: 1px solid #383838;
+        border-radius: 8px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
+        width: 220px;
+        overflow: hidden;
+        z-index: 2001;
+    }
+    .dropdown-item {
+        width: 100%;
+        padding: 12px 15px;
+        background: transparent;
+        border: none;
+        color: #eee;
+        text-align: left;
+        font-family: inherit;
+        font-size: 14px;
+        cursor: pointer;
+        display: flex;
+        align-items: center;
+        gap: 10px;
+        transition: background 0.2s;
+    }
+    .dropdown-item:hover {
+        background: #333;
+        color: #3ecf8e;
+    }
     
     .avatar-container { margin-bottom: 15px; }
     .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #3ecf8e; background: #2b2b2b; }
@@ -18,19 +84,37 @@
     .profile-info span { color: #3ecf8e; font-weight: 600; }
     
     .btn { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: inherit; }
-    .btn-outline { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e !important; }
     .btn-solid { background: #3ecf8e; color: white; }
-    .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; }
+    .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
 
-    /* HTML Designer CSS */
-    .custom-html-preview { background: #1a1a1a; border: 1px dashed #3ecf8e; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: left; min-height: 50px; }
-    .html-editor-box { display: none; margin-top: 15px; text-align: left; }
+    /* ফিক্সড: কাস্টম এইচটিএমএল জোনকে ১০০% রেসপনসিভ ও মোবাইল ফ্রেন্ডলি করা হলো */
+    .custom-html-preview { 
+        background: #1a1a1a; 
+        border: 1px dashed #3ecf8e; 
+        border-radius: 8px; 
+        padding: 15px; 
+        margin: 15px 0; 
+        text-align: left; 
+        min-height: 50px;
+        overflow-x: auto; /* চওড়া টেবিল বা এলিমেন্ট থাকলে ভেতরেই স্ক্রল হবে, মেইন পেজ ভাঙবে না */
+        box-sizing: border-box;
+        width: 100%;
+    }
+    
+    /* ইউজারদের দেওয়া সমস্ত চাইল্ড এলিমেন্ট মোবাইল স্ক্রিনে ফোর্স ফিট করার লজিক */
+    .custom-html-preview * { 
+        max-width: 100% !important; 
+        box-sizing: border-box !important;
+        white-space: normal !important; /* অতিরিক্ত বড় টেক্সট নিজে থেকেই ভেঙে পরের লাইনে যাবে */
+        height: auto !important; /* ফিক্সড হাইট থাকলে রেসপনসিভ অটো কমবে */
+    }
+
+    .html-editor-box { display: none; margin-top: 15px; text-align: left; position: relative; z-index: 1001; }
     .html-textarea { width: 100%; height: 120px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; resize: vertical; }
 
-    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 30px; display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
     
-    /* Post List with Selection */
-    .post-list { max-width: 500px; margin: 0 auto; }
+    .post-list { max-width: 500px; margin: 0 auto; background: #121212; }
     .post-item { 
         background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
         display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
@@ -48,6 +132,15 @@
 <body>
 
 <div class="profile-card">
+    <div class="menu-container">
+        <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮</button>
+        <div id="profileDropdown" class="dropdown-menu">
+            <button class="dropdown-item" onclick="editProfileName()">✏️ Edit Profile Name</button>
+            <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
+            <button class="dropdown-item" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
+        </div>
+    </div>
+
     <div class="avatar-container">
         <img id="userAvatar" class="profile-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Trackboy" alt="Avatar">
     </div>
@@ -58,7 +151,7 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- HTML ডিজাইন লাইভ বক্স -->
+    <!-- রেসপনসিভ কাস্টম এইচটিএমএল প্রিভিউ বক্স -->
     <div id="htmlRenderZone" class="custom-html-preview">
         <span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>
     </div>
@@ -67,14 +160,10 @@
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
         <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b>"></textarea>
-        <button class="btn btn-solid" style="padding: 8px; font-size: 14px;" onclick="saveCustomHTML()">Save Design</button>
+        <button class="btn btn-solid" style="padding: 8px; font-size: 14px; margin-top: 5px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
-    <!-- অ্যাকশন বাটন সমূহ -->
-    <button class="btn btn-outline" onclick="editProfileName()">Edit Profile Name</button>
-    <button class="btn btn-outline" onclick="updateProfilePhotoLink()">Change Photo via Link</button>
-    <button class="btn btn-outline" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
-    <button class="btn btn-solid" onclick="window.location.href='index.html'">Back to Home</button>
+    <button class="btn btn-solid" style="margin-top: 15px;" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
 <div class="post-list">
@@ -97,7 +186,16 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let currentUserId = null;
 let selectedPostIds = [];
 
-// ১. পেজ ইনিশিয়াল ও ইউজার ডাটা লোড
+function toggleDropdown(event) {
+    event.stopPropagation();
+    const dropdown = document.getElementById("profileDropdown");
+    dropdown.style.display = dropdown.style.display === "block" ? "none" : "block";
+}
+
+window.addEventListener("click", () => {
+    document.getElementById("profileDropdown").style.display = "none";
+});
+
 async function initProfile() {
     try {
         const { data: { user } } = await mySupabase.auth.getUser();
@@ -108,7 +206,6 @@ async function initProfile() {
         
         currentUserId = user.id;
         
-        // ইউজার ইনফো বসানো
         document.getElementById("userEmail").innerText = user.email;
         document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
         
@@ -121,13 +218,11 @@ async function initProfile() {
             }
         }
         
-        // জাভাস্ক্রিপ্ট কমেন্ট ফিক্স করা হলো (হ্যাব জ্যাম মুক্ত)
         if (user.created_at) {
             const date = new Date(user.created_at);
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
-        // প্রোফাইল রোল এবং কাস্টম HTML লোড করা
         const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
         if (pData) {
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
@@ -142,7 +237,6 @@ async function initProfile() {
     } catch (e) { console.error(e); }
 }
 
-// ২. ইউজারের পোস্টগুলো চেকবক্সসহ লিস্ট আকারে আনা
 async function loadUserPosts() {
     const container = document.getElementById("myPostsContainer");
     try {
@@ -199,6 +293,7 @@ function togglePostSelection(checkbox) {
     updateDeleteButtonState();
 }
 
+// বোতাম কাউন্টার আপডেট
 function updateDeleteButtonState() {
     const btn = document.getElementById("deleteSelectedBtn");
     const countSpan = document.getElementById("selectedCount");

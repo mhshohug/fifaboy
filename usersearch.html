@@ -72,7 +72,7 @@
         align-items: center !important;
         justify-content: space-between !important;
         gap: 15px !important;
-        border: 1px solid #2d2d2d !important;
+        border: 1px solid #383838 !important;
         cursor: pointer !important;
         transition: transform 0.2s, border-color 0.2s !important;
         box-shadow: 0 4px 10px rgba(0,0,0,0.3) !important;
@@ -154,29 +154,23 @@
     
     <div id="statusIndicator" class="status-msg">Type something to start searching...</div>
     
-    <div id="resultsGrid" class="results-grid">
-        </div>
+    <div id="resultsGrid" class="results-grid"></div>
 </div>
 
 <script>
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjAныাইসবিজিবল209OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-// অ্যানন কি-র একটি ক্যাচ ফিক্সড (যদি টোকেনে কোনো ইনজেকশন ক্যারেক্টার থাকে তা রিমুভ করার জন্য ট্রিম করা)
-const cleanKey = SUPABASE_ANON_KEY.replace(/[\u200B-\u200D\uFEFF]/g, "").trim();
-
-const mySupabase = window.supabase.createClient(SUPABASE_URL, cleanKey);
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY.trim());
 
 let debounceTimer;
 
 document.getElementById("globalUserSearch").addEventListener("input", (e) => {
     const q = e.target.value.trim();
-    
-    // কিবোর্ড টাইপিং স্পিডের সাথে ডাটাবেজ প্রেশার সামলানোর জন্য ১০০ মিলি-সেকেন্ড ডিবান্স
     clearTimeout(debounceTimer);
     debounceTimer = setTimeout(() => {
         executeGlobalSearch(q);
-    }, 150);
+    }, 300);
 });
 
 async function executeGlobalSearch(q) {
@@ -192,39 +186,35 @@ async function executeGlobalSearch(q) {
     
     try {
         statusIndicator.style.display = "block";
-        statusIndicator.innerText = "🔍 Searching data...";
+        statusIndicator.innerText = "🔍 Searching...";
         resultsGrid.innerHTML = "";
 
-        // সরাসরি সুপাবেস ডাটাবেজের profiles টেবিল থেকে লাইভ কুয়েরি হিট করা
         const { data: users, error } = await mySupabase
             .from('profiles')
             .select('id, username, avatar, role')
             .or(`username.ilike.%${q}%,id.ilike.%${q}%`)
-            .limit(20); // পারফরম্যান্স ধরে রাখতে টপ ২০টি রেজাল্ট আনবে
+            .limit(20);
             
         if (error) throw error;
         
         if (!users || users.length === 0) {
-            statusIndicator.style.display = "block";
-            statusIndicator.innerText = "😕 No users found matching that name or ID.";
+            statusIndicator.innerText = "😕 No users found.";
             return;
         }
         
         statusIndicator.style.display = "none";
         
-        // ম্যাচ হওয়া প্রত্যেক ইউজারের জন্য সুন্দর ডাইনামিক কার্ড জেনারেট করা
         users.forEach(u => {
             const card = document.createElement("div");
             card.className = "profile-search-card";
-            
-            const avatarUrl = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
+            const avatar = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
             const displayId = u.id ? u.id.substring(0, 8) + '...' : 'Unknown';
             
             card.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
             
             card.innerHTML = `
                 <div class="card-left">
-                    <img src="${avatarUrl}" class="user-search-avatar" alt="Avatar">
+                    <img src="${avatar}" class="user-search-avatar" alt="Avatar">
                     <div class="user-search-details">
                         <h3 class="user-search-name">${u.username || 'Unknown'}</h3>
                         <div class="user-search-meta">
@@ -239,9 +229,9 @@ async function executeGlobalSearch(q) {
         });
         
     } catch(err) {
-        console.error("Global search critical error:", err);
+        console.error("Search Error:", err);
         statusIndicator.style.display = "block";
-        statusIndicator.innerHTML = `<span style="color:#ff6b6b;">⚠️ Error fetching search results. Please try again.</span>`;
+        statusIndicator.innerHTML = `<span style="color:#ff6b6b;">⚠️ Error fetching results. Please try again.</span>`;
     }
 }
 </script>

@@ -213,9 +213,16 @@ function getEmbed(post){
     }
 
     if(post.platform==="TikTok"){
-        return `<div class="preview"><h3>TikTok Video</h3><a href="${url}" target="_blank">Open Original</a></div>`;
-    }
 
+    const cleanUrl = (url || "").split("?")[0];
+
+    return `
+    <div class="embed-container">
+        <div class="tiktok-oembed" data-url="${cleanUrl}"></div>
+    </div>
+    `;
+
+}
     if(post.platform==="X"){
         return `<div class="preview"><h3>X Post</h3><a href="${url}" target="_blank">Open Original</a></div>`;
     }

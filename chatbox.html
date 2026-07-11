@@ -5,89 +5,82 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        /* মূল লেআউট - বডি ফুল স্ক্রিন */
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        /* মোবাইল স্ক্রিনের জন্য ফিক্সড এবং রেসপন্সিভ লেআউট */
+        html, body { margin: 0; padding: 0; width: 100%; height: 100%; overflow: hidden; background: #000; color: #fff; font-family: Arial; }
+        .app-container { display: flex; flex-direction: column; height: 100%; width: 100%; }
+        
+        /* হেডার */
+        .header { height: 50px; background: #111; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #333; }
+        .back-btn { font-size: 24px; color: #3ecf8e; cursor: pointer; }
+        #chatName { flex: 1; margin-left: 15px; font-weight: bold; cursor: pointer; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-        /* হেডার - এটি সবসময় উপরে থাকবে */
-        .header { background: #161618; padding: 15px; display: flex; align-items: center; border-bottom: 1px solid #232326; height: 60px; flex-shrink: 0; }
-        .back-btn { color: #3ecf8e; cursor: pointer; font-size: 20px; }
-        .chat-name { margin-left: 15px; flex: 1; font-weight: bold; cursor: pointer; color: #fff; }
-        
-        /* মেসেজ বক্স - এটি শুধু মাঝখানের জায়গাটা দখল করবে */
-        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        
-        /* মেসেজ বাবলস */
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 15px; }
+        /* মেসেজ বক্স - এটি এখন পুরোপুরি স্ক্রলযোগ্য এবং ফুটারে ঢাকা পড়বে না */
+        #chatBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { padding: 10px 15px; border-radius: 15px; max-width: 75%; font-size: 15px; }
         .sent { background: #3ecf8e; color: #000; align-self: flex-end; }
-        .received { background: #232326; color: #fff; align-self: flex-start; }
+        .received { background: #333; color: #fff; align-self: flex-start; }
 
-        /* ইনপুট এরিয়া - এটি সবসময় সবার নিচে ফিক্সড থাকবে */
-        .chat-footer { height: 70px; background: #161618; display: flex; align-items: center; padding: 10px; gap: 10px; border-top: 1px solid #232326; flex-shrink: 0; }
-        #msgInput { flex: 1; height: 45px; padding: 0 15px; border-radius: 25px; border: none; background: #232326; color: white; outline: none; }
-        .send-btn { background: #3ecf8e; color: black; border: none; height: 45px; padding: 0 20px; border-radius: 25px; font-weight: bold; }
+        /* ফুটার - ইনপুট বক্স সবসময় নিচে */
+        .footer { height: 60px; background: #111; display: flex; align-items: center; padding: 5px 10px; gap: 10px; border-top: 1px solid #333; }
+        #msgInput { flex: 1; height: 40px; border-radius: 20px; border: none; padding: 0 15px; background: #222; color: #fff; }
+        .send-btn { height: 40px; padding: 0 20px; border-radius: 20px; border: none; background: #3ecf8e; font-weight: bold; }
     </style>
 </head>
 <body>
 
+<div class="app-container">
     <div class="header">
         <div class="back-btn" onclick="history.back()">←</div>
-        <div class="chat-name" id="chatName" onclick="openProfile()">Loading...</div>
-        <div onclick="initCall()" style="font-size: 20px;">📞</div>
+        <div id="chatName" onclick="window.location.href='profile.html?id=' + new URLSearchParams(window.location.search).get('target')">Loading...</div>
     </div>
-
-    <div id="chatMessagesBox"></div>
-
-    <div class="chat-footer">
+    
+    <div id="chatBox"></div>
+    
+    <div class="footer">
         <input type="text" id="msgInput" placeholder="Aa">
-        <button class="send-btn" onclick="sendMessage()">Send</button>
+        <button class="send-btn" onclick="send()">Send</button>
     </div>
+</div>
 
 <script>
-const supabase = window.supabase.createClient("https://zqsjopjkhtofyepjneby.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU");
-const params = new URLSearchParams(window.location.search);
-const targetId = params.get('target'); 
-let myId;
+    const sb = window.supabase.createClient("https://zqsjopjkhtofyepjneby.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU");
+    const targetId = new URLSearchParams(window.location.search).get('target');
+    let myId;
 
-function openProfile() { window.location.href = 'profile.html?id=' + targetId; }
+    async function start() {
+        const { data: { user } } = await sb.auth.getUser();
+        if(!user) return;
+        myId = user.id;
+        const { data: p } = await sb.from('profiles').select('username').eq('id', targetId).single();
+        document.getElementById('chatName').innerText = p.username;
+        load();
+        sb.channel('msgs').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load).subscribe();
+    }
 
-async function init() {
-    const { data: { user } } = await supabase.auth.getUser();
-    myId = user.id;
-    const { data: p } = await supabase.from('profiles').select('username').eq('id', targetId).single();
-    document.getElementById('chatName').innerText = p.username;
-    loadMsgs();
-    supabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, loadMsgs).subscribe();
-}
+    async function load() {
+        const { data } = await sb.from('messages').select('*')
+            .or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`)
+            .order('created_at', { ascending: true });
+        const box = document.getElementById('chatBox');
+        box.innerHTML = '';
+        data.forEach(m => {
+            const d = document.createElement('div');
+            d.className = 'msg ' + (m.sender_id === myId ? 'sent' : 'received');
+            d.innerText = m.message_text;
+            box.appendChild(d);
+        });
+        box.scrollTop = box.scrollHeight;
+    }
 
-async function loadMsgs() {
-    const { data } = await supabase.from('messages').select('*')
-        .or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`)
-        .order('created_at', { ascending: true });
-    
-    const box = document.getElementById('chatMessagesBox');
-    box.innerHTML = '';
-    data.forEach(m => {
-        const d = document.createElement('div');
-        d.className = 'msg ' + (m.sender_id === myId ? 'sent' : 'received');
-        d.innerText = m.message_text;
-        box.appendChild(d);
-    });
-    box.scrollTop = box.scrollHeight; // চ্যাট বক্সের স্ক্রল সবসময় নিচে রাখবে
-}
+    async function send() {
+        const inp = document.getElementById('msgInput');
+        if(!inp.value) return;
+        await sb.from('messages').insert({ sender_id: myId, receiver_id: targetId, message_text: inp.value });
+        inp.value = '';
+    }
 
-async function sendMessage() {
-    const inp = document.getElementById('msgInput');
-    if(!inp.value) return;
-    await supabase.from('messages').insert({ sender_id: myId, receiver_id: targetId, message_text: inp.value });
-    inp.value = '';
-}
-
-function initCall() { alert("Calling target: " + targetId); }
-
-window.onload = init;
+    window.onload = start;
 </script>
 </body>
 </html>

@@ -3,233 +3,42 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>TRACKBOY | User Search</title>
+    <title>TRACKBOY | Find Members</title>
     <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-        body {
-            background-color: #121212;
-            color: white;
-            font-family: 'Poppins', sans-serif;
-            padding: 20px;
-            min-height: 100vh;
-        }
-        .container {
-            max-width: 700px;
-            margin: 0 auto;
-        }
-        .header {
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-            margin-bottom: 20px;
-            padding-bottom: 15px;
-            border-bottom: 1px solid #2d2d2d;
-        }
-        .header h1 {
-            color: #3ecf8e;
-            font-size: 22px;
-            display: flex;
-            align-items: center;
-            gap: 10px;
-        }
-        .header h1 span {
-            color: white;
-            font-weight: 300;
-            font-size: 14px;
-        }
-        .back-btn {
-            background: #2a2a2a;
-            color: white;
-            border: 1px solid #444;
-            padding: 8px 16px;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 14px;
-            text-decoration: none;
-            transition: 0.3s;
-        }
-        .back-btn:hover {
-            background: #3ecf8e;
-            color: #121212;
-            border-color: #3ecf8e;
-        }
-        .search-box {
-            display: flex;
-            gap: 10px;
-            margin-bottom: 25px;
-        }
-        .search-box input {
-            flex: 1;
-            padding: 12px 18px;
-            background: #1e1e1e;
-            border: 2px solid #2d2d2d;
-            border-radius: 8px;
-            color: white;
-            font-size: 16px;
-            font-family: inherit;
-            outline: none;
-            transition: 0.3s;
-        }
-        .search-box input:focus {
-            border-color: #3ecf8e;
-        }
-        .search-box input::placeholder {
-            color: #666;
-        }
-        .search-box button {
-            padding: 12px 25px;
-            background: #3ecf8e;
-            color: #121212;
-            border: none;
-            border-radius: 8px;
-            font-weight: 600;
-            cursor: pointer;
-            font-family: inherit;
-            font-size: 15px;
-            transition: 0.3s;
-        }
-        .search-box button:hover {
-            background: #34b87a;
-            transform: scale(1.02);
-        }
-        .results-info {
-            color: #888;
-            font-size: 14px;
-            margin-bottom: 15px;
-            padding: 10px 15px;
-            background: #1a1a1a;
-            border-radius: 6px;
-            border-left: 3px solid #3ecf8e;
-        }
-        .results-info strong {
-            color: #3ecf8e;
-        }
-        .user-card {
-            background: #1e1e1e;
-            border: 1px solid #2d2d2d;
-            border-radius: 10px;
-            padding: 15px 20px;
-            margin-bottom: 12px;
-            display: flex;
-            align-items: center;
-            gap: 18px;
-            cursor: pointer;
-            transition: 0.3s;
-        }
-        .user-card:hover {
-            background: #262626;
-            border-color: #3ecf8e;
-            transform: translateX(5px);
-        }
-        .user-card .avatar {
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            border: 2px solid #3ecf8e;
-            object-fit: cover;
-            background: #2b2b2b;
-            flex-shrink: 0;
-        }
-        .user-card .info {
-            flex: 1;
-        }
-        .user-card .info .name {
-            font-size: 17px;
-            font-weight: 600;
-            color: #fff;
-        }
-        .user-card .info .details {
-            font-size: 12px;
-            color: #888;
-            margin-top: 3px;
-        }
-        .user-card .info .details span {
-            color: #3ecf8e;
-        }
-        .user-card .badge {
-            background: #2d2d2d;
-            color: #3ecf8e;
-            padding: 4px 12px;
-            border-radius: 4px;
-            font-size: 12px;
-            border: 1px solid #3ecf8e;
-            flex-shrink: 0;
-        }
-        .no-results {
-            text-align: center;
-            padding: 50px 20px;
-            color: #888;
-        }
-        .no-results h3 {
-            color: #ff6b6b;
-            font-size: 20px;
-            margin-bottom: 10px;
-        }
-        .loading {
-            text-align: center;
-            padding: 40px;
-            color: #888;
-        }
-        .loading::after {
-            content: '...';
-            animation: dots 1.5s infinite;
-        }
-        @keyframes dots {
-            0% { content: ''; }
-            33% { content: '.'; }
-            66% { content: '..'; }
-            100% { content: '...'; }
-        }
-        .stats {
-            display: flex;
-            gap: 20px;
-            margin-bottom: 20px;
-            flex-wrap: wrap;
-        }
-        .stats .stat-box {
-            background: #1a1a1a;
-            padding: 10px 18px;
-            border-radius: 6px;
-            border: 1px solid #2d2d2d;
-            font-size: 13px;
-        }
-        .stats .stat-box strong {
-            color: #3ecf8e;
-            font-size: 18px;
-            display: block;
-        }
-        @media (max-width: 500px) {
-            .user-card {
-                flex-wrap: wrap;
-            }
-            .user-card .badge {
-                margin-left: 73px;
-            }
-        }
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; padding: 20px; min-height: 100vh; }
+        .container { max-width: 700px; margin: 0 auto; }
+        .header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; padding-bottom: 15px; border-bottom: 1px solid #2d2d2d; }
+        .header h1 { color: #3ecf8e; font-size: 22px; display: flex; align-items: center; gap: 10px; }
+        .back-btn { background: #2a2a2a; color: white; border: 1px solid #444; padding: 8px 16px; border-radius: 6px; cursor: pointer; text-decoration: none; font-size: 14px; }
+        .back-btn:hover { background: #3ecf8e; color: #121212; }
+        .search-box { display: flex; gap: 10px; margin-bottom: 25px; }
+        .search-box input { flex: 1; padding: 12px 18px; background: #1e1e1e; border: 2px solid #2d2d2d; border-radius: 8px; color: white; font-size: 16px; outline: none; }
+        .search-box input:focus { border-color: #3ecf8e; }
+        .user-card { background: #1e1e1e; border: 1px solid #2d2d2d; border-radius: 10px; padding: 15px 20px; margin-bottom: 12px; display: flex; align-items: center; gap: 18px; cursor: pointer; transition: 0.3s; }
+        .user-card:hover { background: #262626; border-color: #3ecf8e; }
+        .avatar { width: 55px; height: 55px; border-radius: 50%; border: 2px solid #3ecf8e; object-fit: cover; background: #2b2b2b; }
+        .name { font-size: 17px; font-weight: 600; color: #fff; }
+        .details { font-size: 12px; color: #888; margin-top: 3px; }
+        .badge { background: #2d2d2d; color: #3ecf8e; padding: 4px 12px; border-radius: 4px; font-size: 12px; border: 1px solid #3ecf8e; }
     </style>
 </head>
 <body>
 
 <div class="container">
     <div class="header">
-        <h1>🔍 User Search <span>Find Members</span></h1>
+        <h1>🔍 User Search</h1>
         <a href="profilelist.html" class="back-btn">← Back</a>
     </div>
 
     <div class="search-box">
         <input type="text" id="searchInput" placeholder="Search by username or ID..." autofocus>
-        <button onclick="searchUsers()">Search</button>
     </div>
 
     <div id="resultsContainer">
-        <div class="loading">Loading users...</div>
+        <div class="loading">Loading members...</div>
     </div>
 </div>
 
@@ -237,113 +46,63 @@
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
-const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY.trim());
 
 let allUsers = [];
 
-// পেজ লোড হলে সব ইউজার লোড করো
 async function loadAllUsers() {
-    const container = document.getElementById('resultsContainer');
     try {
+        // এখানে 'avatar' কলাম ব্যবহার করা হয়েছে যা আপনার ডাটাবেজের সাথে সঠিক
         const { data, error } = await mySupabase
             .from('profiles')
-            .select('id, username, avatar_url, role, created_at')
+            .select('id, username, avatar, role, created_at')
             .order('username', { ascending: true });
 
         if (error) throw error;
         allUsers = data || [];
         displayUsers(allUsers);
     } catch (e) {
-        container.innerHTML = `<div class="no-results"><h3>❌ Error</h3><p>${e.message}</p></div>`;
+        document.getElementById('resultsContainer').innerHTML = `<p style="text-align:center; color:#ff6b6b;">Error: ${e.message}</p>`;
     }
 }
 
-// ইউজার দেখানো
 function displayUsers(users) {
     const container = document.getElementById('resultsContainer');
-    
     if (!users || users.length === 0) {
-        container.innerHTML = `
-            <div class="no-results">
-                <h3>😕 No Users Found</h3>
-                <p>Try searching with a different keyword.</p>
-            </div>
-        `;
+        container.innerHTML = '<p style="text-align:center; color:#888;">No members found.</p>';
         return;
     }
 
-    const totalUsers = allUsers.length;
-    const foundUsers = users.length;
-
-    let html = `
-        <div class="stats">
-            <div class="stat-box"><strong>${totalUsers}</strong> Total Members</div>
-            <div class="stat-box"><strong>${foundUsers}</strong> Found</div>
-        </div>
-        <div class="results-info">🔎 Showing <strong>${foundUsers}</strong> result${foundUsers > 1 ? 's' : ''}</div>
-    `;
-
+    let html = '';
     users.forEach(u => {
-        const avatar = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
+        // ডাটাবেজের 'avatar' কলাম ব্যবহার করা হয়েছে
+        const avatar = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
         const displayId = u.id ? u.id.substring(0, 8) + '...' : 'Unknown';
-        const joinedDate = u.created_at ? new Date(u.created_at).toLocaleDateString('en-GB') : '-';
         const roleBadge = u.role === 'admin' ? '👑 Admin' : '👤 User';
 
         html += `
-            <div class="user-card" onclick="viewProfile('${u.id}')">
+            <div class="user-card" onclick="window.location.href='profile.html?uid=${u.id}'">
                 <img class="avatar" src="${avatar}" alt="${u.username}">
                 <div class="info">
                     <div class="name">${u.username || 'Unknown'}</div>
-                    <div class="details">
-                        ID: <span>${displayId}</span> | Role: ${roleBadge} | Joined: ${joinedDate}
-                    </div>
+                    <div class="details">ID: <span>${displayId}</span> | Role: ${roleBadge}</div>
                 </div>
-                <span class="badge">View Profile →</span>
+                <span class="badge">View</span>
             </div>
         `;
     });
-
     container.innerHTML = html;
 }
 
-// সার্চ ফাংশন
-function searchUsers() {
-    const query = document.getElementById('searchInput').value.trim();
-    
-    if (!query) {
-        displayUsers(allUsers);
-        return;
-    }
-
-    const filtered = allUsers.filter(u => {
-        const username = (u.username || '').toLowerCase();
-        const id = (u.id || '').toLowerCase();
-        const q = query.toLowerCase();
-        return username.includes(q) || id.includes(q);
-    });
-
+document.getElementById('searchInput').addEventListener('input', (e) => {
+    const q = e.target.value.toLowerCase();
+    const filtered = allUsers.filter(u => 
+        (u.username || '').toLowerCase().includes(q) || 
+        (u.id || '').toLowerCase().includes(q)
+    );
     displayUsers(filtered);
-}
-
-// Enter কী চাপলে সার্চ
-document.getElementById('searchInput').addEventListener('keyup', (e) => {
-    if (e.key === 'Enter') {
-        searchUsers();
-    }
 });
 
-// রিয়েল-টাইম সার্চ (টাইপ করার সাথে সাথে)
-document.getElementById('searchInput').addEventListener('input', () => {
-    searchUsers();
-});
-
-// প্রোফাইল ভিউ
-function viewProfile(uid) {
-    if (!uid) return;
-    window.location.href = `profile.html?uid=${uid}`;
-}
-
-// পেজ লোড হলে
 window.addEventListener('DOMContentLoaded', loadAllUsers);
 </script>
 

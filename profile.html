@@ -8,122 +8,144 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; overflow-y: scroll !important; }
+    /* 🚨 ফোর্সড গ্লোবাল স্ক্রল অ্যাক্টিভেশন: পুরো পেজের বডি ও এইচটিএমএল-কে স্ক্রল করতে বাধ্য করা হলো */
+    html, body { 
+        background-color: #121212 !important; 
+        color: white !important; 
+        font-family: 'Poppins', sans-serif !important; 
+        margin: 0 !important; 
+        padding: 20px !important; 
+        overflow-y: auto !important; /* মেইন পেজের স্ক্রল কোন মতেই ব্লক হতে পারবে না */
+        height: auto !important;
+        min-height: 100vh !important;
+    }
     
     .profile-card { 
-        background: #1e1e1e; 
-        padding: 25px 20px; 
-        border-radius: 12px; 
-        max-width: 500px; 
-        margin: 0 auto 25px;
-        text-align: center;
-        position: relative;
-        z-index: 10;
-        box-sizing: border-box;
+        background: #1e1e1e !important; 
+        padding: 25px 20px !important; 
+        border-radius: 12px !important; 
+        max-width: 500px !important; 
+        margin: 0 auto 25px !important;
+        text-align: center !important;
+        position: relative !important;
+        z-index: 10 !important;
+        box-sizing: border-box !important;
+        height: auto !important; /* কার্ড নিজেই অটো লম্বা হবে */
     }
 
     /* ৩-ডট মেনু ও ড্রপডাউন */
     .menu-container {
-        position: absolute;
-        top: 15px;
-        right: 15px;
+        position: absolute !important;
+        top: 15px !important;
+        right: 15px !important;
         z-index: 9999 !important;
     }
     .three-dot-btn {
-        background: #2a2a2a;
-        border: 1px solid #383838;
-        color: #fff;
-        font-size: 20px;
-        cursor: pointer;
-        padding: 4px 12px;
-        border-radius: 6px;
-        line-height: 1;
+        background: #2a2a2a !important;
+        border: 1px solid #383838 !important;
+        color: #fff !important;
+        font-size: 20px !important;
+        cursor: pointer !important;
+        padding: 4px 12px !important;
+        border-radius: 6px !important;
+        line-height: 1 !important;
     }
     .dropdown-menu {
         display: none;
-        position: absolute;
-        top: 35px;
-        right: 0;
-        background: #2a2a2a;
-        border: 1px solid #383838;
-        border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.6);
-        width: 230px;
-        z-index: 10000;
+        position: absolute !important;
+        top: 35px !important;
+        right: 0 !important;
+        background: #2a2a2a !important;
+        border: 1px solid #383838 !important;
+        border-radius: 8px !important;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.6) !important;
+        width: 230px !important;
+        z-index: 10000 !important;
     }
     .dropdown-item {
-        width: 100%;
-        padding: 12px 15px;
-        background: transparent;
-        border: none;
-        color: #eee;
-        text-align: left;
-        font-family: inherit;
-        font-size: 14px;
-        cursor: pointer;
-        display: flex;
-        align-items: center;
-        gap: 10px;
+        width: 100% !important;
+        padding: 12px 15px !important;
+        background: transparent !important;
+        border: none !important;
+        color: #eee !important;
+        text-align: left !important;
+        font-family: inherit !important;
+        font-size: 14px !important;
+        cursor: pointer !important;
+        display: flex !important;
+        align-items: center !important;
+        gap: 10px !important;
     }
     .dropdown-item:hover {
-        background: #333;
-        color: #3ecf8e;
+        background: #333 !important;
+        color: #3ecf8e !important;
     }
     
-    .avatar-container { margin-bottom: 15px; }
-    .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #3ecf8e; background: #2b2b2b; }
+    .avatar-container { margin-bottom: 15px !important; }
+    .profile-avatar { width: 100px !important; height: 100px !important; border-radius: 50 !important; border: 3px solid #3ecf8e !important; background: #2b2b2b !important; object-fit: cover !important; }
     
-    .profile-info { margin-bottom: 15px; font-size: 16px; text-align: left; }
-    .profile-info span { color: #3ecf8e; font-weight: 600; }
+    .profile-info { margin-bottom: 15px !important; font-size: 16px !important; text-align: left !important; }
+    .profile-info span { color: #3ecf8e !important; font-weight: 600 !important; }
     
-    .btn { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: inherit; }
-    .btn-solid { background: #3ecf8e; color: white; }
-    .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
+    .btn { width: 100% !important; padding: 12px !important; margin: 8px 0 !important; border: none !important; border-radius: 8px !important; font-weight: bold !important; cursor: pointer !important; font-size: 16px !important; font-family: inherit !important; }
+    .btn-solid { background: #3ecf8e !important; color: white !important; }
+    .btn-danger { background: #ff4a4a !important; color: white !important; display: none; margin-bottom: 15px !important; width: 100% !important; max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; }
 
-    /* কাস্টম ডিজাইন জোন - অটো স্পেসিং ফিক্স */
+    /* 🚨 চূড়ান্ত ফিক্স: কাস্টম এইচটিএমএল প্রিভিউ বক্স - এখানে জোর করে অটো হাইট অ্যাপ্লাই করা হলো */
     .custom-html-preview { 
         display: none; 
-        background: #1a1a1a; 
-        border: 2px dashed #3ecf8e; 
-        border-radius: 8px; 
-        padding: 15px; 
-        margin: 15px 0; 
-        text-align: left; 
-        width: 100%;
-        box-sizing: border-box;
-        overflow: visible !important; /* স্ক্রল বা চ্যাপ্টা হওয়া বন্ধ করবে */
+        background: #1a1a1a !important; 
+        border: 2px dashed #3ecf8e !important; 
+        border-radius: 8px !important; 
+        padding: 15px !important; 
+        margin: 15px 0 20px 0 !important; 
+        text-align: left !important; 
+        width: 100% !important;
+        box-sizing: border-box !important;
+        
+        /* পুরোনো সমস্ত সিএসএস ওভাররাইড করার জন্য ফোর্স লজিক */
+        height: auto !important; 
+        min-height: 50px !important;
+        max-height: none !important; /* কোনো ফিক্সড বা ম্যাক্স হাইট থাকতে পারবে না */
+        overflow: visible !important; /* কোন স্ক্রলবার আসবে না, বক্স নিজেই লম্বা হবে */
     }
     
-    /* কোড ক্র্যাশ ও স্ক্রল লক প্রতিরোধক */
+    /* কাস্টম এইচটিএমএলের ভেতরের সমস্ত এলিমেন্টের স্ক্রল লক ব্রেক করার লজিক */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
+        height: auto !important;
+        max-height: none !important;
+        overflow: visible !important;
     }
 
+    /* বাটন ও পোস্ট লিস্টের মধ্যকার সেফটি গ্যাপ */
     .responsive-safety-space {
-        width: 100%;
-        max-width: 500px;
-        margin: 0 auto;
-        padding-bottom: 25px;
-        background: transparent;
+        width: 100% !important;
+        max-width: 500px !important;
+        margin: 0 auto !important;
+        padding-bottom: 30px !important;
+        background: transparent !important;
+        display: block !important;
+        clear: both !important;
     }
 
-    .html-editor-box { display: none; margin-top: 15px; text-align: left; position: relative; z-index: 1001; }
-    .html-textarea { width: 100%; height: 120px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; resize: vertical; }
+    .html-editor-box { display: none; margin-top: 15px !important; text-align: left !important; position: relative !important; z-index: 1001 !important; }
+    .html-textarea { width: 100% !important; height: 120px !important; background: #2b2b2b !important; color: #fff !important; border: 1px solid #444 !important; border-radius: 6px !important; padding: 10px !important; font-family: 'Courier New', Courier, monospace !important; box-sizing: border-box !important; resize: vertical !important; }
 
-    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
+    .section-title { font-size: 20px !important; color: #3ecf8e !important; font-weight: bold !important; margin-top: 10px !important; display: flex !important; justify-content: space-between !important; align-items: center !important; }
     
-    .post-list { max-width: 500px; margin: 0 auto; background: #121212; position: relative; z-index: 15; }
+    .post-list { max-width: 500px !important; margin: 0 auto !important; background: #121212 !important; position: relative !important; z-index: 15 !important; display: block !important; }
     .post-item { 
-        background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
-        display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
-        cursor: pointer; text-align: left;
+        background: #1e1e1e !important; padding: 15px !important; border-radius: 8px !important; margin-bottom: 12px !important; 
+        display: flex !important; align-items: center !important; gap: 15px !important; border: 1px solid #2d2d2d !important;
+        cursor: pointer !important; text-align: left !important;
     }
-    .post-checkbox { width: 20px; height: 20px; accent-color: #3ecf8e; cursor: pointer; }
-    .post-details { flex-grow: 1; cursor: pointer; }
-    .post-title { font-weight: 600; font-size: 16px; margin: 0; color: #fff; }
-    .post-meta { font-size: 12px; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
-    .badge { background: #2d2d2d; color: #3ecf8e; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: auto; }
+    .post-checkbox { width: 20px !important; height: 20px !important; accent-color: #3ecf8e !important; cursor: pointer !important; }
+    .post-details { flex-grow: 1 !important; cursor: pointer !important; }
+    .post-title { font-weight: 600 !important; font-size: 16px !important; margin: 0 !important; color: #fff !important; }
+    .post-meta { font-size: 12px !important; color: #888 !important; margin-top: 4px !important; display: flex !important; align-items: center !important; gap: 5px !important; }
+    .badge { background: #2d2d2d !important; color: #3ecf8e !important; padding: 2px 8px !important; border-radius: 4px !important; font-size: 12px !important; margin-left: auto !important; }
 </style>
 </head>
 <body>
@@ -136,7 +158,7 @@
             <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
             <button class="dropdown-item" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
             <button class="dropdown-item" id="toggleSpecialViewBtn" onclick="toggleSpecialProfileView()">✨ Special Profile View</button>
-            <button class="dropdown-item" onclick="alert('Chat & Call feature coming soon भाई!')" style="border-top: 1px solid #383838; color: #3ecf8e;">💬 Chat & Call</button>
+            <button class="dropdown-item" onclick="alert('Chat & Call feature coming soon ভাই!')" style="border-top: 1px solid #383838; color: #3ecf8e;">💬 Chat & Call</button>
         </div>
     </div>
 
@@ -150,7 +172,7 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন (ফোর্সড অটো হাইট) -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
     <!-- HTML কোড এডিটর বক্স -->

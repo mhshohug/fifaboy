@@ -1,35 +1,36 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="bn">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TRACKBOY | Chat</title>
+    <title>TRACKBOY Chat</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
-        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        /* হেডার */
-        .chat-header { background: #161618; padding: 10px 16px; display: flex; align-items: center; height: 60px; border-bottom: 1px solid #232326; flex-shrink: 0; }
-        .chat-header h3 { flex: 1; margin-left: 15px; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-        .btn-call { background: none; border: none; color: #3ecf8e; font-size: 22px; cursor: pointer; }
+        /* মোবাইল রেসপন্সিভ বেস স্টাইল */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; -webkit-tap-highlight-color: transparent; }
+        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; position: fixed; width: 100%; }
 
-        /* মেসেজ এরিয়া - এখানে প্যাডিং দিয়েছি যাতে ইনপুট বক্সের নিচে মেসেজ হারিয়ে না যায় */
-        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; padding-bottom: 100px; }
-        .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; word-wrap: break-word; }
+        /* হেডার */
+        .chat-header { background: #161618; padding: 10px 15px; display: flex; align-items: center; height: 55px; border-bottom: 1px solid #232326; flex-shrink: 0; }
+        .header-name { flex: 1; margin-left: 15px; font-size: 17px; font-weight: 600; cursor: pointer; color: #fff; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-call { background: none; border: none; color: #3ecf8e; font-size: 24px; cursor: pointer; padding: 5px; }
+
+        /* মেসেজ এরিয়া */
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 12px; padding-bottom: 80px; -webkit-overflow-scrolling: touch; }
+        .msg-bubble { max-width: 85%; padding: 10px 14px; border-radius: 18px; font-size: 15px; word-wrap: break-word; }
         .msg-sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
         .msg-received { background: #232326; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
 
-        /* ইনপুট এরিয়া - এটি এখন স্ক্রিনের নিচে ফিক্সড এবং মেসেজের ওপর কোনো প্রভাব ফেলবে না */
-        .chat-input-area { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; position: absolute; bottom: 0; left: 0; width: 100%; height: 75px; border-top: 1px solid #232326; z-index: 100; }
-        .chat-input { flex: 1; height: 45px; padding: 0 15px; border-radius: 25px; background: #232326; border: none; color: #fff; outline: none; font-size: 15px; }
-        .btn-send { background: #3ecf8e; color: #000; border: none; padding: 0 20px; height: 45px; border-radius: 25px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+        /* মোবাইল ফিক্সড ইনপুট */
+        .chat-input-area { background: #161618; padding: 8px 12px; display: flex; gap: 10px; align-items: center; position: absolute; bottom: 0; left: 0; width: 100%; height: 65px; border-top: 1px solid #232326; z-index: 99; }
+        .chat-input { flex: 1; height: 45px; padding: 0 15px; border-radius: 25px; background: #232326; border: none; color: #fff; outline: none; font-size: 16px; }
+        .btn-send { background: #3ecf8e; color: #000; border: none; padding: 0 20px; height: 45px; border-radius: 25px; font-weight: bold; cursor: pointer; }
 
-        /* কল ইউআই */
+        /* ফুলস্ক্রিন কলিং রেসপন্সিভ */
         #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        .call-status-text { font-size: 24px; margin-bottom: 50px; color: #fff; text-align: center; }
-        .btn-round { width: 80px; height: 80px; border-radius: 50%; border: none; color: #fff; font-weight: bold; cursor: pointer; }
+        .call-status-text { font-size: 22px; margin-bottom: 40px; color: #fff; }
+        .btn-round { width: 75px; height: 75px; border-radius: 50%; border: none; color: #fff; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -37,14 +38,14 @@
 <div id="call-ui">
     <div id="call-status" class="call-status-text">Calling...</div>
     <div style="display: flex; gap: 40px;">
-        <button id="btn-accept" style="background: green; display: none;" class="btn-round">Accept</button>
-        <button id="btn-reject" style="background: red;" class="btn-round">End</button>
+        <button id="btn-accept" style="background: #28a745; display: none;" class="btn-round">Accept</button>
+        <button id="btn-reject" style="background: #dc3545;" class="btn-round">End</button>
     </div>
 </div>
 
 <div class="chat-header">
-    <button onclick="window.history.back()" style="background:none; border:none; color:#3ecf8e; font-size:20px;">←</button>
-    <h3 id="chatPartnerName">Loading...</h3>
+    <button onclick="window.history.back()" style="background:none; border:none; color:#3ecf8e; font-size:22px;">←</button>
+    <h3 id="chatPartnerName" class="header-name" onclick="window.location.href='profile.html?id=' + targetUserId">Loading...</h3>
     <button class="btn-call" onclick="initiateCall()">📞</button>
 </div>
 
@@ -107,14 +108,11 @@ peer.on('call', call => {
 
 document.getElementById('btn-reject').onclick = () => {
     clearInterval(ringTone);
-    if(currentCall) { currentCall.close(); }
-    document.getElementById('call-status').innerText = "Call Ended";
-    document.getElementById('call-status').style.color = "red";
-    setTimeout(() => {
-        document.getElementById('call-ui').style.display = 'none';
-        document.getElementById('call-status').style.color = "#fff";
-        document.getElementById('call-status').innerText = "Calling...";
-    }, 2000);
+    if(currentCall) currentCall.close();
+    const status = document.getElementById('call-status');
+    status.innerText = "Call Ended";
+    status.style.color = "#dc3545";
+    setTimeout(() => { document.getElementById('call-ui').style.display = 'none'; status.style.color = "#fff"; status.innerText = "Calling..."; }, 2000);
 };
 
 function playAudio(s) { let a = new Audio(); a.srcObject = s; a.play(); }
@@ -131,7 +129,10 @@ async function initChat() {
 }
 
 function loadPrivateChatHistory() {
-    mySupabase.from('messages').select('*').or(`sender_id.eq.${currentUserId},and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true }).then(({data}) => {
+    mySupabase.from('messages').select('*')
+    .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`)
+    .order('created_at', { ascending: true })
+    .then(({data}) => {
         const box = document.getElementById('chatMessagesBox');
         box.innerHTML = "";
         data?.forEach(m => {

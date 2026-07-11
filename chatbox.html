@@ -7,25 +7,20 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        /* লেআউট - 100dvh ব্যবহার করা হয়েছে যাতে মোবাইলের কিবোর্ড আসলে লেআউট না ভাঙে */
         body { margin: 0; padding: 0; background: #000; color: #fff; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
         
-        /* হেডার */
         .header { height: 60px; background: #111; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #333; flex-shrink: 0; }
         .chat-name { flex: 1; margin-left: 15px; font-weight: bold; cursor: pointer; color: #3ecf8e; }
         
-        /* চ্যাট এরিয়া */
         #chatMessagesBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
         .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; font-size: 15px; word-wrap: break-word; }
         .sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
         .received { background: #333; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
         
-        /* ফুটার */
         .footer { height: 70px; background: #111; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-top: 1px solid #333; flex-shrink: 0; }
         #msgInput { flex: 1; height: 45px; border-radius: 20px; border: none; padding: 0 15px; background: #222; color: #fff; outline: none; }
         .send-btn { height: 45px; padding: 0 20px; border-radius: 20px; border: none; background: #3ecf8e; color: #000; font-weight: bold; cursor: pointer; }
 
-        /* কলিং স্ক্রিন */
         #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
         .call-status-text { font-size: 22px; margin-bottom: 40px; color: #fff; }
         .btn-call-action { width: 75px; height: 75px; border-radius: 50%; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 16px; }
@@ -57,17 +52,14 @@
 <script>
     const sb = window.supabase.createClient("https://zqsjopjkhtofyepjneby.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU");
     const peer = new Peer();
-    const targetId = new URLSearchParams(window.location.search).get('target'); // মেহেদীর আইডি
+    const urlParams = new URLSearchParams(window.location.search);
+    const targetId = urlParams.get('target') || urlParams.get('id');
     let myId, currentCall, ringTone;
 
-    // প্রোফাইলে যাওয়ার ফাংশন
     function openProfile() {
-        if (targetId) {
-            window.location.href = 'profile.html?id=' + targetId;
-        }
+        if (targetId) window.location.href = 'profile.html?id=' + targetId;
     }
 
-    // রিংটোন সাউন্ড
     function playRingtone() {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         return setInterval(() => {
@@ -81,24 +73,32 @@
         }, 1000);
     }
 
-    // চ্যাট ইনিশিয়ালাইজ করা
     async function init() {
         const { data: { user } } = await sb.auth.getUser();
         myId = user.id;
-        
-        // নাম লোড করা
+
+        // চেক: লিংকে কি নিজের আইডি চলে আসছে?
+        if (targetId === myId) {
+            alert("সতর্কতা: আগের পেজ থেকে ভুল আইডি (আপনার নিজের আইডি) লিংকে পাঠানো হয়েছে! দয়া করে আগের পেজের কোড ঠিক করুন।");
+        }
+
+        // কলিং আইডি ডাটাবেসে সেভ করা
+        peer.on('open', async (id) => {
+            await sb.from('profiles').update({ peer_id: id }).eq('id', myId);
+        });
+
         const { data: p } = await sb.from('profiles').select('username').eq('id', targetId).single();
         if (p) document.getElementById('chatName').innerText = p.username;
         
-        load(); // মেসেজ লোড
-        
-        // লাইভ চ্যাট লিসেনার (এটি না থাকলে রিয়েল-টাইম মেসেজ আসবে না)
+        load(); 
         sb.channel('msgs').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load).subscribe();
     }
 
-    // কলিং লজিক
     function initCall() {
-        if(!targetId) return;
+        if(!targetId || targetId === myId) {
+            alert("সঠিক ইউজারের আইডি পাওয়া যায়নি, কল করা সম্ভব না।");
+            return;
+        }
         sb.from('profiles').select('peer_id').eq('id', targetId).single().then(({data}) => {
             if(data && data.peer_id) {
                 document.getElementById('call-ui').style.display = 'flex';
@@ -113,11 +113,12 @@
                         document.getElementById('call-status').innerText = "Talking..."; 
                     });
                 });
+            } else {
+                alert("ইউজার অফলাইনে আছে।");
             }
         });
     }
 
-    // ইনকামিং কল লজিক
     peer.on('call', call => {
         currentCall = call;
         document.getElementById('call-ui').style.display = 'flex';
@@ -138,7 +139,6 @@
         };
     });
 
-    // কল কাটা
     document.getElementById('btn-reject').onclick = () => {
         clearInterval(ringTone);
         if(currentCall) currentCall.close();
@@ -154,7 +154,6 @@
 
     function playAudio(stream) { let a = new Audio(); a.srcObject = stream; a.play(); }
 
-    // মেসেজ লোড ও ফিল্টারিং
     async function load() {
         const { data } = await sb.from('messages').select('*')
             .or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`)
@@ -162,7 +161,7 @@
         
         const box = document.getElementById('chatMessagesBox');
         box.innerHTML = '';
-        data.forEach(m => {
+        data?.forEach(m => {
             const d = document.createElement('div');
             d.className = 'msg ' + (m.sender_id === myId ? 'sent' : 'received');
             d.innerText = m.message_text;
@@ -171,13 +170,11 @@
         box.scrollTop = box.scrollHeight;
     }
 
-    // মেসেজ পাঠানো
     async function sendMessage() {
         const inp = document.getElementById('msgInput');
-        if(!inp.value.trim()) return;
+        if(!inp.value.trim() || targetId === myId) return;
         await sb.from('messages').insert({ sender_id: myId, receiver_id: targetId, message_text: inp.value });
         inp.value = '';
-        // পাঠানোর পর অটোমেটিক load() রিয়েল-টাইম লিসেনারের মাধ্যমে কল হবে
     }
 
     window.onload = init;

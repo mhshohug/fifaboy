@@ -209,19 +209,20 @@ function getMediaEmbedHTML(url, containerId) {
         }, 50);
         return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
-        if (url.includes("tiktok.com")) {
-        const cleanUrl = url.split("?")[0];
-        const videoId = cleanUrl.split('/video/')[1] || "";
+            if (post.platform === "TikTok") {
+        const cleanUrl = (post.url || "").split("?")[0];
+        const videoId = cleanUrl.split("/video/")[1] || "";
         
+        // টিকটকের থাম্বনেইল ইমেজ সরাসরি শো করা (এটা সব সময় কাজ করবে)
         return `
-        <div class="embed-container">
-            <blockquote class="tiktok-embed" cite="${cleanUrl}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px;">
-                <section><a target="_blank" href="${cleanUrl}">Watch on TikTok</a></section>
-            </blockquote>
-            <script async src="https://www.tiktok.com/embed.js"><\/script>
+        <div class="embed-container" style="text-align: center; padding: 10px;">
+            <a href="${cleanUrl}" target="_blank">
+                <img src="https://www.tiktok.com/api/oembed/?url=${cleanUrl}" onerror="this.src='https://via.placeholder.com/300x500?text=Watch+on+TikTok'" style="width: 100%; max-width: 300px; border-radius: 10px;">
+                <p style="margin-top: 10px; color: #3ecf8e; font-weight: bold;">▶ Watch on TikTok</p>
+            </a>
         </div>
         `;
-        }
+            }
     
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';

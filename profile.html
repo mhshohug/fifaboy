@@ -89,7 +89,6 @@
     .btn-solid { background: #3ecf8e !important; color: white !important; }
     .btn-danger { background: #ff4a4a !important; color: white !important; display: none; margin-bottom: 15px !important; width: 100% !important; max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; }
 
-    /* 🛡️ কাস্টম дизайн জোন - সুরক্ষা প্রাচীর */
     .custom-html-preview { 
         display: none; 
         background: #1a1a1a !important; 
@@ -149,11 +148,11 @@
     <div class="menu-container">
         <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮ Options</button>
         <div id="profileDropdown" class="dropdown-menu">
-            <button class="dropdown-item option-owner-only" onclick="editProfileName()" style="display:none;">✏️ Edit Profile Name</button>
-            <button class="dropdown-item option-owner-only" onclick="updateProfilePhotoLink()" style="display:none;">🖼️ Change Photo via Link</button>
-            <button class="dropdown-item option-owner-only" id="toggleEditorBtn" onclick="toggleHtmlEditor()" style="display:none;">⚡ HTML Profile Designer</button>
+            <button class="dropdown-item option-owner-only" onclick="editProfileName()">✏️ Edit Profile Name</button>
+            <button class="dropdown-item option-owner-only" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
+            <button class="dropdown-item option-owner-only" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
             <button class="dropdown-item" id="toggleSpecialViewBtn" onclick="toggleSpecialProfileView()">✨ Special Profile View</button>
-            <button class="dropdown-item" onclick="openPrivateChat()">💬 Chat & Call</button>
+            <button class="dropdown-item" id="chatCallBtn" onclick="openPrivateChat()">💬 Chat & Call</button>
         </div>
     </div>
 
@@ -167,10 +166,8 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
-    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
         <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <div style='background:red; padding:10px;'>Custom</div>"></textarea>
@@ -184,7 +181,7 @@
 
 <div class="post-list">
     <div class="section-title">
-        <span id="postListTitle">📝 My Evidence Posts</span>
+        <span id="postListTitle">📝 Evidence Posts</span>
     </div>
     
     <button id="deleteSelectedBtn" class="btn btn-danger" onclick="deleteSelectedPosts()">🗑️ Delete Selected Posts (<span id="selectedCount">0</span>)</button>
@@ -215,53 +212,62 @@ window.addEventListener("click", () => {
 
 async function initProfile() {
     try {
-        // ১. URL থেকে টার্গেট ইউজারের আইডি নেওয়া (?uid=...)
         const urlParams = new URLSearchParams(window.location.search);
         targetProfileId = urlParams.get('uid');
 
-        // ২. কারেন্ট লগইন থাকা ইউজারের সেশন নেওয়া
         const { data: { user } } = await mySupabase.auth.getUser();
-        if (user) {
-            currentUserId = user.id;
+        
+        // ১. যদি ইউজার লগইন থাকে, তার কারেন্ট আইডি ও ইমেইল ইনস্ট্যান্ট মেমরিতে রাখা হবে
+        if (user) { 
+            currentUserId = user.id; 
         }
 
-        // ৩. লিঙ্কে কোনো uid না থাকলে নিজের প্রোফাইল সেট করা
+        // ২. লিঙ্কে কোনো uid না থাকলে কারেন্ট ইউজারের প্রোফাইল লোড হবে
         if (!targetProfileId) {
             if (!user) { window.location.href = "login.html"; return; }
             targetProfileId = user.id;
         }
 
-        // 🛡️ ওনারশিপ সিকিউরিটি চেক: এডিট অপশনগুলো কন্ট্রোল করা
+        // ৩. ডাইনামিক ফিল্টারিং: নিজের প্রোফাইল নাকি অন্যের প্রোফাইল চেক
         if (currentUserId && currentUserId === targetProfileId) {
-            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'block');
+            document.querySelectorAll('.option-owner-only').forEach(el => el.style.setProperty('display', 'block', 'important'));
             document.getElementById('postListTitle').innerText = "📝 My Evidence Posts";
+            if(document.getElementById('chatCallBtn')) document.getElementById('chatCallBtn').style.display = "none"; // নিজের প্রোফাইলে চ্যাট বাটন লাগবে না
+            
+            // নিজের প্রোফাইল হলে ওন-সেশন থেকে ডেটা লোড
+            if(user) {
+                document.getElementById("userEmail").innerText = user.email;
+                document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
+                if (user.created_at) {
+                    const date = new Date(user.created_at);
+                    document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
+                }
+            }
         } else {
-            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'none');
+            document.querySelectorAll('.option-owner-only').forEach(el => el.style.setProperty('display', 'none', 'important'));
             document.getElementById('postListTitle').innerText = "📝 Evidence Posts";
-        }
-        
-        // ফ্যালব্যাক ডিফল্ট ইউজার ডাটা লোড
-        document.getElementById("userEmail").innerText = user ? user.email : "Loading...";
-        document.getElementById("userName").innerText = user ? (user.user_metadata.full_name || user.email.split('@')[0]) : "Loading...";
-        
-        if (user && user.user_metadata.avatar_url) {
-            document.getElementById("userAvatar").src = user.user_metadata.avatar_url;
-        }
-        if (user && user.created_at) {
-            const date = new Date(user.created_at);
-            document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
+            if(document.getElementById('chatCallBtn')) document.getElementById('chatCallBtn').style.display = "block";
+
+            // অন্যের প্রোফাইল হলে ফ্যালব্যাক টেক্সট
+            document.getElementById("userEmail").innerText = "No Email Public";
+            document.getElementById("userName").innerText = "User_" + targetProfileId.substring(0, 5);
         }
 
-        // ৪. ডাটাবেজ টেবিল থেকে নির্দিষ্ট ইউজারের আসল ডাটা আনা
+        // ৪. ডাটাবেজ থেকে সুনির্দিষ্ট ওই প্রোফাইলের অতিরিক্ত ইনফো (Bio, Role) ম্যাচ করানো
         const { data: pData } = await mySupabase.from('profiles').select('*').eq('id', targetProfileId).maybeSingle();
         let savedHtml = "";
         
         if (pData) {
-            document.getElementById("userEmail").innerText = pData.email || "No Email Public";
-            document.getElementById("userName").innerText = pData.username || "User_" + targetProfileId.substring(0, 5);
+            // যদি ডাটাবেজে ইমেইল থাকে, তবে অন্যের প্রোফাইলেও ইমেইল শো করবে
+            if (pData.email) document.getElementById("userEmail").innerText = pData.email;
+            if (pData.username) document.getElementById("userName").innerText = pData.username;
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
             if (pData.avatar_url) document.getElementById("userAvatar").src = pData.avatar_url;
             if (pData.bio) savedHtml = pData.bio;
+            if (pData.created_at) {
+                const date = new Date(pData.created_at);
+                document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
+            }
         }
         
         if (savedHtml) {
@@ -387,7 +393,7 @@ async function updateProfilePhotoLink() {
         const { error: authErr } = await mySupabase.auth.updateUser({ data: { avatar_url: photoUrl.trim() } });
         if (authErr) throw authErr;
         await mySupabase.from('profiles').update({ avatar_url: photoUrl.trim() }).eq('id', currentUserId);
-        alert("প্রোফাইল ফটো সফলভাবে সেট হয়েছে ভাই!");
+        alert("প্রোفাইল ফটো সফলভাবে সেট হয়েছে ভাই!");
         window.location.reload();
     } catch (e) { alert("ফটো লিংক আপডেট করতে সমস্যা হয়েছে: " + e.message); }
 }

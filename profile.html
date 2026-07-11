@@ -15,34 +15,34 @@
         padding: 25px 20px; 
         border-radius: 12px; 
         max-width: 500px; 
-        margin: 0 auto 15px; /* নিচের মার্জিন একটু কমানো হলো কারণ সেফটি স্পেস আমরা আলাদা দিচ্ছি */
+        margin: 0 auto 15px;
         text-align: center;
         position: relative;
         z-index: 10;
         box-sizing: border-box;
     }
 
-    /* ৩-ডট মেনুর সিএসএস */
+    /* ৩-ডট মেনু ও ড্রপডাউন সিএসএস */
     .menu-container {
         position: absolute;
         top: 15px;
         right: 15px;
-        z-index: 2000;
+        z-index: 9999 !important; /* সর্বোচ্চ প্রায়োরিটি যাতে ডিজাইনের উপরে থাকে */
     }
     .three-dot-btn {
-        background: transparent;
-        border: none;
-        color: #888;
-        font-size: 24px;
+        background: #2a2a2a;
+        border: 1px solid #383838;
+        color: #fff;
+        font-size: 20px;
         cursor: pointer;
-        padding: 5px 10px;
-        border-radius: 50%;
+        padding: 4px 12px;
+        border-radius: 6px;
         line-height: 1;
         transition: color 0.2s, background 0.2s;
     }
     .three-dot-btn:hover {
         color: #3ecf8e;
-        background: rgba(255, 255, 255, 0.05);
+        background: #333;
     }
     .dropdown-menu {
         display: none;
@@ -52,10 +52,10 @@
         background: #2a2a2a;
         border: 1px solid #383838;
         border-radius: 8px;
-        box-shadow: 0 4px 12px rgba(0,0,0,0.5);
-        width: 220px;
+        box-shadow: 0 4px 12px rgba(0,0,0,0.6);
+        width: 230px;
         overflow: hidden;
-        z-index: 2001;
+        z-index: 10000;
     }
     .dropdown-item {
         width: 100%;
@@ -87,10 +87,11 @@
     .btn-solid { background: #3ecf8e; color: white; }
     .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
 
-    /* কাস্টম এইচটিএমএল জোন */
+    /* কাস্টম এইচটিএমএল জোন (টগলড ভিউ স্টাইল) */
     .custom-html-preview { 
+        display: none; /* ডিফল্ট অবস্থায় অফ থাকবে, ক্লিক করলে শো হবে */
         background: #1a1a1a; 
-        border: 1px dashed #3ecf8e; 
+        border: 2px solid #3ecf8e; 
         border-radius: 8px; 
         padding: 15px; 
         margin: 15px 0; 
@@ -99,6 +100,8 @@
         overflow-x: auto;
         box-sizing: border-box;
         width: 100%;
+        position: relative;
+        z-index: 5;
     }
     .custom-html-preview * { 
         max-width: 100% !important; 
@@ -107,12 +110,12 @@
         height: auto !important;
     }
 
-    /* 💎 ফিক্সড: "Back to Home" এবং "My Evidence Posts" এর মাঝে রেসপনসিভ স্পেস কন্টেইনার */
+    /* রেসপনসিভ সেফটি স্পেসিং কন্টেইনার */
     .responsive-safety-space {
         width: 100%;
         max-width: 500px;
         margin: 0 auto;
-        padding-bottom: 45px; /* আপনার প্রয়োজন অনুযায়ী পর্যাপ্ত মোবাইল রেসপনসিভ ফাঁকা জায়গা */
+        padding-bottom: 35px;
         background: transparent;
         clear: both;
     }
@@ -120,7 +123,6 @@
     .html-editor-box { display: none; margin-top: 15px; text-align: left; position: relative; z-index: 1001; }
     .html-textarea { width: 100%; height: 120px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; resize: vertical; }
 
-    /* সেকশন টাইটেল স্পেসিং এডজাস্ট */
     .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
     
     .post-list { max-width: 500px; margin: 0 auto; background: #121212; position: relative; z-index: 15; }
@@ -141,12 +143,15 @@
 <body>
 
 <div class="profile-card">
+    <!-- ৩-ডট মেনু কন্টেইনার -->
     <div class="menu-container">
-        <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮</button>
+        <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮ Options</button>
         <div id="profileDropdown" class="dropdown-menu">
             <button class="dropdown-item" onclick="editProfileName()">✏️ Edit Profile Name</button>
             <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
             <button class="dropdown-item" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
+            <button class="dropdown-item" id="toggleSpecialViewBtn" onclick="toggleSpecialProfileView()">✨ Special Profile View</button>
+            <button class="dropdown-item" onclick="alert('Chat & Call feature coming soon ভাই!')" style="border-top: 1px solid #383838; color: #3ecf8e;">💬 Chat & Call</button>
         </div>
     </div>
 
@@ -160,21 +165,19 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <div id="htmlRenderZone" class="custom-html-preview">
-        <span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>
-    </div>
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
+    <div id="htmlRenderZone" class="custom-html-preview"></div>
 
+    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
-        <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b>"></textarea>
+        <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <div style='background:red; padding:10px;'>Custom</div>"></textarea>
         <button class="btn btn-solid" style="padding: 8px; font-size: 14px; margin-top: 5px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
-    <!-- প্রোফাইল কার্ডের শেষ এলিমেন্ট "Back to Home" বাটন -->
     <button class="btn btn-solid" style="margin-top: 15px;" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
-<!-- 💎 এই কন্টেইনারটি বাটন এবং নিচের হেডিং-এর মাঝে পারফেক্ট ও রেসপনসিভ দূরত্ব বজায় রাখবে -->
 <div class="responsive-safety-space"></div>
 
 <div class="post-list">
@@ -234,13 +237,25 @@ async function initProfile() {
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
+        // প্রথমে ডাটাবেজ টেবিল থেকে চেক করবে কাস্টম এইচটিএমএল ডাটা
         const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
+        let savedHtml = "";
+        
         if (pData) {
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
-            if (pData.bio) {
-                document.getElementById("htmlRenderZone").innerHTML = pData.bio;
-                document.getElementById("customHtmlInput").value = pData.bio;
-            }
+            if (pData.bio) savedHtml = pData.bio;
+        }
+        
+        // ব্যাকআপ হিসেবে মেটাডাটাও চেক করা হলো যাতে রিলোডে ডাটা ড্রপ না হয়
+        if (!savedHtml && user.user_metadata.custom_html) {
+            savedHtml = user.user_metadata.custom_html;
+        }
+
+        if (savedHtml) {
+            document.getElementById("htmlRenderZone").innerHTML = savedHtml;
+            document.getElementById("customHtmlInput").value = savedHtml;
+        } else {
+            document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet. Click Special View to see.</span>';
         }
         
         loadUserPosts();
@@ -359,16 +374,27 @@ async function updateProfilePhotoLink() {
 
 function toggleHtmlEditor() {
     const box = document.getElementById("htmlEditorSection");
-    const btn = document.getElementById("toggleEditorBtn");
     if (box.style.display === "block") {
         box.style.display = "none";
-        btn.innerText = "⚡ HTML Profile Designer";
     } else {
         box.style.display = "block";
-        btn.innerText = "❌ Close Editor";
     }
 }
 
+// 💎 ৩-ডট থেকে স্পেশাল কাস্টম প্রোফাইল ভিউ শো/হাইড করার ফাংশন
+function toggleSpecialProfileView() {
+    const viewZone = document.getElementById("htmlRenderZone");
+    const btn = document.getElementById("toggleSpecialViewBtn");
+    if (viewZone.style.display === "block") {
+        viewZone.style.display = "none";
+        btn.innerText = "✨ Special Profile View";
+    } else {
+        viewZone.style.display = "block";
+        btn.innerText = "❌ Hide Special View";
+    }
+}
+
+// 💎 রিলোড ট্র্যাকার ফিক্সড ডুয়াল সেভ লজিক
 async function saveCustomHTML() {
     const customHtml = document.getElementById("customHtmlInput").value;
     const saveBtn = document.querySelector("#htmlEditorSection button");
@@ -377,15 +403,24 @@ async function saveCustomHTML() {
         saveBtn.innerText = "Saving...";
         saveBtn.disabled = true;
         
-        const { error } = await mySupabase
+        // ১. ডাটাবেজের bio কলামে পার্মানেন্ট সেভ
+        const { error: dbErr } = await mySupabase
             .from('profiles')
             .update({ bio: customHtml })
             .eq('id', currentUserId);
             
-        if (error) throw error;
+        if (dbErr) throw dbErr;
         
-        alert("আপনার কাস্টম HTML ডিজাইন সেভ হয়েছে ভাই!");
+        // ২. সেশন রিফ্রেশ ফিক্স: ইউজার অথ মেটাডাটায় ব্যাকআপ রাইট (যাতে রিলোডে ডাটা মুছবে না)
+        await mySupabase.auth.updateUser({
+            data: { custom_html: customHtml }
+        });
+        
+        alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
         document.getElementById("htmlRenderZone").innerHTML = customHtml || '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
+        
+        // সেভ হওয়ার পর ডিজাইনটি লাইভ শো করাবে
+        document.getElementById("htmlRenderZone").style.display = "block";
         toggleHtmlEditor();
         
     } catch (e) {

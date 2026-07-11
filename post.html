@@ -187,12 +187,15 @@ function getMediaEmbedHTML(url) {
             <iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(cleanUrl)}&show_text=false&width=500" width="100%" height="500" style="border:none; overflow:hidden; border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>
         </div>`;
     }
+if (url.includes("tiktok.com")) {
+    let cleanUrl = url.split("?")[0];
+    if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
 
-    if (url.includes("tiktok.com")) {
-        let cleanUrl = url.split("?")[0];
-        if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
-        const videoId = cleanUrl.split('/').pop(); 
-        return `<div class="embed-container"><iframe src="https://www.tiktok.com/embed/${videoId}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
+    return `
+        <div class="embed-container">
+            <script async src="https://api.emailwarmup.com/embed/embed-tiktok.js?url=${encodeURIComponent(cleanUrl)}"></script>
+        </div>
+    `;
     }
 
     if (url.includes("twitter.com") || url.includes("x.com")) {

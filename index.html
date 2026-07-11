@@ -62,16 +62,6 @@
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
 .action-btn.liked { color: #3ecf8e !important; font-weight: bold; }
 .action-btn.disliked { color: #ff6b6b !important; font-weight: bold; }
-.comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
-
-.post-card span.comment-user-link {
-    color: #3ecf8e;
-    font-weight: 600;
-    cursor: pointer;
-    text-decoration: underline;
-}
-
-.action-btn.liked { color: #3ecf8e !important; font-weight: bold; }
 </style>
 </head>
 <body>
@@ -165,7 +155,6 @@ function getMediaEmbedHTML(url, containerId) {
     
     let checkUrl = url.toLowerCase();
     
-    // ১. YouTube
     if (checkUrl.includes("youtube.com") || checkUrl.includes("youtu.be")) {
         let videoId = "";
         if (url.includes("shorts/")) videoId = url.split("shorts/")[1].split("?")[0];
@@ -174,7 +163,6 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
         setTimeout(() => {
             fetchFacebookEmbed(url, containerId);
@@ -182,7 +170,6 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
     
-    // ৩. TikTok
     if (checkUrl.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
@@ -190,12 +177,10 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.tiktok.com/embed/' + videoId + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
     
-    // ৪. Twitter/X
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';
     }
     
-    // ৫. Instagram
     if (checkUrl.includes("instagram.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.includes("/embed")) cleanUrl = cleanUrl.replace("/embed", "");
@@ -432,10 +417,12 @@ window.addEventListener("scroll", () => {
     if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
 });
 
-// ✅ সার্চ ফাংশন - ইউজার আইডি + ইউজারনেম + পোস্ট সার্চ করবে
+// ✅ কলাম নেম 'avatar' ফিক্স করা গ্লোবাল সার্চ মেকানিজম
 document.getElementById("search").addEventListener("input", async (e) => {
     const q = e.target.value.trim();
     const feedSection = document.getElementById("feed");
+    
+    console.log("🔍 Searching for:", q);
     
     if (!q) {
         renderPosts(POSTS);
@@ -445,23 +432,21 @@ document.getElementById("search").addEventListener("input", async (e) => {
     try {
         feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">🔍 Searching...</div>';
 
-        // ১. ইউজার খোঁজো (username + id দুইভাবে)
+        // 📌 ফিক্স: ডাটাবেজের সঠিক কলাম 'avatar' সিলেক্ট করা হয়েছে
         const { data: users, error: userErr } = await mySupabase
             .from('profiles')
-            .select('id, username, avatar_url, role')
+            .select('id, username, avatar, role')
             .or(`username.ilike.%${q}%,id.ilike.%${q}%`);
 
-        if (userErr) {
-            console.error("User search error:", userErr);
-        }
+        if (userErr) throw userErr;
 
-        // ২. পোস্ট ফিল্টার
+        // ২. লোকাল পোস্ট ফিল্টার
         const filteredPosts = POSTS.filter(post =>
             (post.title || "").toLowerCase().includes(q.toLowerCase()) || 
             (post.description || "").toLowerCase().includes(q.toLowerCase())
         );
 
-        // ৩. কিছু না পেলে
+        // ৩. রেজাল্ট না পাওয়া গেলে
         if ((!users || users.length === 0) && filteredPosts.length === 0) {
             feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">😕 No matching users or evidence found.</div>';
             return;
@@ -469,14 +454,15 @@ document.getElementById("search").addEventListener("input", async (e) => {
 
         feedSection.innerHTML = "";
 
-        // 👥 ৪. ম্যাচিং ইউজার দেখাও
+        // 👥 ৪. ম্যাচিং ইউজার কার্ড রেন্ডার
         if (users && users.length > 0) {
             const userTitle = document.createElement('div');
             userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users (${users.length})</h4>`;
             feedSection.appendChild(userTitle);
 
             users.forEach(u => {
-                const avatar = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
+                // 📌 ফিক্স: u.avatar ব্যবহার করা হয়েছে
+                const avatar = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
                 const userCard = document.createElement("div");
                 userCard.className = "post-card";
                 userCard.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
@@ -498,7 +484,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
             });
         }
 
-        // 📝 ৫. ম্যাচিং পোস্ট দেখাও
+        // 📝 ৫. ম্যাচিং এভিডেন্স পোস্ট রেন্ডার
         if (filteredPosts.length > 0) {
             const postTitle = document.createElement('div');
             postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence (${filteredPosts.length})</h4>`;

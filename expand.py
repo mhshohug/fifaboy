@@ -1,221 +1,107 @@
 import os
-import time
 import requests
+import re
 from supabase import create_client
-from urllib.parse import urlparse, parse_qs
 
-# সুপাবেস কানেকশন
+# সুপাবেস ক্লায়েন্ট ইনিশিয়ালাইজেশন
 supabase = create_client(
     os.environ.get("SUPABASE_URL"),
     os.environ.get("SUPABASE_ANON_KEY")
 )
 
-def get_final_facebook_url(short_url, retries=3):
-    """
-    ফেসবুক শেয়ার লিংক রিডাইরেক্ট করে আসল রিল লিংক বের করবে
-    
-    Args:
-        short_url: ফেসবুকের শেয়ার লিংক
-        retries: পুনরায় চেষ্টার সংখ্যা
-    
-    Returns:
-        পরিষ্কার করা লিংক
-    """
+def get_full_url(short_url: str) -> str:
+    if not short_url:
+        return short_url
+
     headers = {
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0.0.0 Safari/537.36',
-        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
-        'Accept-Language': 'en-US,en;q=0.9',
-        'Accept-Encoding': 'gzip, deflate, br',
-        'DNT': '1',
-        'Connection': 'keep-alive',
-        'Upgrade-Insecure-Requests': '1'
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
     }
-    
-    for attempt in range(retries):
-        try:
-            # GET রিকোয়েস্ট (HEAD এর পরিবর্তে, কারণ কিছু সাইট HEAD সাপোর্ট করে না)
-            response = requests.get(
-                short_url, 
-                headers=headers, 
-                allow_redirects=True, 
-                timeout=15,
-                stream=True
-            )
-            
-            final_url = response.url
-            
-            # ট্র্যাকিং প্যারামিটার কেটে ফেলা
-            parsed = urlparse(final_url)
-            clean_url = f"{parsed.scheme}://{parsed.netloc}{parsed.path}"
-            
-            # ফেসবুকের রিল ইউআরএল ফরম্যাট ঠিক করা
-            clean_url = clean_url.replace("/reels/", "/reel/")
-            clean_url = clean_url.replace("/videos/", "/reel/")  # ভিডিওকেও রিলে কনভার্ট
-            
-            # শেষে স্ল্যাশ থাকলে রিমুভ করা
-            if clean_url.endswith('/'):
-                clean_url = clean_url[:-1]
-            
-            return clean_url
-            
-        except requests.exceptions.Timeout:
-            print(f"⏱️ টাইমআউট, আবার চেষ্টা করছি... (Attempt {attempt + 1}/{retries})")
-            time.sleep(2)
-            
-        except requests.exceptions.RequestException as e:
-            print(f"❌ রিকোয়েস্ট এরর: {e}")
-            if attempt == retries - 1:
-                return short_url
-            time.sleep(3)
-            
-        except Exception as e:
-            print(f"⚠️ অন্যান্য এরর: {e}")
-            return short_url
-    
-    return short_url
 
-def is_valid_facebook_url(url):
-    """চেক করে লিংকটি ভ্যালিড ফেসবুক ইউআরএল কিনা"""
-    if not url:
-        return False
-    
-    # শুধুমাত্র শেয়ার লিংক চেক করা
-    valid_patterns = [
-        "facebook.com/share/r/",
-        "facebook.com/reel/",
-        "facebook.com/reels/",
-        "fb.com/share/r/",
-        "fb.com/reel/"
-    ]
-    
-    url_lower = url.lower()
-    return any(pattern in url_lower for pattern in valid_patterns)
-
-def fix_database(batch_size=50, limit=None):
-    """
-    ডাটাবেজের ফেসবুক লিংক ফিক্স করা
-    
-    Args:
-        batch_size: কতটি পোস্ট একসাথে প্রসেস করবে
-        limit: সর্বোচ্চ কতটি পোস্ট প্রসেস করবে (None = সব)
-    """
-    print("🚀 ডাটাবেজ ফিক্সিং শুরু হচ্ছে...")
-    
-    # কুয়েরি বিল্ড করা
-    query = supabase.table("posts").select("*")
-    
-    # শুধুমাত্র ফেসবুক লিংক যুক্ত পোস্ট নেওয়া (পার্টিশন ফিল্টার)
-    # নোট: সুপাবেসে লাইক কোয়েরি সীমিত, তাই আমরা সব নিয়ে ফিল্টার করব
-    # অথবা আপনি আলাদা করে is_facebook কলাম যোগ করতে পারেন
-    
-    response = query.execute()
-    all_posts = response.data or []
-    
-    # ফেসবুক পোস্ট ফিল্টার করা
-    posts_to_fix = [
-        post for post in all_posts 
-        if is_valid_facebook_url(post.get("url", ""))
-    ]
-    
-    total_posts = len(posts_to_fix)
-    
-    if total_posts == 0:
-        print("📭 ফেসবুক শেয়ার লিংক পাওয়া যায়নি!")
-        return
-    
-    print(f"📊 মোট {total_posts} টি ফেসবুক পোস্ট পাওয়া গেছে")
-    
-    # লিমিট প্রয়োগ
-    if limit:
-        posts_to_fix = posts_to_fix[:limit]
-        total_posts = len(posts_to_fix)
-        print(f"🔢 {total_posts} টি পোস্ট প্রসেস করা হবে (লিমিট: {limit})")
-    
-    updated_count = 0
-    error_count = 0
-    
-    # ব্যাচ আকারে প্রসেস করা
-    for i in range(0, total_posts, batch_size):
-        batch = posts_to_fix[i:i+batch_size]
-        
-        print(f"\n📦 ব্যাচ {i//batch_size + 1}: {len(batch)} টি পোস্ট প্রসেস করা হচ্ছে...")
-        
-        for idx, post in enumerate(batch, 1):
-            url = post.get("url", "")
-            post_id = post.get("id")
-            
-            print(f"\n🔄 [{i+idx}/{total_posts}] ফিক্স করছি: {url[:80]}...")
-            
-            try:
-                new_url = get_final_facebook_url(url)
-                
-                if new_url and new_url != url:
-                    # ডাটাবেজ আপডেট করা
-                    update_response = supabase.table("posts").update({
-                        "url": new_url,
-                        "updated_at": "now()"  # যদি updated_at কলাম থাকে
-                    }).eq("id", post_id).execute()
-                    
-                    if update_response.data:
-                        print(f"✅ আপডেট হয়েছে: {new_url[:80]}...")
-                        updated_count += 1
-                    else:
-                        print(f"❌ আপডেট ব্যর্থ হয়েছে")
-                        error_count += 1
-                else:
-                    print(f"⏭️ স্কিপ: ইউআরএল একই বা খালি")
-                    
-            except Exception as e:
-                print(f"❌ পোস্ট ID {post_id} আপডেটে এরর: {e}")
-                error_count += 1
-            
-            # রেট লিমিট এড়ানোর জন্য স্লিপ
-            if idx % 5 == 0:
-                time.sleep(1)
-        
-        # ব্যাচ শেষে বিরতি
-        time.sleep(2)
-    
-    print("\n" + "="*50)
-    print(f"🎉 কাজ শেষ!")
-    print(f"✅ সফল: {updated_count} টি")
-    print(f"❌ ব্যর্থ: {error_count} টি")
-    print(f"📊 মোট: {total_posts} টি")
-    print("="*50)
-
-def add_facebook_flag_column():
-    """ফেসবুক পোস্ট শনাক্ত করার জন্য আলাদা কলাম যোগ করা"""
     try:
-        # সুপাবেসে ALTER TABLE কাজ করে না, তাই আলাদা টেবিল বা অ্যাপ্রোচ নিতে হবে
-        # অথবা প্রোগ্রাম্যাটিকভাবে ফিল্ড যোগ করা
-        print("💡 সুপাবেসে ALTER TABLE সাপোর্টেড নয়।")
-        print("   আপনি supabase dashboard থেকে manually কলাম যোগ করতে পারেন:")
-        print("   - is_facebook (boolean, default: false)")
-        print("   - original_url (text)")
-        print("   - last_checked (timestamp)")
+        check_url = short_url.lower()
+
+        # =====================================================================
+        # 📸 INSTAGRAM (সম্পূর্ণ টাচফ্রি ও নিরাপদ - আগের সচল কোড)
+        # =====================================================================
+        if "instagram.com" in check_url or "ig.me" in check_url:
+            session = requests.Session()
+            session.headers.update(headers)
+            response = session.get(short_url, timeout=12, allow_redirects=True)
+            final_url = response.url
+            clean_url = final_url.split("?")[0].split("&")[0].split("#")[0]
+            if not clean_url.endswith('/'):
+                clean_url += '/'
+            return clean_url
+
+        # =====================================================================
+        # 🎵 TIKTOK (সম্পূর্ণ টাচফ্রি ও নিরাপদ - আগের সচল কোড)
+        # =====================================================================
+        if "tiktok.com" in check_url:
+            session = requests.Session()
+            session.headers.update(headers)
+            response = session.get(short_url, timeout=12, allow_redirects=True)
+            return response.url.split("?")[0].split("&")[0]
+
+        # =====================================================================
+        # 📘 FACEBOOK FIXED ONLY (আপনার চাওয়া নিখুঁত রিল আইডি এক্সট্র্যাক্টর)
+        # =====================================================================
+        if "facebook.com" in check_url or "fb.watch" in check_url:
+            
+            # ১. ওএমবেড এপিআই গেটওয়ে হিট (যা ব্লক ছাড়াই শেয়ার লিংকের আসল পেজ সোর্স দেয়)
+            oembed_endpoint = f"https://www.facebook.com/plugins/video/oembed.json?url={short_url}"
+            try:
+                api_res = requests.get(oembed_endpoint, headers=headers, timeout=10)
+                if api_res.status_code == 200:
+                    html_box = api_res.json().get("html", "")
+                    
+                    # একদম নিখুঁত আইডি ফিল্টার (যেমন: 1278160674259398)
+                    id_match = re.search(r'(?:reel|reels|video|v|id=)(?:/|=)?([0-9]{12,20})', html_box)
+                    if id_match:
+                        return f"https://www.facebook.com/reel/{id_match.group(1)}"
+            except Exception as e:
+                print(f"Facebook API Gateway failed: {e}")
+
+            # ২. ব্যাকআপ ফলব্যাক: যদি সরাসরি ইউআরএল এর ভেতরেই আইডি থেকে থাকে
+            id_match_direct = re.search(r'(?:reel|reels|video|v)/([0-9]{12,20})', short_url)
+            if id_match_direct:
+                return f"https://www.facebook.com/reel/{id_match_direct.group(1)}"
+
+            return short_url
+
+        return short_url.split("?")[0]
+
     except Exception as e:
-        print(f"⚠️ কলাম যোগ করতে ব্যর্থ: {e}")
+        print(f"Error processing {short_url}: {e}")
+        return short_url
+
+def process_posts():
+    print("🚀 ডাটাবেজে আপনার দেওয়া উদাহরণ অনুযায়ী ফেসবুক রিল ফিক্সার চালু হচ্ছে...")
+    response = supabase.table("posts").select("*").execute()
+    posts = response.data or []
+    
+    updated = 0
+    for post in posts:
+        current_url = post.get("url", "").strip()
+        if not current_url:
+            continue
+
+        url_lower = current_url.lower()
+        if ("instagram.com" in url_lower or 
+            "facebook.com" in url_lower or 
+            "fb.watch" in url_lower or 
+            "tiktok.com" in url_lower or
+            "ig.me" in url_lower):
+            
+            new_url = get_full_url(current_url)
+            
+            # যদি নতুন ইউআরএল তৈরি হয়, তবেই ডাটাবেজে পুশ হবে
+            if new_url != current_url:
+                supabase.table("posts").update({"url": new_url}).eq("id", post["id"]).execute()
+                print(f"✅ ডাটাবেজ সফলভাবে আপডেট: {current_url} → {new_url}")
+                updated += 1
+
+    print(f"\n🎉 কাজ শেষ! মোট {updated} টি ফেসবুক লিংক ফিক্স করা হয়েছে।")
 
 if __name__ == "__main__":
-    print("ফেসবুক ইউআরএল ফিক্সার টুল")
-    print("-" * 30)
-    
-    # কমান্ড লাইন আর্গুমেন্ট পার্সিং (সহজ ভার্সন)
-    import sys
-    
-    limit = None
-    if len(sys.argv) > 1:
-        try:
-            limit = int(sys.argv[1])
-            print(f"🔢 লিমিট: {limit} টি পোস্ট")
-        except ValueError:
-            print("⚠️ ভুল ইনপুট! পুরো ডাটাবেজ প্রসেস করা হবে")
-    
-    # ব্যাকআপ তৈরি করুন (ঐচ্ছিক)
-    print("💡 প্রথমে ডাটাবেজ ব্যাকআপ নিন!")
-    confirm = input("চালিয়ে যেতে চান? (y/N): ").strip().lower()
-    
-    if confirm == 'y':
-        fix_database(limit=limit)
-    else:
-        print("❌ বাতিল করা হয়েছে")
+    process_posts()

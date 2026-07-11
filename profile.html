@@ -8,24 +8,21 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
+    body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; overflow-y: scroll !important; }
     
     .profile-card { 
         background: #1e1e1e; 
         padding: 25px 20px; 
         border-radius: 12px; 
         max-width: 500px; 
-        margin: 0 auto 15px;
+        margin: 0 auto 25px;
         text-align: center;
         position: relative;
         z-index: 10;
         box-sizing: border-box;
-        /* ফিক্সড: কার্ডের ভেতরের সব এলিমেন্ট যেন ফ্লেক্সিবল অটো-হাইট নেয় */
-        display: flex;
-        flex-direction: column;
     }
 
-    /* ৩-ডট মেনু ও ড্রপডাউন সিএসএস */
+    /* ৩-ডট মেনু ও ড্রপডাউন */
     .menu-container {
         position: absolute;
         top: 15px;
@@ -41,11 +38,6 @@
         padding: 4px 12px;
         border-radius: 6px;
         line-height: 1;
-        transition: color 0.2s, background 0.2s;
-    }
-    .three-dot-btn:hover {
-        color: #3ecf8e;
-        background: #333;
     }
     .dropdown-menu {
         display: none;
@@ -57,7 +49,6 @@
         border-radius: 8px;
         box-shadow: 0 4px 12px rgba(0,0,0,0.6);
         width: 230px;
-        overflow: hidden;
         z-index: 10000;
     }
     .dropdown-item {
@@ -73,7 +64,6 @@
         display: flex;
         align-items: center;
         gap: 10px;
-        transition: background 0.2s;
     }
     .dropdown-item:hover {
         background: #333;
@@ -90,39 +80,32 @@
     .btn-solid { background: #3ecf8e; color: white; }
     .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
 
-    /* 💎 ফিক্সড: কাস্টম এইচটিএমএল প্রিভিউ বক্স অটো-হাইট লজিক */
+    /* কাস্টম ডিজাইন জোন - অটো স্পেসিং ফিক্স */
     .custom-html-preview { 
         display: none; 
         background: #1a1a1a; 
         border: 2px dashed #3ecf8e; 
         border-radius: 8px; 
         padding: 15px; 
-        margin: 15px 0 20px 0; /* নিচ দিয়ে পর্যাপ্ত গ্যাপ রাখা হলো */
+        margin: 15px 0; 
         text-align: left; 
-        height: auto !important; /* ফিক্সড হাইট রিমুভ করে অটো করা হলো */
-        min-height: 50px;
-        overflow-x: auto; /* ডানে বাঁমে চওড়া এলিমেন্ট থাকলে স্ক্রল হবে কিন্তু বক্স লম্বা হবে */
-        box-sizing: border-box;
         width: 100%;
-        position: relative;
-        z-index: 5;
+        box-sizing: border-box;
+        overflow: visible !important; /* স্ক্রল বা চ্যাপ্টা হওয়া বন্ধ করবে */
     }
     
-    /* কাস্টম এইচটিএমএল চাইল্ড এলিমেন্ট প্রটেকশন */
+    /* কোড ক্র্যাশ ও স্ক্রল লক প্রতিরোধক */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
-        white-space: normal !important;
     }
 
-    /* রেসপনসিভ সেফটি স্পেসিং কন্টেইনার */
     .responsive-safety-space {
         width: 100%;
         max-width: 500px;
         margin: 0 auto;
-        padding-bottom: 35px;
+        padding-bottom: 25px;
         background: transparent;
-        clear: both;
     }
 
     .html-editor-box { display: none; margin-top: 15px; text-align: left; position: relative; z-index: 1001; }
@@ -134,13 +117,11 @@
     .post-item { 
         background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
         display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
-        cursor: pointer; transition: background 0.2s; text-align: left;
+        cursor: pointer; text-align: left;
     }
-    .post-item:hover { background: #252525; }
     .post-checkbox { width: 20px; height: 20px; accent-color: #3ecf8e; cursor: pointer; }
     .post-details { flex-grow: 1; cursor: pointer; }
     .post-title { font-weight: 600; font-size: 16px; margin: 0; color: #fff; }
-    .post-title:hover { color: #3ecf8e; }
     .post-meta { font-size: 12px; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
     .badge { background: #2d2d2d; color: #3ecf8e; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: auto; }
 </style>
@@ -148,7 +129,6 @@
 <body>
 
 <div class="profile-card">
-    <!-- ৩-ডট মেনু কন্টেইনার -->
     <div class="menu-container">
         <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮ Options</button>
         <div id="profileDropdown" class="dropdown-menu">
@@ -156,7 +136,7 @@
             <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
             <button class="dropdown-item" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
             <button class="dropdown-item" id="toggleSpecialViewBtn" onclick="toggleSpecialProfileView()">✨ Special Profile View</button>
-            <button class="dropdown-item" onclick="alert('Chat & Call feature coming soon ভাই!')" style="border-top: 1px solid #383838; color: #3ecf8e;">💬 Chat & Call</button>
+            <button class="dropdown-item" onclick="alert('Chat & Call feature coming soon भाई!')" style="border-top: 1px solid #383838; color: #3ecf8e;">💬 Chat & Call</button>
         </div>
     </div>
 
@@ -170,7 +150,7 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন (অটো হাইট ও স্পেসিং লক করা হয়েছে) -->
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
     <!-- HTML কোড এডিটর বক্স -->
@@ -180,8 +160,7 @@
         <button class="btn btn-solid" style="padding: 8px; font-size: 14px; margin-top: 5px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
-    <!-- ব্যাক টু হোম বাটন যা ডিজাইন লম্বা হলে অটোমেটিক নিচে নেমে যাবে -->
-    <button class="btn btn-solid" style="margin-top: auto;" onclick="window.location.href='index.html'">Back to Home</button>
+    <button class="btn btn-solid" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
 <div class="responsive-safety-space"></div>
@@ -223,7 +202,6 @@ async function initProfile() {
             window.location.href = "login.html";
             return;
         }
-        
         currentUserId = user.id;
         
         document.getElementById("userEmail").innerText = user.email;
@@ -233,9 +211,7 @@ async function initProfile() {
             document.getElementById("userAvatar").src = user.user_metadata.avatar_url;
         } else {
             const { data: prof } = await mySupabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
-            if (prof && prof.avatar_url) {
-                document.getElementById("userAvatar").src = prof.avatar_url;
-            }
+            if (prof && prof.avatar_url) document.getElementById("userAvatar").src = prof.avatar_url;
         }
         
         if (user.created_at) {
@@ -251,19 +227,16 @@ async function initProfile() {
             if (pData.bio) savedHtml = pData.bio;
         }
         
-        if (!savedHtml && user.user_metadata.custom_html) {
-            savedHtml = user.user_metadata.custom_html;
-        }
+        if (!savedHtml && user.user_metadata.custom_html) savedHtml = user.user_metadata.custom_html;
 
         if (savedHtml) {
             document.getElementById("htmlRenderZone").innerHTML = savedHtml;
             document.getElementById("customHtmlInput").value = savedHtml;
         } else {
-            document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet. Click Special View to see.</span>';
+            document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
         }
         
         loadUserPosts();
-        
     } catch (e) { console.error(e); }
 }
 
@@ -277,7 +250,6 @@ async function loadUserPosts() {
             .order('created_at', { ascending: false });
             
         if (error) throw error;
-        
         if (!posts || posts.length === 0) {
             container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">You haven\'t posted any evidence yet.</p>';
             return;
@@ -307,10 +279,7 @@ async function loadUserPosts() {
             `;
             container.appendChild(item);
         });
-        
-    } catch (e) {
-        container.innerHTML = `<p style="text-align:center; color:#ff4a4a;">Error: ${e.message}</p>`;
-    }
+    } catch (e) { container.innerHTML = `<p style="text-align:center; color:#ff4a4a;">Error: ${e.message}</p>`; }
 }
 
 function togglePostSelection(checkbox) {
@@ -343,12 +312,8 @@ async function deleteSelectedPosts() {
         if (error) throw error;
         alert("পোস্টগুলো সফলভাবে ডিলিট হয়েছে ভাই!");
         loadUserPosts(); 
-    } catch (e) {
-        alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message);
-    } finally {
-        btn.innerText = "🗑️ Delete Selected Posts";
-        btn.disabled = false;
-    }
+    } catch (e) { alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message); }
+    finally { btn.innerText = "🗑️ Delete Selected Posts"; btn.disabled = false; }
 }
 
 async function editProfileName() {
@@ -378,11 +343,7 @@ async function updateProfilePhotoLink() {
 
 function toggleHtmlEditor() {
     const box = document.getElementById("htmlEditorSection");
-    if (box.style.display === "block") {
-        box.style.display = "none";
-    } else {
-        box.style.display = "block";
-    }
+    box.style.display = box.style.display === "block" ? "none" : "block";
 }
 
 function toggleSpecialProfileView() {
@@ -400,34 +361,18 @@ function toggleSpecialProfileView() {
 async function saveCustomHTML() {
     const customHtml = document.getElementById("customHtmlInput").value;
     const saveBtn = document.querySelector("#htmlEditorSection button");
-    
     try {
         saveBtn.innerText = "Saving...";
         saveBtn.disabled = true;
-        
-        const { error: dbErr } = await mySupabase
-            .from('profiles')
-            .update({ bio: customHtml })
-            .eq('id', currentUserId);
-            
+        const { error: dbErr } = await mySupabase.from('profiles').update({ bio: customHtml }).eq('id', currentUserId);
         if (dbErr) throw dbErr;
-        
-        await mySupabase.auth.updateUser({
-            data: { custom_html: customHtml }
-        });
-        
+        await mySupabase.auth.updateUser({ data: { custom_html: customHtml } });
         alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
         document.getElementById("htmlRenderZone").innerHTML = customHtml || '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
-        
         document.getElementById("htmlRenderZone").style.display = "block";
         toggleHtmlEditor();
-        
-    } catch (e) {
-        alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message);
-    } finally {
-        saveBtn.innerText = "Save Design";
-        saveBtn.disabled = false;
-    }
+    } catch (e) { alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message); }
+    finally { saveBtn.innerText = "Save Design"; saveBtn.disabled = false; }
 }
 
 window.addEventListener("DOMContentLoaded", initProfile);

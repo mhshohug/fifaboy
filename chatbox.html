@@ -10,30 +10,33 @@
         * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
         body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
         
+        /* হেডার */
         .chat-header { background: #161618; padding: 10px 16px; display: flex; align-items: center; height: 60px; border-bottom: 1px solid #232326; flex-shrink: 0; }
-        .chat-header h3 { flex: 1; margin-left: 15px; font-size: 16px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .chat-header h3 { flex: 1; margin-left: 15px; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
         .btn-call { background: none; border: none; color: #3ecf8e; font-size: 22px; cursor: pointer; }
 
-        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        /* মেসেজ এরিয়া */
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; padding-bottom: 80px; display: flex; flex-direction: column; gap: 10px; }
         .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; word-wrap: break-word; }
         .msg-sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
         .msg-received { background: #232326; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
 
-        .chat-input-area { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; border-top: 1px solid #232326; height: 65px; }
+        /* ইনপুট এরিয়া ফিক্সড */
+        .chat-input-area { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; position: fixed; bottom: 0; left: 0; width: 100%; height: 65px; border-top: 1px solid #232326; z-index: 100; }
         .chat-input { flex: 1; height: 45px; padding: 0 15px; border-radius: 25px; background: #232326; border: none; color: #fff; outline: none; font-size: 15px; }
         .btn-send { background: #3ecf8e; color: #000; border: none; padding: 0 20px; height: 45px; border-radius: 25px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
 
+        /* কল ইউআই */
         #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        .call-status-text { font-size: 22px; margin-bottom: 50px; color: #fff; }
-        .call-btn-container { display: flex; gap: 40px; }
-        .btn-round { width: 80px; height: 80px; border-radius: 50%; border: none; color: #fff; font-size: 16px; cursor: pointer; }
+        .call-status-text { font-size: 24px; margin-bottom: 50px; color: #fff; text-align: center; }
+        .btn-round { width: 80px; height: 80px; border-radius: 50%; border: none; color: #fff; font-weight: bold; cursor: pointer; }
     </style>
 </head>
 <body>
 
 <div id="call-ui">
     <div id="call-status" class="call-status-text">Calling...</div>
-    <div class="call-btn-container">
+    <div style="display: flex; gap: 40px;">
         <button id="btn-accept" style="background: green; display: none;" class="btn-round">Accept</button>
         <button id="btn-reject" style="background: red;" class="btn-round">End</button>
     </div>
@@ -57,16 +60,71 @@ const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 const peer = new Peer();
-let targetUserId, currentUserId, currentCall;
+let targetUserId, currentUserId, currentCall, ringTone;
 
-peer.on('open', (id) => {
-    mySupabase.auth.getUser().then(({ data: { user } }) => {
-        if (user) {
-            mySupabase.from('profiles').update({ peer_id: id }).eq('id', user.id).then(() => console.log("Peer ID updated"));
+// রিংটোন লজিক
+function playRingtone() {
+    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+    return setInterval(() => {
+        const osc = ctx.createOscillator();
+        const gain = ctx.createGain();
+        osc.connect(gain); gain.connect(ctx.destination);
+        osc.frequency.value = 600;
+        gain.gain.setValueAtTime(0.5, ctx.currentTime);
+        gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+        osc.start(); osc.stop(ctx.currentTime + 0.5);
+    }, 1000);
+}
+
+// কলিং লজিক
+function initiateCall() {
+    mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).single().then(({data}) => {
+        if(data?.peer_id) {
+            document.getElementById('call-ui').style.display = 'flex';
+            document.getElementById('call-status').innerText = "Calling...";
+            ringTone = playRingtone();
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                currentCall = peer.call(data.peer_id, stream);
+                document.getElementById('call-status').innerText = "Ringing...";
+                currentCall.on('stream', s => { clearInterval(ringTone); playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
+            });
         }
     });
+}
+
+// কল রিসিভার
+peer.on('call', call => {
+    currentCall = call;
+    document.getElementById('call-ui').style.display = 'flex';
+    document.getElementById('call-status').innerText = "Incoming Call...";
+    document.getElementById('btn-accept').style.display = 'block';
+    ringTone = playRingtone();
+    document.getElementById('btn-accept').onclick = () => {
+        clearInterval(ringTone);
+        navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+            call.answer(stream);
+            call.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
+            document.getElementById('btn-accept').style.display = 'none';
+        });
+    };
 });
 
+// কল এন্ড লজিক
+document.getElementById('btn-reject').onclick = () => {
+    clearInterval(ringTone);
+    if(currentCall) currentCall.close();
+    document.getElementById('call-status').innerText = "Call Ended";
+    document.getElementById('call-status').style.color = "red";
+    setTimeout(() => {
+        document.getElementById('call-ui').style.display = 'none';
+        document.getElementById('call-status').style.color = "#fff";
+        document.getElementById('call-status').innerText = "Calling...";
+    }, 2000);
+};
+
+function playAudio(s) { let a = new Audio(); a.srcObject = s; a.play(); }
+
+// চ্যাট ইনিশিয়াল
 async function initChat() {
     const urlParams = new URLSearchParams(window.location.search);
     targetUserId = urlParams.get('target');
@@ -95,50 +153,12 @@ function loadPrivateChatHistory() {
 function sendLiveMessage() {
     const input = document.getElementById('chatMessageInput');
     if(!input.value.trim()) return;
-    mySupabase.from('messages').insert({ message_text: input.value, sender_id: currentUserId, receiver_id: targetUserId }).then(() => {
-        input.value = "";
-    });
+    mySupabase.from('messages').insert({ message_text: input.value, sender_id: currentUserId, receiver_id: targetUserId }).then(() => { input.value = ""; });
 }
 
 function listenToPrivateMessages() {
     mySupabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { loadPrivateChatHistory(); }).subscribe();
 }
-
-function initiateCall() {
-    mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).single().then(({data}) => {
-        if(data?.peer_id) {
-            document.getElementById('call-ui').style.display = 'flex';
-            document.getElementById('call-status').innerText = "Calling...";
-            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-                currentCall = peer.call(data.peer_id, stream);
-                document.getElementById('call-status').innerText = "Ringing...";
-                currentCall.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
-            });
-        }
-    });
-}
-
-peer.on('call', call => {
-    currentCall = call;
-    document.getElementById('call-ui').style.display = 'flex';
-    document.getElementById('call-status').innerText = "Incoming Call...";
-    document.getElementById('btn-accept').style.display = 'block';
-    document.getElementById('btn-accept').onclick = () => {
-        navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
-            call.answer(stream);
-            call.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
-            document.getElementById('btn-accept').style.display = 'none';
-        });
-    };
-});
-
-document.getElementById('btn-reject').onclick = () => {
-    if(currentCall) currentCall.close();
-    document.getElementById('call-ui').style.display = 'none';
-    location.reload();
-};
-
-function playAudio(s) { let a = new Audio(); a.srcObject = s; a.play(); }
 
 window.onload = initChat;
 </script>

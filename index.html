@@ -331,9 +331,17 @@ function renderPosts(postsList) {
 
 function viewPublicProfile(uid) {
     if(!uid) return;
-    if(currentUserId && uid === currentUserId) window.location.href = "profile.html";
-    else window.location.href = `profile.html?uid=${uid}`;
+    
+    // নিজের নামের ওপর ক্লিক করলে চ্যাট ওপেন হবে না
+    if(currentUserId && uid === currentUserId) {
+        alert("এটি আপনার নিজের আইডি ভাই!");
+        return;
+    }
+    
+    // সরাসরি ওই ইউজারের আইডি নিয়ে পার্সোনাল চ্যাটবক্সে পাঠিয়ে দেবে
+    window.location.href = `chatbox.html?target=${uid}`;
 }
+
 
 function openUpload() {
     if (!currentUserId) { alert("পোস্ট করতে প্রথমে লগইন করুন!"); window.location.href = "login.html"; return; }

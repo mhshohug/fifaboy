@@ -1,131 +1,58 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no">
-<title>TRACKBOY | Chat</title>
-<link rel="stylesheet" href="css/style.css">
-<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
-<style>
-    * { box-sizing: border-box !important; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
-html, body { 
-    background-color: #0b0b0c !important; 
-    color: #f5f5f7 !important; 
-    font-family: 'Poppins', sans-serif !important; 
-    height: 100vh !important; 
-    width: 100vw !important; 
-    overflow: hidden !important; 
-    display: flex !important; 
-    flex-direction: column !important;
-}
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>TRACKBOY | Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    <style>
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif; }
+        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* হেডার */
+        .chat-header { background: #161618; padding: 10px 16px; display: flex; align-items: center; height: 60px; border-bottom: 1px solid #232326; flex-shrink: 0; }
+        .chat-header h3 { flex: 1; margin-left: 15px; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-call { background: none; border: none; color: #3ecf8e; font-size: 22px; cursor: pointer; }
 
-/* চ্যাট হেডার - গ্লাস ইফেক্ট */
-.chat-header { 
-    background: rgba(22, 22, 24, 0.9) !important; 
-    backdrop-filter: blur(10px);
-    padding: 0 16px !important; 
-    display: flex !important; 
-    align-items: center !important; 
-    border-bottom: 1px solid #232326 !important; 
-    height: 65px !important; 
-    flex-shrink: 0 !important;
-}
+        /* মেসেজ এরিয়া */
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; word-wrap: break-word; }
+        .msg-sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .msg-received { background: #232326; color: #f5f5f7; align-self: flex-start; border-bottom-left-radius: 4px; }
 
-.btn-back { background: transparent !important; color: #3ecf8e !important; border: none !important; font-size: 24px !important; cursor: pointer !important; padding-right: 15px !important; }
-.chat-header h3 { font-size: 17px !important; font-weight: 600 !important; color: #fff !important; flex: 1 !important; }
-.btn-call { background: transparent !important; color: #3ecf8e !important; border: none !important; font-size: 22px !important; cursor: pointer !important; padding: 5px !important; }
+        /* ইনপুট এরিয়া */
+        .chat-input-area { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; border-top: 1px solid #232326; }
+        .chat-input { flex: 1; padding: 12px 16px; border-radius: 20px; background: #232326; border: none; color: #fff; outline: none; font-size: 15px; }
+        .btn-send { background: #3ecf8e; color: #000; border: none; padding: 10px 20px; border-radius: 20px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
 
-/* মেসেজ বক্স - রেসপন্সিভ */
-.chat-messages-container { 
-    flex: 1 !important; 
-    overflow-y: auto !important; 
-    padding: 20px 12px !important; 
-    display: flex !important; 
-    flex-direction: column !important; 
-    gap: 12px !important; 
-}
-
-.msg-bubble { 
-    max-width: 80% !important; 
-    padding: 12px 18px !important; 
-    font-size: 14.5px !important; 
-    line-height: 1.5 !important; 
-    border-radius: 20px !important; 
-    word-wrap: break-word !important; 
-    position: relative;
-}
-.msg-sent { 
-    background: #3ecf8e !important; 
-    color: #000 !important; 
-    align-self: flex-end !important; 
-    border-bottom-right-radius: 4px !important; 
-}
-.msg-received { 
-    background: #232326 !important; 
-    color: #f5f5f7 !important; 
-    align-self: flex-start !important; 
-    border-bottom-left-radius: 4px !important; 
-}
-
-/* ইনপুট এরিয়া - পারফেক্ট অ্যালাইনমেন্ট */
-.chat-input-area { 
-.chat-input-area { 
-    background: #161618 !important; 
-    padding: 10px !important; 
-    display: flex !important; 
-    align-items: center !important; 
-    gap: 10px !important; 
-    border-top: 1px solid #232326 !important; 
-    width: 100% !important; 
-    padding-bottom: 20px !important; /* নিচে একটু জায়গা বাড়িয়ে দিলাম */
-}
-.chat-input { 
-    flex: 1 !important; 
-    padding: 12px 18px !important; 
-    border-radius: 25px !important; 
-    background: #232326 !important; 
-    border: none !important; 
-    color: white !important; 
-    font-size: 15px !important;
-}
-.btn-send { 
-    background: #3ecf8e !important; 
-    color: #000 !important; 
-    border: none !important; 
-    padding: 10px 20px !important; 
-    font-weight: 700 !important; 
-    font-size: 14px !important; 
-    border-radius: 20px !important; 
-    cursor: pointer !important; 
-    flex-shrink: 0 !important; /* এটা বাটনকে চেপে যাওয়া থেকে আটকাবে */
-}
-
-   /* কল ইউআই */
-    #call-ui { display:none; position:fixed; top:0; left:0; width:100%; height:100%; background:#1a1a1a; z-index:9999; flex-direction:column; justify-content:center; align-items:center; color:white; }
-</style>
+        /* কলিং ইন্টারফেস */
+        #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        .call-status-text { font-size: 22px; font-weight: bold; margin-bottom: 50px; color: #fff; }
+        .call-actions { display: flex; gap: 50px; }
+        .btn-round { width: 75px; height: 75px; border-radius: 50%; border: none; color: #fff; font-size: 14px; cursor: pointer; display: flex; justify-content: center; align-items: center; }
+    </style>
 </head>
 <body>
 
 <div id="call-ui">
-    <h2 id="call-status">Calling...</h2>
-    <button id="btn-accept" style="display:none; padding:15px 30px; background:green; margin-top:20px;">Accept</button>
-    <button id="btn-end" style="padding:15px 30px; background:red; margin-top:20px;">End Call</button>
+    <div id="call-status" class="call-status-text">Calling...</div>
+    <div class="call-actions">
+        <button id="btn-accept" style="background: green; display: none;" class="btn-round">Accept</button>
+        <button id="btn-reject" style="background: red;" class="btn-round">Reject/End</button>
+    </div>
 </div>
 
 <div class="chat-header">
-    <button class="btn-back" onclick="window.location.href='inbox.html'">←</button>
-    <div onclick="goToProfile()" style="cursor: pointer; flex: 1;">
-        <h3 id="chatPartnerName">Loading...</h3>
-    </div>
+    <button onclick="window.history.back()" style="background:none; border:none; color:#3ecf8e; font-size:20px;">←</button>
+    <h3 id="chatPartnerName">Loading...</h3>
     <button class="btn-call" onclick="initiateCall()">📞</button>
 </div>
 
-<div id="chatMessagesBox" class="chat-messages-container"></div>
+<div id="chatMessagesBox"></div>
 
 <div class="chat-input-area">
-    <input type="text" id="chatMessageInput" class="chat-input" placeholder="Aa" onkeydown="if(event.key==='Enter') sendLiveMessage()">
+    <input type="text" id="chatMessageInput" class="chat-input" placeholder="Aa">
     <button class="btn-send" onclick="sendLiveMessage()">Send</button>
 </div>
 
@@ -133,64 +60,87 @@ html, body {
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUserId = null; let targetUserId = null; let peer = new Peer(); let currentCall;
 
-function goToProfile() { if (targetUserId) window.location.href = 'profile.html?uid=' + targetUserId; }
+let peer = new Peer();
+let targetUserId, currentUserId, currentCall;
 
-async function initChat() {
-    const urlParams = new URLSearchParams(window.location.search);
-    targetUserId = urlParams.get('target');
-    const { data: { user } } = await mySupabase.auth.getUser();
-    if (!user) { window.location.href = "login.html"; return; }
-    currentUserId = user.id;
-    const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).maybeSingle();
-    document.getElementById('chatPartnerName').innerText = "💬 " + (profile?.username || "User");
-    await loadPrivateChatHistory();
-    await markMessagesAsRead();
-    listenToPrivateMessages();
-}
-
-async function markMessagesAsRead() { await mySupabase.from('messages').update({ read_status: true }).eq('receiver_id', currentUserId).eq('sender_id', targetUserId).eq('read_status', false); }
-async function loadPrivateChatHistory() { const box = document.getElementById('chatMessagesBox'); const { data } = await mySupabase.from('messages').select('*').or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true }); box.innerHTML = data?.length === 0 ? "<p style='color:#666;text-align:center;'>No private messages yet.</p>" : ""; data?.forEach(m => appendMsgUI(m)); box.scrollTop = box.scrollHeight; }
-function appendMsgUI(m) { const box = document.getElementById('chatMessagesBox'); const div = document.createElement('div'); div.className = `msg-bubble ${m.sender_id === currentUserId ? 'msg-sent' : 'msg-received'}`; div.innerText = m.message_text; box.appendChild(div); box.scrollTop = box.scrollHeight; }
-async function sendLiveMessage() { const input = document.getElementById('chatMessageInput'); const text = input.value.trim(); if (!text) return; input.value = ''; await mySupabase.from('messages').insert({ message_text: text, sender_id: currentUserId, receiver_id: targetUserId }); }
-function listenToPrivateMessages() { mySupabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => { if ((payload.new.sender_id === targetUserId && payload.new.receiver_id === currentUserId)) { appendMsgUI(payload.new); markMessagesAsRead(); } else if (payload.new.sender_id === currentUserId && payload.new.receiver_id === targetUserId) appendMsgUI(payload.new); }).subscribe(); }
-
+// কল করার ফাংশন
 function initiateCall() {
-    mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).maybeSingle().then(({data}) => {
-        if (data?.peer_id) {
+    mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).single().then(({data}) => {
+        if(data?.peer_id) {
             document.getElementById('call-ui').style.display = 'flex';
-            document.getElementById('call-status').innerText = "Ringing...";
-            navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            document.getElementById('call-status').innerText = "Calling...";
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
                 currentCall = peer.call(data.peer_id, stream);
-                currentCall.on('stream', s => { let a = new Audio(); a.srcObject = s; a.play(); });
+                document.getElementById('call-status').innerText = "Ringing...";
+                currentCall.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
             });
         }
     });
 }
 
+// কল রিসিভ লজিক
 peer.on('call', call => {
     currentCall = call;
     document.getElementById('call-ui').style.display = 'flex';
     document.getElementById('call-status').innerText = "Incoming Call...";
-    document.getElementById('btn-accept').style.display = 'inline-block';
+    document.getElementById('btn-accept').style.display = 'flex';
     document.getElementById('btn-accept').onclick = () => {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
             call.answer(stream);
-            call.on('stream', s => { let a = new Audio(); a.srcObject = s; a.play(); });
-            document.getElementById('call-status').innerText = "Connected";
+            call.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
             document.getElementById('btn-accept').style.display = 'none';
         });
     };
 });
 
-document.getElementById('btn-end').onclick = () => {
+document.getElementById('btn-reject').onclick = () => {
     if(currentCall) currentCall.close();
     document.getElementById('call-ui').style.display = 'none';
     location.reload();
 };
 
-window.onload = () => { initChat(); };
+function playAudio(s) { let a = new Audio(); a.srcObject = s; a.play(); }
+
+// ডাটাবেজ লজিক
+async function initChat() {
+    const urlParams = new URLSearchParams(window.location.search);
+    targetUserId = urlParams.get('target');
+    const { data: { user } } = await mySupabase.auth.getUser();
+    currentUserId = user?.id;
+    const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).single();
+    document.getElementById('chatPartnerName').innerText = profile?.username || "User";
+    loadPrivateChatHistory();
+    listenToPrivateMessages();
+}
+
+function loadPrivateChatHistory() {
+    mySupabase.from('messages').select('*').or(`sender_id.eq.${currentUserId},and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true }).then(({data}) => {
+        const box = document.getElementById('chatMessagesBox');
+        box.innerHTML = "";
+        data?.forEach(m => {
+            const div = document.createElement('div');
+            div.className = "msg-bubble " + (m.sender_id === currentUserId ? "msg-sent" : "msg-received");
+            div.innerText = m.message_text;
+            box.appendChild(div);
+        });
+        box.scrollTop = box.scrollHeight;
+    });
+}
+
+function sendLiveMessage() {
+    const input = document.getElementById('chatMessageInput');
+    if(!input.value.trim()) return;
+    mySupabase.from('messages').insert({ message_text: input.value, sender_id: currentUserId, receiver_id: targetUserId }).then(() => {
+        input.value = "";
+    });
+}
+
+function listenToPrivateMessages() {
+    mySupabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { loadPrivateChatHistory(); }).subscribe();
+}
+
+window.onload = initChat;
 </script>
 </body>
 </html>

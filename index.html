@@ -62,9 +62,8 @@
 .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
 .action-btn.liked { color: #3ecf8e !important; font-weight: bold; }
 .action-btn.disliked { color: #ff6b6b !important; font-weight: bold; }
-    .comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
+.comment-user-link { color: #3ecf8e; font-weight: 600; cursor: pointer; text-decoration: underline; }
 
-/* 👈 এখানে নতুন কোডটি পেস্ট করুন */
 .post-card span.comment-user-link {
     color: #3ecf8e;
     font-weight: 600;
@@ -175,7 +174,7 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container"><iframe src="https://www.youtube.com/embed/' + videoId + '" allowfullscreen></iframe></div>';
     }
     
-    // ২. Facebook (ফিক্সড লজিক: টোকেন অক্ষত রেখে ডিরেক্টলি প্লেয়ারে পুশ)
+    // ২. Facebook
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
         setTimeout(() => {
             fetchFacebookEmbed(url, containerId);
@@ -212,12 +211,9 @@ async function fetchFacebookEmbed(facebookUrl, targetId) {
     if (!container) return;
 
     try {
-        // ফিক্সড: শুধুমাত্র ইউআরএল এর পেছনের ট্র্যাকিং প্যারামিটার (?mibextid=...) কাটবে, মেইন লিঙ্ক ও টোকেন অক্ষত থাকবে
         let cleanUrl = facebookUrl.split("?")[0];
-        
         let fallbackUrl = "https://www.facebook.com/plugins/video.php?href=" + encodeURIComponent(cleanUrl) + "&show_text=false&width=500";
         container.innerHTML = '<iframe src="' + fallbackUrl + '" width="100%" height="500" style="border:none;overflow:hidden;border-radius:8px;" scrolling="no" frameborder="0" allowfullscreen="true" allow="autoplay; clipboard-write; encrypted-media; picture-in-picture; web-share"></iframe>';
-        
     } catch (err) {
         console.error("Facebook Embed Error: ", err);
         container.innerHTML = '<div style="color:#ff6b6b; padding:10px; text-align:center;">Video unavailable</div>';
@@ -343,15 +339,12 @@ function renderPosts(postsList) {
 
 function viewPublicProfile(uid) {
     if(!uid) return;
-    // নিজের নামের ওপর ক্লিক করলে নিজের প্রোফাইলে যাবে
     if(currentUserId && uid === currentUserId) {
         window.location.href = "profile.html";
     } else {
-        // অন্য কারও নামের ওপর ক্লিক করলে তার আইডি সহ প্রোফাইল পেজ ওপেন হবে
         window.location.href = `profile.html?uid=${uid}`;
     }
 }
-
 
 function openUpload() {
     if (!currentUserId) { alert("পোস্ট করতে প্রথমে লগইন করুন!"); window.location.href = "login.html"; return; }
@@ -439,12 +432,136 @@ window.addEventListener("scroll", () => {
     if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
 });
 
-document.getElementById("search").addEventListener("input", e => {
-    const q = e.target.value.toLowerCase();
-    const filtered = POSTS.filter(post =>
-        (post.title || "").toLowerCase().includes(q) || (post.description || "").toLowerCase().includes(q)
-    );
-    renderPosts(filtered);
+// ⚡ ফিক্সড রিয়েল-টাইম গ্লোবাল সার্চ মেকানিজম (ইউজার + পোস্ট একসাথে)
+document.getElementById("search").addEventListener("input", async (e) => {
+    const q = e.target.value.trim();
+    const feedSection = document.getElementById("feed");
+    
+    if (!q) {
+        renderPosts(POSTS); // সার্চ ইনপুট ফাকা থাকলে স্বাভাবিক সব পোস্ট দেখাবে
+        return;
+    }
+
+    try {
+        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Searching users & evidence...</div>';
+
+        // ১. Profiles টেবিল থেকে ইউজার সার্চ করা (পোস্ট থাক বা না থাক)
+        const { data: users, error: userErr } = await mySupabase
+            .from('profiles')
+            .select('id, username, avatar_url, role')
+            .ilike('username', `%${q}%`);
+
+        if (userErr) throw userErr;
+
+        // ২. লোকাল মেমোরি (POSTS Array) থেকে এভিডেন্স ফিল্টার করা
+        const filteredPosts = POSTS.filter(post =>
+            (post.title || "").toLowerCase().includes(q.toLowerCase()) || 
+            (post.description || "").toLowerCase().includes(q.toLowerCase())
+        );
+
+        // ৩. কোনো ম্যাচিং ডাটা না পাওয়া গেলে
+        if ((!users || users.length === 0) && filteredPosts.length === 0) {
+            feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No matching users or evidence found.</div>';
+            return;
+        }
+
+        feedSection.innerHTML = "";
+
+        // 👥 ৪. প্রথম পার্টে ম্যাচিং ইউজারদের কার্ড আকারে রেন্ডার করা (পোস্ট না থাকলেও শো করবে!)
+        if (users && users.length > 0) {
+            const userTitle = document.createElement('div');
+            userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users</h4>`;
+            feedSection.appendChild(userTitle);
+
+            users.forEach(u => {
+                const avatar = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username}`;
+                const userCard = document.createElement("div");
+                userCard.className = "post-card";
+                userCard.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
+                userCard.style.cursor = "pointer";
+                
+                userCard.innerHTML = `
+                    <div style="display:flex; align-items:center; gap:15px; width:100%;">
+                        <img src="${avatar}" style="width:45px; height:45px; border-radius:50%; border:2px solid #3ecf8e; object-fit:cover; background:#2b2b2b;">
+                        <div style="flex-grow:1;">
+                            <h3 style="margin:0; font-size:16px; color:#fff;">${u.username}</h3>
+                            <span style="font-size:11px; color:#888;">Role: ${u.role || 'user'}</span>
+                        </div>
+                        <span class="badge" style="background:#2d2d2d; color:#3ecf8e; border:1px solid #3ecf8e; font-size:12px; padding:4px 10px; border-radius:4px;">View Profile</span>
+                    </div>
+                `;
+                feedSection.appendChild(userCard);
+            });
+        }
+
+        // 📝 ৫. দ্বিতীয় পার্টে ম্যাচিং এভিডেন্স পোস্টগুলো রেন্ডার করা
+        if (filteredPosts.length > 0) {
+            const postTitle = document.createElement('div');
+            postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence</h4>`;
+            feedSection.appendChild(postTitle);
+
+            filteredPosts.forEach(post => {
+                const postCard = document.createElement("div");
+                postCard.className = "post-card";
+                
+                let fbContainerId = "fb-embed-search-" + post.id;
+                let mediaHTML = getMediaEmbedHTML(post.url, fbContainerId);
+                
+                let voteCount = post.likes ? parseInt(post.likes) : 0;
+                let dislikeCount = post.dislikes ? parseInt(post.dislikes) : 0;
+                const userShortId = post.user_id ? "User_" + post.user_id.substring(0, 5) : "Unknown";
+
+                const userVoted = USER_VOTES.find(v => v.post_id === post.id);
+                let likeClass = "";
+                let dislikeClass = "";
+                if(userVoted) {
+                    if(userVoted.vote === 1) likeClass = "liked";
+                    if(userVoted.vote === -1) dislikeClass = "disliked";
+                }
+
+                postCard.innerHTML = `
+                    <div class="post-header" style="display:flex; justify-content:space-between; align-items:center;">
+                        <h3 style="margin:0; color:#3ecf8e; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+                            ${post.title || "Untitled"}
+                        </h3>
+                        <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px;">${post.platform || "Community"}</span>
+                    </div>
+                    
+                    <div style="font-size:11px; color:#888; margin:5px 0 10px;">
+                        Posted By: <span class="comment-user-link" onclick="viewPublicProfile('${post.user_id}')">${userShortId}</span>
+                    </div>
+                    
+                    <p class="post-desc" style="color:#ccc; line-height:1.5; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+                        ${post.description || ""}
+                    </p>
+                    
+                    ${mediaHTML}
+                    
+                    <div class="interaction-bar" style="display:flex; justify-content:space-between; align-items:center; margin-top:15px; padding-top:12px; border-top:1px solid #383838; width: 100%;">
+                        <button class="action-btn ${likeClass}" onclick="votePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                             👍 <span>Vote (<span class="vote-num">${voteCount}</span>)</span>
+                        </button>
+                        <button class="action-btn ${dislikeClass}" onclick="dislikePost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                             👎 <span>Dislike (<span class="dislike-num">${dislikeCount}</span>)</span>
+                        </button>
+                        <button class="action-btn" onclick="window.location.href='post.html?id=${post.id}'" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                             💬 <span>Comment</span>
+                        </button>
+                        <button class="action-btn" onclick="sharePost('${post.title}', ${post.id})" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                             📤 <span>Share</span>
+                        </button>
+                        <button class="action-btn" onclick="reportPost(${post.id}, this)" style="background:transparent; border:none; color:#aaa; font-size:14px; cursor:pointer; display:flex; align-items:center; gap:6px; padding:6px 10px; font-family:inherit;">
+                             🚩 <span>Report</span>
+                        </button>
+                    </div>
+                `;
+                feedSection.appendChild(postCard);
+            });
+        }
+    } catch(err) {
+        console.error(err);
+        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#ff6b6b;">Search error occurred.</div>';
+    }
 });
 
 window.addEventListener("DOMContentLoaded", () => { initPage(); loadPosts(); });

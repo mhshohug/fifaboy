@@ -342,15 +342,13 @@ function renderPosts(postsList) {
 
 function viewPublicProfile(uid) {
     if(!uid) return;
-    
-    // নিজের নামের ওপর ক্লিক করলে চ্যাট ওপেন হবে না
+    // নিজের নামের ওপর ক্লিক করলে নিজের প্রোফাইলে যাবে
     if(currentUserId && uid === currentUserId) {
-        alert("এটি আপনার নিজের আইডি ভাই!");
-        return;
+        window.location.href = "profile.html";
+    } else {
+        // অন্য কারও নামের ওপর ক্লিক করলে তার আইডি সহ প্রোফাইল পেজ ওপেন হবে
+        window.location.href = `profile.html?uid=${uid}`;
     }
-    
-    // সরাসরি ওই ইউজারের আইডি নিয়ে পার্সোনাল চ্যাটবক্সে পাঠিয়ে দেবে
-    window.location.href = `chatbox.html?target=${uid}`;
 }
 
 

@@ -213,16 +213,18 @@ function getEmbed(post){
     }
 
     if(post.platform==="TikTok"){
+        const cleanUrl = (url || "").split("?")[0];
+        const videoId = cleanUrl.split("/video/")[1] || "";
+        return `
+        <div class="embed-container">
+            <blockquote class="tiktok-embed" cite="${cleanUrl}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px;">
+                <section><a target="_blank" href="${cleanUrl}">Watch on TikTok</a></section>
+            </blockquote>
+            <script async src="https://www.tiktok.com/embed.js"><\/script>
+        </div>
+        `;
+    }
 
-    const cleanUrl = (url || "").split("?")[0];
-
-    return `
-    <div class="embed-container">
-        <div class="tiktok-oembed" data-url="${cleanUrl}"></div>
-    </div>
-    `;
-
-}
     if(post.platform==="X"){
         return `<div class="preview"><h3>X Post</h3><a href="${url}" target="_blank">Open Original</a></div>`;
     }
@@ -666,6 +668,3 @@ function goHome(){
 //=========================
 
 console.log("⚽ FIFABOY Ready");
-
-
-

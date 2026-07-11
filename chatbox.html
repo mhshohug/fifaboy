@@ -24,7 +24,6 @@
         flex-direction: column !important;
     }
 
-    /* 💬 প্রফেশনাল মেসেঞ্জার হেডার */
     .chat-header {
         background: #161618 !important;
         padding: 0 16px !important;
@@ -56,7 +55,6 @@
         text-overflow: ellipsis !important;
     }
 
-    /* 📩 মেসেজ স্ক্রোল জোন */
     .chat-messages-container {
         flex: 1 !important;
         overflow-y: auto !important;
@@ -69,7 +67,6 @@
         -webkit-overflow-scrolling: touch !important;
     }
 
-    /* 💬 আধুনিক মেসেজ বাবল */
     .msg-bubble {
         max-width: 75% !important;
         padding: 10px 16px !important;
@@ -93,7 +90,6 @@
         border-bottom-left-radius: 4px !important;
     }
 
-    /* 📌 প্রিমিয়াম বটম ইনপুট বার */
     .chat-input-area {
         background: #161618 !important;
         padding: 10px 16px !important;
@@ -158,7 +154,7 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 let currentUserId = null; 
 let targetUserId = null;  
-// এই ফাংশনটা আপনার <script> ট্যাগের ভেতরে বসান
+
 function goToProfile() {
     if (targetUserId) {
         window.location.href = 'profile.html?uid=' + targetUserId;
@@ -184,7 +180,6 @@ async function initChat() {
         return;
     }
 
-    // চ্যাট পার্টনারের নাম হেডার-এ দেখানো
     const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).maybeSingle();
     if (profile && profile.username) {
         document.getElementById('chatPartnerName').innerText = "💬 " + profile.username;
@@ -193,7 +188,18 @@ async function initChat() {
     }
 
     await loadPrivateChatHistory();
+    // চ্যাট ওপেন করলেই মেসেজগুলো 'পড়া হয়েছে' করে দেওয়া
+    await markMessagesAsRead();
     listenToPrivateMessages();
+}
+
+async function markMessagesAsRead() {
+    await mySupabase
+        .from('messages')
+        .update({ read_status: true })
+        .eq('receiver_id', currentUserId)
+        .eq('sender_id', targetUserId)
+        .eq('read_status', false);
 }
 
 async function loadPrivateChatHistory() {
@@ -230,16 +236,8 @@ async function sendLiveMessage() {
     const input = document.getElementById('chatMessageInput');
     const text = input.value.trim();
     if (!text) return;
-    
     input.value = '';
-    
-    const { error } = await mySupabase.from('messages').insert({ 
-        message_text: text, 
-        sender_id: currentUserId,
-        receiver_id: targetUserId 
-    });
-
-    if(error) { alert("মেসেজ যায়নি ভাই!"); }
+    const { error } = await mySupabase.from('messages').insert({ message_text: text, sender_id: currentUserId, receiver_id: targetUserId });
 }
 
 function listenToPrivateMessages() {
@@ -250,21 +248,16 @@ function listenToPrivateMessages() {
             if ((newMsg.sender_id === currentUserId && newMsg.receiver_id === targetUserId) || 
                 (newMsg.sender_id === targetUserId && newMsg.receiver_id === currentUserId)) {
                 appendMsgUI(newMsg);
+                if(newMsg.sender_id === targetUserId) markMessagesAsRead();
             }
         })
         .subscribe();
 }
 
-function resetHeight() {
-    document.body.style.height = window.innerHeight + 'px';
-}
+function resetHeight() { document.body.style.height = window.innerHeight + 'px'; }
 window.addEventListener('resize', resetHeight);
 window.addEventListener('orientationchange', resetHeight);
-
-window.onload = () => {
-    resetHeight();
-    initChat();
-};
+window.onload = () => { resetHeight(); initChat(); };
 </script>
 </body>
 </html>

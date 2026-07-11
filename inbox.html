@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0">
+<title>TRACKBOY | Inbox</title>
+<link rel="stylesheet" href="css/style.css">
+<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+    html, body { 
+        background-color: #121212 !important; 
+        color: white !important; 
+        font-family: 'Poppins', sans-serif !important; 
+        margin: 0 !important; 
+        padding: 20px !important; 
+    }
+    .inbox-container {
+        max-width: 500px !important;
+        margin: 0 auto !important;
+        background: #1e1e1e !important;
+        padding: 20px !important;
+        border-radius: 12px !important;
+        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
+    }
+    .inbox-title {
+        color: #3ecf8e !important;
+        font-size: 22px !important;
+        font-weight: bold !important;
+        margin-bottom: 20px !important;
+        border-bottom: 1px solid #333 !important;
+        padding-bottom: 10px !important;
+    }
+    .chat-item {
+        background: #2a2a2a !important;
+        padding: 15px !important;
+        border-radius: 8px !important;
+        margin-bottom: 10px !important;
+        display: flex !important;
+        align-items: center !important;
+        justify-content: space-between !important;
+        cursor: pointer !important;
+        border: 1px solid #383838 !important;
+        transition: 0.2s !important;
+    }
+    .chat-item:hover { border-color: #3ecf8e !important; background: #333 !important; }
+    .user-info h4 { margin: 0 !important; color: #fff !important; font-size: 16px !important; }
+    .user-info p { margin: 5px 0 0 0 !important; color: #aaa !important; font-size: 13px !important; }
+    .btn-chat { background: #3ecf8e !important; color: white !important; border: none !important; padding: 6px 12px !important; border-radius: 6px !important; font-weight: bold !important; font-size: 12px !important; }
+</style>
+</head>
+<body>
+
+<div class="inbox-container">
+    <div class="inbox-title">📥 Recent Private Messages</div>
+    <div id="inboxList">
+        <p style="text-align:center; color:#888;">Loading your messages...</p>
+    </div>
+    <button class="btn" style="background:#444; color:white; width:100%; margin-top:15px; padding:10px; border:none; border-radius:8px; font-weight:bold; cursor:pointer;" onclick="window.location.href='index.html'">Back to Home</button>
+</div>
+
+<script>
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let globalUser = null;
+
+async function initInbox() {
+    const { data: { user } } = await mySupabase.auth.getUser();
+    if (!user) {
+        document.getElementById("inboxList").innerHTML = '<p style="text-align:center; color:#ff4a4a;">দয়া করে প্রথমে লগইন করুন ভাই!</p>';
+        return;
+    }
+    globalUser = user;
+    await loadInboxData();
+    listenToLiveInbox();
+}
+
+async function loadInboxData() {
+    const listContainer = document.getElementById("inboxList");
+    try {
+        const { data: messages, error } = await mySupabase
+            .from('messages')
+            .select('*')
+            .or(`sender_id.eq.${globalUser.id},receiver_id.eq.${globalUser.id}`)
+            .order('created_at', { ascending: false });
+
+        if (error) throw error;
+        if (!messages || messages.length === 0) {
+            listContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No messages yet.</p>';
+            return;
+        }
+
+        const chatPartners = {};
+        messages.forEach(msg => {
+            const partnerId = msg.sender_id === globalUser.id ? msg.receiver_id : msg.sender_id;
+            if (!chatPartners[partnerId]) {
+                chatPartners[partnerId] = {
+                    lastMessage: msg.message_text,
+                    time: new Date(msg.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})
+                };
+            }
+        });
+
+        listContainer.innerHTML = "";
+
+        for (const partnerId in chatPartners) {
+            const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', partnerId).maybeSingle();
+            const name = (profile && profile.username) ? profile.username : "User_" + partnerId.substring(0, 5);
+            
+            const item = document.createElement("div");
+            item.className = "chat-item";
+            item.setAttribute("onclick", `window.location.href='chatbox.html?target=${partnerId}'`);
+            
+            item.innerHTML = `
+                <div class="user-info">
+                    <h4>💬 ${name}</h4>
+                    <p>${chatPartners[partnerId].lastMessage}</p>
+                </div>
+                <div style="text-align: right;">
+                    <span style="font-size:11px; color:#666; display:block; margin-bottom:5px;">${chatPartners[partnerId].time}</span>
+                    <button class="btn-chat">Open</button>
+                </div>
+            `;
+            listContainer.appendChild(item);
+        }
+    } catch (e) { listContainer.innerHTML = `<p style="text-align:center; color:#ff4a4a;">Error: ${e.message}</p>`; }
+}
+
+function listenToLiveInbox() {
+    mySupabase
+        .channel('public:messages_inbox')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+            const newMsg = payload.new;
+            if (newMsg.receiver_id === globalUser.id || newMsg.sender_id === globalUser.id) {
+                loadInboxData();
+            }
+        })
+        .subscribe();
+}
+
+window.addEventListener("DOMContentLoaded", initInbox);
+</script>
+</body>
+</html>

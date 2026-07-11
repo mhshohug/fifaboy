@@ -209,13 +209,19 @@ function getMediaEmbedHTML(url, containerId) {
         }, 50);
         return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
-    
-    if (checkUrl.includes("tiktok.com")) {
-        let cleanUrl = url.split("?")[0];
-        if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
-        const videoId = cleanUrl.split('/').pop(); 
-        return '<div class="embed-container"><iframe src="' + cleanUrl.replace("tiktok.com", "tiktok.com/embed/v") + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
-    }
+        if (url.includes("tiktok.com")) {
+        const cleanUrl = url.split("?")[0];
+        const videoId = cleanUrl.split('/video/')[1] || "";
+        
+        return `
+        <div class="embed-container">
+            <blockquote class="tiktok-embed" cite="${cleanUrl}" data-video-id="${videoId}" style="max-width: 605px;min-width: 325px;">
+                <section><a target="_blank" href="${cleanUrl}">Watch on TikTok</a></section>
+            </blockquote>
+            <script async src="https://www.tiktok.com/embed.js"><\/script>
+        </div>
+        `;
+        }
     
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';

@@ -340,6 +340,17 @@
     window.sendMessage = sendMessage;
     window.initCall = initCall;
     window.openProfile = openProfile;
+    // রিয়েল-টাইম মেসেজ লিসেনার
+sb.channel('realtime-messages')
+  .on('postgres_changes', { 
+      event: 'INSERT', 
+      schema: 'public', 
+      table: 'messages' 
+  }, payload => {
+      loadMessages(); 
+  })
+  .subscribe();
+
 </script>
 </body>
 </html>

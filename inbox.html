@@ -8,41 +8,10 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    html, body { 
-        background-color: #121212 !important; 
-        color: white !important; 
-        font-family: 'Poppins', sans-serif !important; 
-        margin: 0 !important; 
-        padding: 20px !important; 
-    }
-    .inbox-container {
-        max-width: 500px !important;
-        margin: 0 auto !important;
-        background: #1e1e1e !important;
-        padding: 20px !important;
-        border-radius: 12px !important;
-        box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important;
-    }
-    .inbox-title {
-        color: #3ecf8e !important;
-        font-size: 22px !important;
-        font-weight: bold !important;
-        margin-bottom: 20px !important;
-        border-bottom: 1px solid #333 !important;
-        padding-bottom: 10px !important;
-    }
-    .chat-item {
-        background: #2a2a2a !important;
-        padding: 15px !important;
-        border-radius: 8px !important;
-        margin-bottom: 10px !important;
-        display: flex !important;
-        align-items: center !important;
-        justify-content: space-between !important;
-        cursor: pointer !important;
-        border: 1px solid #383838 !important;
-        transition: 0.2s !important;
-    }
+    html, body { background-color: #121212 !important; color: white !important; font-family: 'Poppins', sans-serif !important; margin: 0 !important; padding: 20px !important; }
+    .inbox-container { max-width: 500px !important; margin: 0 auto !important; background: #1e1e1e !important; padding: 20px !important; border-radius: 12px !important; box-shadow: 0 4px 15px rgba(0,0,0,0.5) !important; }
+    .inbox-title { color: #3ecf8e !important; font-size: 22px !important; font-weight: bold !important; margin-bottom: 20px !important; border-bottom: 1px solid #333 !important; padding-bottom: 10px !important; }
+    .chat-item { background: #2a2a2a !important; padding: 15px !important; border-radius: 8px !important; margin-bottom: 10px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; border: 1px solid #383838 !important; transition: 0.2s !important; }
     .chat-item:hover { border-color: #3ecf8e !important; background: #333 !important; }
     .user-info h4 { margin: 0 !important; color: #fff !important; font-size: 16px !important; }
     .user-info p { margin: 5px 0 0 0 !important; color: #aaa !important; font-size: 13px !important; }
@@ -75,69 +44,56 @@ async function initInbox() {
     globalUser = user;
     await loadInboxData();
     listenToLiveInbox();
+    updateInboxCount(); // সংখ্যা আপডেট করার কল
 }
 
 async function loadInboxData() {
     const listContainer = document.getElementById("inboxList");
-    try {
-        const { data: messages, error } = await mySupabase
-            .from('messages')
-            .select('*')
-            .or(`sender_id.eq.${globalUser.id},receiver_id.eq.${globalUser.id}`)
-            .order('created_at', { ascending: false });
+    const { data: messages, error } = await mySupabase
+        .from('messages')
+        .select('*')
+        .or(`sender_id.eq.${globalUser.id},receiver_id.eq.${globalUser.id}`)
+        .order('created_at', { ascending: false });
 
-        if (error) throw error;
-        if (!messages || messages.length === 0) {
-            listContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No messages yet.</p>';
-            return;
+    if (!messages || messages.length === 0) {
+        listContainer.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No messages yet.</p>';
+        return;
+    }
+
+    const chatPartners = {};
+    messages.forEach(msg => {
+        const partnerId = msg.sender_id === globalUser.id ? msg.receiver_id : msg.sender_id;
+        if (!chatPartners[partnerId]) {
+            chatPartners[partnerId] = { lastMessage: msg.message_text, time: new Date(msg.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'}) };
         }
+    });
 
-        const chatPartners = {};
-        messages.forEach(msg => {
-            const partnerId = msg.sender_id === globalUser.id ? msg.receiver_id : msg.sender_id;
-            if (!chatPartners[partnerId]) {
-                chatPartners[partnerId] = {
-                    lastMessage: msg.message_text,
-                    time: new Date(msg.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'})
-                };
-            }
-        });
+    listContainer.innerHTML = "";
+    for (const partnerId in chatPartners) {
+        const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', partnerId).maybeSingle();
+        const name = (profile && profile.username) ? profile.username : "User_" + partnerId.substring(0, 5);
+        const item = document.createElement("div");
+        item.className = "chat-item";
+        item.onclick = () => window.location.href = `chatbox.html?target=${partnerId}`;
+        item.innerHTML = `<div class="user-info"><h4>💬 ${name}</h4><p>${chatPartners[partnerId].lastMessage}</p></div><div style="text-align: right;"><span style="font-size:11px; color:#666; display:block; margin-bottom:5px;">${chatPartners[partnerId].time}</span><button class="btn-chat">Open</button></div>`;
+        listContainer.appendChild(item);
+    }
+}
 
-        listContainer.innerHTML = "";
-
-        for (const partnerId in chatPartners) {
-            const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', partnerId).maybeSingle();
-            const name = (profile && profile.username) ? profile.username : "User_" + partnerId.substring(0, 5);
-            
-            const item = document.createElement("div");
-            item.className = "chat-item";
-            item.setAttribute("onclick", `window.location.href='chatbox.html?target=${partnerId}'`);
-            
-            item.innerHTML = `
-                <div class="user-info">
-                    <h4>💬 ${name}</h4>
-                    <p>${chatPartners[partnerId].lastMessage}</p>
-                </div>
-                <div style="text-align: right;">
-                    <span style="font-size:11px; color:#666; display:block; margin-bottom:5px;">${chatPartners[partnerId].time}</span>
-                    <button class="btn-chat">Open</button>
-                </div>
-            `;
-            listContainer.appendChild(item);
-        }
-    } catch (e) { listContainer.innerHTML = `<p style="text-align:center; color:#ff4a4a;">Error: ${e.message}</p>`; }
+async function updateInboxCount() {
+    const { count } = await mySupabase.from('messages').select('*', { count: 'exact', head: true }).eq('receiver_id', globalUser.id).eq('read_status', false);
+    const countSpan = document.getElementById('inbox-count');
+    if (countSpan) {
+        countSpan.style.display = count > 0 ? 'inline-block' : 'none';
+        countSpan.innerText = count || 0;
+    }
 }
 
 function listenToLiveInbox() {
-    mySupabase
-        .channel('public:messages_inbox')
-        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-            const newMsg = payload.new;
-            if (newMsg.receiver_id === globalUser.id || newMsg.sender_id === globalUser.id) {
-                loadInboxData();
-            }
-        })
-        .subscribe();
+    mySupabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${globalUser.id}` }, () => {
+        loadInboxData();
+        updateInboxCount();
+    }).subscribe();
 }
 
 window.addEventListener("DOMContentLoaded", initInbox);

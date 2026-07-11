@@ -3,181 +3,430 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Chat</title>
+    <title>চ্যাট</title>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        body { margin: 0; padding: 0; background: #000; color: #fff; font-family: sans-serif; height: 100dvh; display: flex; flex-direction: column; overflow: hidden; }
-        
-        .header { height: 60px; background: #111; display: flex; align-items: center; padding: 0 15px; border-bottom: 1px solid #333; flex-shrink: 0; }
-        .chat-name { flex: 1; margin-left: 15px; font-weight: bold; cursor: pointer; color: #3ecf8e; }
-        
-        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 15px; display: flex; flex-direction: column; gap: 10px; }
-        .msg { max-width: 80%; padding: 10px 15px; border-radius: 15px; font-size: 15px; word-wrap: break-word; }
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        .header { background: #161618; padding: 10px 16px; display: flex; align-items: center; height: 60px; border-bottom: 1px solid #232326; flex-shrink: 0; }
+        .back-btn { background: none; border: none; color: #3ecf8e; font-size: 22px; cursor: pointer; }
+        .chat-name { flex: 1; margin-left: 14px; font-size: 17px; font-weight: 500; cursor: pointer; color: #3ecf8e; }
+        .chat-name:hover { text-decoration: underline; }
+        .call-btn { background: #3ecf8e; border: none; color: #000; font-weight: bold; padding: 8px 16px; border-radius: 30px; cursor: pointer; font-size: 14px; }
+        .call-btn:disabled { opacity: 0.4; cursor: not-allowed; }
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .msg { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; word-wrap: break-word; }
         .sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
-        .received { background: #333; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
-        
-        .footer { height: 70px; background: #111; display: flex; align-items: center; padding: 0 10px; gap: 10px; border-top: 1px solid #333; flex-shrink: 0; }
-        #msgInput { flex: 1; height: 45px; border-radius: 20px; border: none; padding: 0 15px; background: #222; color: #fff; outline: none; }
-        .send-btn { height: 45px; padding: 0 20px; border-radius: 20px; border: none; background: #3ecf8e; color: #000; font-weight: bold; cursor: pointer; }
-
-        #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
-        .call-status-text { font-size: 22px; margin-bottom: 40px; color: #fff; }
+        .received { background: #232326; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+        .footer { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; border-top: 1px solid #232326; flex-shrink: 0; }
+        #msgInput { flex: 1; padding: 12px 16px; border-radius: 30px; background: #232326; border: none; color: #fff; outline: none; font-size: 15px; }
+        .send-btn { background: #3ecf8e; color: #000; border: none; padding: 10px 22px; border-radius: 30px; font-weight: bold; cursor: pointer; }
+        #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95); z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        #call-status { font-size: 24px; margin-bottom: 30px; }
         .btn-call-action { width: 75px; height: 75px; border-radius: 50%; border: none; font-weight: bold; cursor: pointer; color: #fff; font-size: 16px; }
+        .call-actions { display: flex; gap: 40px; }
+        .toast { position: fixed; bottom: 80px; left: 50%; transform: translateX(-50%); background: #232326; padding: 12px 24px; border-radius: 12px; font-size: 14px; z-index: 10000; border: 1px solid #444; display: none; text-align: center; max-width: 90%; }
+        .toast.show { display: block; animation: fadeIn 0.3s ease; }
+        .toast.error { border-color: #dc3545; background: #2a1414; }
+        .toast.success { border-color: #3ecf8e; background: #142a1a; }
+        .toast.info { border-color: #3ecf8e; background: #1a2a3a; }
+        @keyframes fadeIn { 0% { opacity: 0; transform: translateX(-50%) translateY(20px); } 100% { opacity: 1; transform: translateX(-50%) translateY(0); } }
     </style>
 </head>
 <body>
 
+<div class="toast" id="toast"></div>
+
 <div id="call-ui">
-    <div id="call-status" class="call-status-text">Calling...</div>
-    <div style="display:flex; gap: 40px;">
-        <button id="btn-accept" style="background:#28a745; display:none;" class="btn-call-action">Accept</button>
-        <button id="btn-reject" style="background:#dc3545;" class="btn-call-action">End</button>
+    <div id="call-status">📞 কলিং...</div>
+    <div class="call-actions">
+        <button id="btn-accept" style="background:#28a745; display:none;" class="btn-call-action">✅ গ্রহণ</button>
+        <button id="btn-reject" style="background:#dc3545;" class="btn-call-action">⛔ শেষ</button>
     </div>
 </div>
 
 <div class="header">
-    <div onclick="history.back()" style="cursor:pointer; font-size: 22px; color: #3ecf8e;">←</div>
-    <div class="chat-name" id="chatName" onclick="openProfile()">Loading...</div>
-    <div onclick="initCall()" style="font-size: 22px; cursor: pointer; color: #3ecf8e;">📞</div>
+    <button class="back-btn" onclick="history.back()">←</button>
+    <div class="chat-name" id="chatName" onclick="openProfile()">লোড হচ্ছে...</div>
+    <button class="call-btn" id="callBtn" onclick="initCall()">📞 কল</button>
 </div>
 
 <div id="chatMessagesBox"></div>
 
 <div class="footer">
-    <input type="text" id="msgInput" placeholder="Aa">
-    <button class="send-btn" onclick="sendMessage()">Send</button>
+    <input type="text" id="msgInput" placeholder="Aa" autofocus>
+    <button class="send-btn" onclick="sendMessage()">পাঠান</button>
 </div>
 
 <script>
-    const sb = window.supabase.createClient("https://zqsjopjkhtofyepjneby.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU");
+    const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+    const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const peer = new Peer();
+
+    // URL থেকে target আইডি নিন
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('target') || urlParams.get('id');
-    let myId, currentCall, ringTone;
 
-    function openProfile() {
-        if (targetId) window.location.href = 'profile.html?id=' + targetId;
+    let myId = null, targetName = 'ব্যবহারকারী', currentCall = null, ringInterval = null, localStream = null;
+
+    // DOM elements
+    const chatNameEl = document.getElementById('chatName');
+    const callBtn = document.getElementById('callBtn');
+    const callUI = document.getElementById('call-ui');
+    const callStatus = document.getElementById('call-status');
+    const btnAccept = document.getElementById('btn-accept');
+    const btnReject = document.getElementById('btn-reject');
+    const msgInput = document.getElementById('msgInput');
+    const messagesBox = document.getElementById('chatMessagesBox');
+    const toastEl = document.getElementById('toast');
+
+    // Toast function
+    function showToast(msg, type = 'info') {
+        toastEl.textContent = msg;
+        toastEl.className = 'toast show ' + type;
+        setTimeout(() => { toastEl.className = 'toast'; }, 4000);
     }
 
+    // Open profile
+    function openProfile() {
+        if (targetId && targetId !== myId) {
+            window.location.href = 'profile.html?id=' + targetId;
+        } else {
+            showToast('❌ নিজের প্রোফাইল এখানে খোলা যাবে না', 'error');
+        }
+    }
+
+    // Ringtone
     function playRingtone() {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         return setInterval(() => {
-            const osc = ctx.createOscillator();
-            const gain = ctx.createGain();
-            osc.connect(gain); gain.connect(ctx.destination);
-            osc.frequency.value = 600;
-            gain.gain.setValueAtTime(0.3, ctx.currentTime);
-            gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
-            osc.start(); osc.stop(ctx.currentTime + 0.3);
-        }, 1000);
+            try {
+                const osc = ctx.createOscillator();
+                const gain = ctx.createGain();
+                osc.connect(gain); gain.connect(ctx.destination);
+                osc.frequency.value = 440;
+                osc.type = 'sine';
+                gain.gain.setValueAtTime(0.3, ctx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.3);
+                osc.start(ctx.currentTime);
+                osc.stop(ctx.currentTime + 0.3);
+            } catch(e) {}
+        }, 1200);
     }
+    function stopRingtone() { if (ringInterval) { clearInterval(ringInterval); ringInterval = null; } }
+    function playAudio(stream) { const a = new Audio(); a.srcObject = stream; a.autoplay = true; a.play().catch(()=>{}); }
 
+    // ========== INIT ==========
     async function init() {
-        const { data: { user } } = await sb.auth.getUser();
-        myId = user.id;
-
-        // চেক: লিংকে কি নিজের আইডি চলে আসছে?
-        if (targetId === myId) {
-            alert("সতর্কতা: আগের পেজ থেকে ভুল আইডি (আপনার নিজের আইডি) লিংকে পাঠানো হয়েছে! দয়া করে আগের পেজের কোড ঠিক করুন।");
-        }
-
-        // কলিং আইডি ডাটাবেসে সেভ করা
-        peer.on('open', async (id) => {
-            await sb.from('profiles').update({ peer_id: id }).eq('id', myId);
-        });
-
-        const { data: p } = await sb.from('profiles').select('username').eq('id', targetId).single();
-        if (p) document.getElementById('chatName').innerText = p.username;
-        
-        load(); 
-        sb.channel('msgs').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, load).subscribe();
-    }
-
-    function initCall() {
-        if(!targetId || targetId === myId) {
-            alert("সঠিক ইউজারের আইডি পাওয়া যায়নি, কল করা সম্ভব না।");
+        // Check if targetId exists
+        if (!targetId) {
+            chatNameEl.textContent = '❌ ভুল লিংক';
+            showToast('❌ চ্যাট করার জন্য সঠিক ইউজার আইডি দিন', 'error');
             return;
         }
-        sb.from('profiles').select('peer_id').eq('id', targetId).single().then(({data}) => {
-            if(data && data.peer_id) {
-                document.getElementById('call-ui').style.display = 'flex';
-                document.getElementById('call-status').innerText = "Ringing...";
-                ringTone = playRingtone();
-                
-                navigator.mediaDevices.getUserMedia({audio: true}).then(s => {
-                    currentCall = peer.call(data.peer_id, s);
-                    currentCall.on('stream', st => { 
-                        clearInterval(ringTone); 
-                        playAudio(st);
-                        document.getElementById('call-status').innerText = "Talking..."; 
-                    });
-                });
-            } else {
-                alert("ইউজার অফলাইনে আছে।");
-            }
+
+        // Get current user
+        const { data: { user } } = await sb.auth.getUser();
+        if (!user) {
+            showToast('❌ দয়া করে লগইন করুন', 'error');
+            chatNameEl.textContent = '❌ লগইন করুন';
+            return;
+        }
+        myId = user.id;
+
+        // Check if target is self
+        if (targetId === myId) {
+            showToast('⚠️ নিজের সাথে চ্যাট করা যায় না', 'error');
+            chatNameEl.textContent = '❌ নিজের সাথে নয়';
+            return;
+        }
+
+        // Save peer ID
+        peer.on('open', async (id) => {
+            await sb.from('profiles').update({ peer_id: id }).eq('id', myId);
+            console.log('✅ Peer ID saved:', id);
         });
+
+        // Get target user info
+        const { data: profile, error } = await sb
+            .from('profiles')
+            .select('username')
+            .eq('id', targetId)
+            .single();
+
+        if (error) {
+            showToast('❌ ইউজার পাওয়া যায়নি', 'error');
+            chatNameEl.textContent = '❌ পাওয়া যায়নি';
+            return;
+        }
+
+        targetName = profile?.username || 'ব্যবহারকারী';
+        chatNameEl.textContent = targetName;
+        showToast(`✅ ${targetName}‑এর সাথে সংযুক্ত`, 'success');
+
+        // Load messages
+        await loadMessages();
+
+        // Realtime subscriptions
+        sb.channel('chat-realtime')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `receiver_id=eq.${myId}`,
+            }, (payload) => {
+                if (payload.new && payload.new.sender_id === targetId) {
+                    loadMessages();
+                }
+            })
+            .subscribe();
+
+        sb.channel('my-messages')
+            .on('postgres_changes', {
+                event: 'INSERT',
+                schema: 'public',
+                table: 'messages',
+                filter: `sender_id=eq.${myId}`,
+            }, (payload) => {
+                if (payload.new && payload.new.receiver_id === targetId) {
+                    loadMessages();
+                }
+            })
+            .subscribe();
+
+        // Enter key
+        msgInput.addEventListener('keydown', (e) => {
+            if (e.key === 'Enter') sendMessage();
+        });
+
+        console.log('✅ চ্যাট প্রস্তুত!');
     }
 
-    peer.on('call', call => {
-        currentCall = call;
-        document.getElementById('call-ui').style.display = 'flex';
-        document.getElementById('call-status').innerText = "Incoming Call...";
-        document.getElementById('btn-accept').style.display = 'block';
-        ringTone = playRingtone();
-        
-        document.getElementById('btn-accept').onclick = () => {
-            clearInterval(ringTone);
-            document.getElementById('btn-accept').style.display = 'none';
-            navigator.mediaDevices.getUserMedia({audio: true}).then(s => {
-                call.answer(s);
-                call.on('stream', st => { 
-                    playAudio(st);
-                    document.getElementById('call-status').innerText = "Talking..."; 
-                });
+    // ========== LOAD MESSAGES ==========
+    async function loadMessages() {
+        if (!myId || !targetId) return;
+
+        const { data, error } = await sb
+            .from('messages')
+            .select('*')
+            .or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`)
+            .order('created_at', { ascending: true });
+
+        if (error) {
+            console.error('❌ লোড করতে সমস্যা:', error);
+            return;
+        }
+
+        messagesBox.innerHTML = '';
+        if (!data || data.length === 0) {
+            const empty = document.createElement('div');
+            empty.style.textAlign = 'center';
+            empty.style.color = '#555';
+            empty.style.margin = '30px 0';
+            empty.innerText = 'কোনো মেসেজ নেই। হ্যালো বলুন!';
+            messagesBox.appendChild(empty);
+            return;
+        }
+
+        data.forEach(msg => {
+            const div = document.createElement('div');
+            const isSent = msg.sender_id === myId;
+            div.className = `msg ${isSent ? 'sent' : 'received'}`;
+            div.innerText = msg.message_text || '';
+            messagesBox.appendChild(div);
+        });
+
+        messagesBox.scrollTop = messagesBox.scrollHeight;
+    }
+
+    // ========== SEND MESSAGE ==========
+    async function sendMessage() {
+        const text = msgInput.value.trim();
+        if (!text || !myId || !targetId || targetId === myId) return;
+
+        const { error } = await sb
+            .from('messages')
+            .insert({
+                sender_id: myId,
+                receiver_id: targetId,
+                message_text: text
             });
+
+        if (error) {
+            showToast('❌ মেসেজ পাঠানো যায়নি', 'error');
+            return;
+        }
+
+        msgInput.value = '';
+        await loadMessages();
+    }
+
+    // ========== INITIATE CALL ==========
+    async function initCall() {
+        if (!targetId || targetId === myId) {
+            showToast('❌ কল করা যাবে না', 'error');
+            return;
+        }
+
+        callBtn.disabled = true;
+        showToast(`📞 ${targetName}‑কে কল করা হচ্ছে...`, 'info');
+
+        const { data: profile, error } = await sb
+            .from('profiles')
+            .select('peer_id')
+            .eq('id', targetId)
+            .single();
+
+        if (error || !profile?.peer_id) {
+            showToast(`❌ ${targetName} অফলাইনে আছে`, 'error');
+            callBtn.disabled = false;
+            return;
+        }
+
+        callUI.style.display = 'flex';
+        callStatus.textContent = `📞 ${targetName}‑কে কলিং...`;
+        btnAccept.style.display = 'none';
+        ringInterval = playRingtone();
+
+        try {
+            const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+            localStream = stream;
+
+            currentCall = peer.call(profile.peer_id, stream);
+
+            currentCall.on('stream', (remoteStream) => {
+                stopRingtone();
+                playAudio(remoteStream);
+                callStatus.textContent = `🔊 ${targetName}‑এর সাথে কথা বলা হচ্ছে`;
+                showToast(`🔊 ${targetName}‑এর সাথে সংযুক্ত`, 'success');
+                callBtn.disabled = false;
+            });
+
+            currentCall.on('close', () => {
+                stopRingtone();
+                callStatus.textContent = '📴 কল শেষ';
+                setTimeout(() => {
+                    callUI.style.display = 'none';
+                    if (localStream) {
+                        localStream.getTracks().forEach(t => t.stop());
+                        localStream = null;
+                    }
+                    currentCall = null;
+                    callBtn.disabled = false;
+                }, 1000);
+            });
+
+            currentCall.on('error', (err) => {
+                console.error('❌ কল error:', err);
+                stopRingtone();
+                showToast('❌ কল ব্যর্থ: ' + err.message, 'error');
+                callUI.style.display = 'none';
+                callBtn.disabled = false;
+                if (localStream) {
+                    localStream.getTracks().forEach(t => t.stop());
+                    localStream = null;
+                }
+            });
+
+        } catch (e) {
+            showToast('❌ মাইক্রোফোন অ্যাক্সেস denied', 'error');
+            callUI.style.display = 'none';
+            callBtn.disabled = false;
+            stopRingtone();
+            console.error('❌ মাইক্রোফোন error:', e);
+        }
+    }
+
+    // ========== INCOMING CALL ==========
+    peer.on('call', (call) => {
+        currentCall = call;
+        callUI.style.display = 'flex';
+        callStatus.textContent = `📲 ${targetName} কল করছে...`;
+        btnAccept.style.display = 'block';
+        ringInterval = playRingtone();
+        showToast(`📲 ${targetName}‑এর থেকে ইনকামিং কল`, 'info');
+
+        btnAccept.onclick = async () => {
+            try {
+                const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
+                localStream = stream;
+                call.answer(stream);
+                stopRingtone();
+                btnAccept.style.display = 'none';
+
+                call.on('stream', (remoteStream) => {
+                    playAudio(remoteStream);
+                    callStatus.textContent = `🔊 ${targetName}‑এর সাথে কথা বলা হচ্ছে`;
+                    showToast(`🔊 ${targetName}‑এর সাথে সংযুক্ত`, 'success');
+                });
+
+                call.on('close', () => {
+                    stopRingtone();
+                    callStatus.textContent = '📴 কল শেষ';
+                    setTimeout(() => {
+                        callUI.style.display = 'none';
+                        if (localStream) {
+                            localStream.getTracks().forEach(t => t.stop());
+                            localStream = null;
+                        }
+                        currentCall = null;
+                        callBtn.disabled = false;
+                    }, 1000);
+                });
+
+            } catch (e) {
+                showToast('❌ মাইক্রোফোন অ্যাক্সেস denied', 'error');
+                callUI.style.display = 'none';
+                stopRingtone();
+                console.error('❌ মাইক্রোফোন error:', e);
+            }
         };
     });
 
-    document.getElementById('btn-reject').onclick = () => {
-        clearInterval(ringTone);
-        if(currentCall) currentCall.close();
-        const status = document.getElementById('call-status');
-        status.innerText = "Call Ended";
-        status.style.color = "#dc3545";
-        setTimeout(() => { 
-            document.getElementById('call-ui').style.display = 'none'; 
-            status.style.color = "#fff"; 
-            status.innerText = "Calling..."; 
-        }, 2000);
+    // ========== REJECT / END ==========
+    btnReject.onclick = () => {
+        stopRingtone();
+        if (currentCall) {
+            currentCall.close();
+            currentCall = null;
+        }
+        if (localStream) {
+            localStream.getTracks().forEach(t => t.stop());
+            localStream = null;
+        }
+        callUI.style.display = 'none';
+        callBtn.disabled = false;
+        showToast('📴 কল শেষ', 'info');
     };
 
-    function playAudio(stream) { let a = new Audio(); a.srcObject = stream; a.play(); }
+    // ========== START ==========
+    let initialized = false;
 
-    async function load() {
-        const { data } = await sb.from('messages').select('*')
-            .or(`and(sender_id.eq.${myId},receiver_id.eq.${targetId}),and(sender_id.eq.${targetId},receiver_id.eq.${myId})`)
-            .order('created_at', { ascending: true });
-        
-        const box = document.getElementById('chatMessagesBox');
-        box.innerHTML = '';
-        data?.forEach(m => {
-            const d = document.createElement('div');
-            d.className = 'msg ' + (m.sender_id === myId ? 'sent' : 'received');
-            d.innerText = m.message_text;
-            box.appendChild(d);
-        });
-        box.scrollTop = box.scrollHeight;
+    peer.on('open', () => {
+        console.log('🔗 PeerJS ready, ID:', peer.id);
+        if (!initialized) {
+            initialized = true;
+            init();
+        }
+    });
+
+    if (peer.open) {
+        console.log('🔗 PeerJS already open, ID:', peer.id);
+        if (!initialized) {
+            initialized = true;
+            init();
+        }
     }
 
-    async function sendMessage() {
-        const inp = document.getElementById('msgInput');
-        if(!inp.value.trim() || targetId === myId) return;
-        await sb.from('messages').insert({ sender_id: myId, receiver_id: targetId, message_text: inp.value });
-        inp.value = '';
-    }
+    // Expose functions
+    window.sendMessage = sendMessage;
+    window.initCall = initCall;
+    window.openProfile = openProfile;
 
-    window.onload = init;
+    console.log('📱 চ্যাট অ্যাপ লোড হয়েছে!');
+    console.log('ℹ️ টার্গেট আইডি:', targetId || 'নেই');
 </script>
 </body>
 </html>

@@ -89,7 +89,7 @@
     .btn-solid { background: #3ecf8e !important; color: white !important; }
     .btn-danger { background: #ff4a4a !important; color: white !important; display: none; margin-bottom: 15px !important; width: 100% !important; max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; }
 
-    /* 🛡️ কাস্টম ডিজাইন জোন - সুরক্ষা প্রাচীর (আইসোলেটেড কন্টেইনার) */
+    /* 🛡️ কাস্টম ডিজাইন জোন - সুরক্ষা প্রাচীর */
     .custom-html-preview { 
         display: none; 
         background: #1a1a1a !important; 
@@ -100,18 +100,15 @@
         text-align: left !important; 
         width: 100% !important;
         box-sizing: border-box !important;
-        
-        /* সম্পূর্ণ প্রুফিং লজিক */
         height: auto !important; 
         min-height: 50px !important;
         max-height: none !important; 
-        overflow-x: auto !important; /* ভেতরের চওড়া কন্টেন্ট পেজ না ভেঙে এখানে স্ক্রল হবে */
+        overflow-x: auto !important;
         overflow-y: visible !important;
         position: relative !important;
         clear: both !important;
     }
     
-    /* ভেতরের উপাদানগুলোর পজিশন ও ফ্লো কন্ট্রোল */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
@@ -152,14 +149,11 @@
     <div class="menu-container">
         <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮ Options</button>
         <div id="profileDropdown" class="dropdown-menu">
-            <button class="dropdown-item" onclick="editProfileName()">✏️ Edit Profile Name</button>
-            <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
-            <button class="dropdown-item" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
+            <button class="dropdown-item option-owner-only" onclick="editProfileName()" style="display:none;">✏️ Edit Profile Name</button>
+            <button class="dropdown-item option-owner-only" onclick="updateProfilePhotoLink()" style="display:none;">🖼️ Change Photo via Link</button>
+            <button class="dropdown-item option-owner-only" id="toggleEditorBtn" onclick="toggleHtmlEditor()" style="display:none;">⚡ HTML Profile Designer</button>
             <button class="dropdown-item" id="toggleSpecialViewBtn" onclick="toggleSpecialProfileView()">✨ Special Profile View</button>
-            <!-- profile.html এর ৩-ডট বা মেইন চ্যাট বাটনটি এমন করুন -->
-<button class="dropdown-item" onclick="openPrivateChat()">💬 Chat & Call</button>
-
-
+            <button class="dropdown-item" onclick="openPrivateChat()">💬 Chat & Call</button>
         </div>
     </div>
 
@@ -173,10 +167,8 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
-    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
         <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <div style='background:red; padding:10px;'>Custom</div>"></textarea>
@@ -190,13 +182,13 @@
 
 <div class="post-list">
     <div class="section-title">
-        <span>📝 My Evidence Posts</span>
+        <span id="postListTitle">📝 My Evidence Posts</span>
     </div>
     
     <button id="deleteSelectedBtn" class="btn btn-danger" onclick="deleteSelectedPosts()">🗑️ Delete Selected Posts (<span id="selectedCount">0</span>)</button>
     
     <div id="myPostsContainer">
-        <p style="text-align:center; color:#888;">Loading your posts...</p>
+        <p style="text-align:center; color:#888;">Loading posts...</p>
     </div>
 </div>
 
@@ -205,7 +197,8 @@ const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUserId = null;
+let currentUserId = null;       // লগইন থাকা ইউজার
+let targetProfileId = null;     // যে ইউজারের প্রোফাইল ব্রাউজ করা হচ্ছে
 let selectedPostIds = [];
 
 function toggleDropdown(event) {
@@ -220,60 +213,61 @@ window.addEventListener("click", () => {
 
 async function initProfile() {
     try {
+        // ১. কারেন্ট সেশন রিড করা
         const { data: { user } } = await mySupabase.auth.getUser();
-        if (!user) {
-            window.location.href = "login.html";
-            return;
-        }
-        currentUserId = user.id;
-        
-        document.getElementById("userEmail").innerText = user.email;
-        document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
-        
-        if (user.user_metadata.avatar_url) {
-            document.getElementById("userAvatar").src = user.user_metadata.avatar_url;
-        } else {
-            const { data: prof } = await mySupabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
-            if (prof && prof.avatar_url) document.getElementById("userAvatar").src = prof.avatar_url;
-        }
-        
-        if (user.created_at) {
-            const date = new Date(user.created_at);
-            document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
+        if (user) {
+            currentUserId = user.id;
         }
 
-        const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
-        let savedHtml = "";
+        // ২. URL থেকে টার্গেট ইউজারের আইডি বের করা (?uid=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        targetProfileId = urlParams.get('uid');
+
+        // ৩. যদি লিংকে কোনো uid না থাকে, তবে নিজের প্রোফাইল লোড হবে
+        if (!targetProfileId) {
+            if (!user) { window.location.href = "login.html"; return; }
+            targetProfileId = user.id;
+        }
+
+        // ৪. যদি নিজের প্রোফাইল হয়, তবে এডিট অপশনগুলো ভিজিবল হবে
+        if (user && currentUserId === targetProfileId) {
+            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'flex');
+            document.getElementById('postListTitle').innerText = "📝 My Evidence Posts";
+        } else {
+            document.getElementById('postListTitle').innerText = "📝 Evidence Posts";
+        }
+
+        // ৫. ডাটাবেজ থেকে নির্দিষ্ট ইউজারের সেশন ইনফো (Email) রিড করা
+        // নোট: সুপাবেস সিকিউরিটির জন্য অন্য ইউজারের মূল auth ডাটা ডিরেক্ট পাওয়া যায় না, তাই profiles টেবিল থেকে আনব
+        const { data: pData } = await mySupabase.from('profiles').select('*').eq('id', targetProfileId).maybeSingle();
         
         if (pData) {
+            document.getElementById("userEmail").innerText = pData.email || "No Email Public";
+            document.getElementById("userName").innerText = pData.username || "User_" + targetProfileId.substring(0, 5);
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
-            if (pData.bio) savedHtml = pData.bio;
+            if (pData.avatar_url) document.getElementById("userAvatar").src = pData.avatar_url;
+            
+            if (pData.bio) {
+                renderSecureHTML(pData.bio);
+                document.getElementById("customHtmlInput").value = pData.bio;
+            } else {
+                document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
+            }
+        } else if (user && targetProfileId === user.id) {
+            // নিজের প্রোফাইল হলে সেভড ডাটা মেটাডাটা থেকে ফ্যালব্যাক লোড
+            document.getElementById("userEmail").innerText = user.email;
+            document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
         }
-        
-        if (!savedHtml && user.user_metadata.custom_html) savedHtml = user.user_metadata.custom_html;
 
-        // 🛡️ সুরক্ষিত লোডিং নিশ্চিতকরণ
-        if (savedHtml) {
-            renderSecureHTML(savedHtml);
-            document.getElementById("customHtmlInput").value = savedHtml;
-        } else {
-            document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
-        }
-        
         loadUserPosts();
     } catch (e) { console.error(e); }
 }
 
-// 🛡️ ডম এলিমেন্ট ব্রেক প্রটেকশন মেকানিজম
 function renderSecureHTML(rawHtml) {
     const renderZone = document.getElementById("htmlRenderZone");
-    
-    // ব্রাউজারের নিজস্ব পার্সার ব্যবহার করে ভাঙা ট্যাগগুলো অটো-ক্লিন ও ক্লোজ করা হচ্ছে
     const parser = new DOMParser();
     const doc = parser.parseFromString(rawHtml, 'text/html');
-    
     renderZone.innerHTML = "";
-    // সেফ বডির ভেতরের নোডগুলো এনে বসানো হচ্ছে যেন মেইন পেজের ট্যাগ ভেঙে না যায়
     while (doc.body.firstChild) {
         renderZone.appendChild(doc.body.firstChild);
     }
@@ -285,12 +279,12 @@ async function loadUserPosts() {
         const { data: posts, error } = await mySupabase
             .from('posts')
             .select('*')
-            .eq('user_id', currentUserId)
+            .eq('user_id', targetProfileId)
             .order('created_at', { ascending: false });
             
         if (error) throw error;
         if (!posts || posts.length === 0) {
-            container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">You haven\'t posted any evidence yet.</p>';
+            container.innerHTML = '<p style="text-align:center; color:#888; padding:20px;">No evidence posted yet.</p>';
             return;
         }
         
@@ -306,8 +300,13 @@ async function loadUserPosts() {
             const rawDate = post.created_at ? new Date(post.created_at).toLocaleDateString('en-GB') : '-';
             const platform = post.platform || "Penalty";
 
+            // শুধুমাত্র প্রোফাইলের মালিক চেক বক্স দেখতে পারবে ডিলিট করার জন্য
+            const checkboxHTML = (currentUserId && currentUserId === targetProfileId) 
+                ? `<input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)" onclick="event.stopPropagation()">` 
+                : '';
+
             item.innerHTML = `
-                <input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)" onclick="event.stopPropagation()">
+                ${checkboxHTML}
                 <div class="post-details">
                     <p class="post-title">${post.title || 'Untitled'}</p>
                     <div class="post-meta">
@@ -334,8 +333,9 @@ function togglePostSelection(checkbox) {
 function updateDeleteButtonState() {
     const btn = document.getElementById("deleteSelectedBtn");
     const countSpan = document.getElementById("selectedCount");
+    if(!btn) return;
     countSpan.innerText = selectedPostIds.length;
-    btn.style.display = selectedPostIds.length > 0 ? "block" : "none";
+    btn.style.display = (selectedPostIds.length > 0 && currentUserId === targetProfileId) ? "block" : "none";
 }
 
 async function deleteSelectedPosts() {
@@ -362,6 +362,7 @@ async function editProfileName() {
     try {
         const { error } = await mySupabase.auth.updateUser({ data: { full_name: newName.trim() } });
         if (error) throw error;
+        await mySupabase.from('profiles').update({ username: newName.trim() }).eq('id', currentUserId);
         alert("নাম সফলভাবে আপডেট হয়েছে ভাই!");
         window.location.reload();
     } catch (e) { alert("আপডেট করতে সমস্যা হয়েছে: " + e.message); }
@@ -407,13 +408,27 @@ async function saveCustomHTML() {
         if (dbErr) throw dbErr;
         await mySupabase.auth.updateUser({ data: { custom_html: customHtml } });
         alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
-        
         renderSecureHTML(customHtml);
-        
         document.getElementById("htmlRenderZone").style.display = "block";
         toggleHtmlEditor();
     } catch (e) { alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message); }
     finally { saveBtn.innerText = "Save Design"; saveBtn.disabled = false; }
+}
+
+function openPrivateChat() {
+    if (!targetProfileId) {
+        alert("কোনো ইউজার আইডি পাওয়া যায়নি ভাই!");
+        return;
+    }
+    
+    // নিজের প্রোফাইলে থেকে চ্যাট ওপেন করার চেষ্টা করলে অটো-অ্যাডমিন আইডি বা অ্যালার্ট জেনারেট
+    if (currentUserId && targetProfileId === currentUserId) {
+        alert("এটি আপনার নিজের প্রোফাইল ভাই! অন্য কাউকে মেসেজ পাঠাতে তার প্রোফাইলে যান।");
+        return;
+    }
+    
+    // সঠিক টার্গেট আইডি ওয়ান-টু-ওয়ান চ্যাটবক্সে পাঠিয়ে দেওয়া হবে
+    window.location.href = `chatbox.html?target=${targetProfileId}`;
 }
 
 window.addEventListener("DOMContentLoaded", initProfile);

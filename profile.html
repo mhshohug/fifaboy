@@ -9,14 +9,23 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
     body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 20px; }
-    .profile-card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 25px; }
-    .profile-info { margin-bottom: 15px; font-size: 16px; }
+    .profile-card { background: #1e1e1e; padding: 20px; border-radius: 12px; max-width: 500px; margin: 0 auto 25px; text-align: center; }
+    
+    .avatar-container { margin-bottom: 15px; }
+    .profile-avatar { width: 100px; height: 100px; border-radius: 50%; object-fit: cover; border: 3px solid #3ecf8e; background: #2b2b2b; }
+    
+    .profile-info { margin-bottom: 15px; font-size: 16px; text-align: left; }
     .profile-info span { color: #3ecf8e; font-weight: 600; }
     
     .btn { width: 100%; padding: 12px; margin: 8px 0; border: none; border-radius: 8px; font-weight: bold; cursor: pointer; font-size: 16px; font-family: inherit; }
     .btn-outline { background: transparent; color: #3ecf8e; border: 2px solid #3ecf8e !important; }
     .btn-solid { background: #3ecf8e; color: white; }
     .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; }
+
+    /* HTML Designer CSS */
+    .custom-html-preview { background: #1a1a1a; border: 1px dashed #3ecf8e; border-radius: 8px; padding: 15px; margin: 15px 0; text-align: left; min-height: 50px; }
+    .html-editor-box { display: none; margin-top: 15px; text-align: left; }
+    .html-textarea { width: 100%; height: 120px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; resize: vertical; }
 
     .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 30px; display: flex; justify-content: space-between; align-items: center; }
     
@@ -25,7 +34,9 @@
     .post-item { 
         background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
         display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
+        cursor: pointer; transition: background 0.2s; text-align: left;
     }
+    .post-item:hover { background: #252525; }
     .post-checkbox { width: 20px; height: 20px; accent-color: #3ecf8e; cursor: pointer; }
     .post-details { flex-grow: 1; cursor: pointer; }
     .post-title { font-weight: 600; font-size: 16px; margin: 0; color: #fff; }
@@ -37,13 +48,32 @@
 <body>
 
 <div class="profile-card">
+    <div class="avatar-container">
+        <img id="userAvatar" class="profile-avatar" src="https://api.dicebear.com/7.x/bottts/svg?seed=Trackboy" alt="Avatar">
+    </div>
+    
     <h2 id="userName" style="margin-top:0;">Loading...</h2>
     <p id="userEmail" style="color:#aaa; margin-bottom:20px;">Loading...</p>
     
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
+
+    <!-- HTML ডিজাইন রেন্ডার হওয়ার লাইভ বক্স -->
+    <div id="htmlRenderZone" class="custom-html-preview">
+        <span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>
+    </div>
+
+    <!-- HTML কোড এডিটর (লুকানো থাকে, বাটনে চাপ দিলে খুলবে) -->
+    <div id="htmlEditorSection" class="html-editor-box">
+        <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
+        <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b> or <div class='my-style'>...</div>"></textarea>
+        <button class="btn btn-solid" style="padding: 8px; font-size: 14px;" onclick="saveCustomHTML()">Save Design</button>
+    </div>
     
-    <button class="btn btn-outline">Edit Profile</button>
+    <!-- বাটন অ্যাকশন সমূহ -->
+    <button class="btn btn-outline" onclick="editProfileName()">Edit Profile Name</button>
+    <button class="btn btn-outline" onclick="updateProfilePhotoLink()">Change Photo via Link</button>
+    <button class="btn btn-outline" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
     <button class="btn btn-solid" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
@@ -82,19 +112,32 @@ async function initProfile() {
         document.getElementById("userEmail").innerText = user.email;
         document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
         
-        // অ্যাকাউন্ট তৈরির ডেট ফরম্যাট করা
+        if (user.user_metadata.avatar_url) {
+            document.getElementById("userAvatar").src = user.user_metadata.avatar_url;
+        } else {
+            const { data: prof } = await mySupabase.from('profiles').select('avatar_url').eq('id', user.id).maybeSingle();
+            if (prof && prof.avatar_url) {
+                document.getElementById("userAvatar").src = prof.avatar_url;
+            }
+        }
+        
         if (user.created_at) {
             const date = new Date(user.created_at);
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
-        // প্রোফাইল রোল চেক
-        const { data: pData } = await mySupabase.from('profiles').select('role').eq('id', user.id).maybeSingle();
-        if (pData && pData.role) {
-            document.getElementById("userRole").innerText = pData.role;
+        // প্রোফাইল রোল এবং কাস্টম HTML (bio কলাম থেকে) লোড করা
+        const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
+        if (pData) {
+            if (pData.role) document.getElementById("userRole").innerText = pData.role;
+            
+            // যদি ডাটাবেজে কাস্টম HTML বা বায়ো থাকে, সেটা সরাসরি রেন্ডার করা
+            if (pData.bio) {
+                document.getElementById("htmlRenderZone").innerHTML = pData.bio;
+                document.getElementById("customHtmlInput").value = pData.bio;
+            }
         }
         
-        // ইউজারের নিজস্ব পোস্টগুলো লোড করা
         loadUserPosts();
         
     } catch (e) { console.error(e); }
@@ -124,13 +167,14 @@ async function loadUserPosts() {
         posts.forEach(post => {
             const item = document.createElement("div");
             item.className = "post-item";
+            item.setAttribute("onclick", `window.location.href='post.html?id=${post.id}'`);
             
             const rawDate = post.created_at ? new Date(post.created_at).toLocaleDateString('en-GB') : '-';
             const platform = post.platform || "Penalty";
 
             item.innerHTML = `
-                <input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)">
-                <div class="post-details" onclick="window.location.href='post.html?id=${post.id}'">
+                <input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)" onclick="event.stopPropagation()">
+                <div class="post-details">
                     <p class="post-title">${post.title || 'Untitled'}</p>
                     <div class="post-meta">
                         📅 <span>${rawDate}</span>
@@ -146,7 +190,6 @@ async function loadUserPosts() {
     }
 }
 
-// ৩. চেকবক্স সিলেক্ট/আনসিলেক্ট হ্যান্ডেল করা
 function togglePostSelection(checkbox) {
     const postId = parseInt(checkbox.value);
     if (checkbox.checked) {
@@ -157,47 +200,98 @@ function togglePostSelection(checkbox) {
     updateDeleteButtonState();
 }
 
-// ৪. ডিলিট বাটনের আপডেট ও সংখ্যা দেখানো
+ anti-scrambler count display update
 function updateDeleteButtonState() {
     const btn = document.getElementById("deleteSelectedBtn");
     const countSpan = document.getElementById("selectedCount");
-    
     countSpan.innerText = selectedPostIds.length;
-    
-    if (selectedPostIds.length > 0) {
-        btn.style.display = "block";
-    } else {
-        btn.style.display = "none";
-    }
+    btn.style.display = selectedPostIds.length > 0 ? "block" : "none";
 }
 
-// ৫. সিলেক্ট করা সব পোস্ট এক ক্লিকে সুপাবেস থেকে ডিলিট করা
 async function deleteSelectedPosts() {
     if (selectedPostIds.length === 0) return;
-    
     const confirmDelete = confirm(`আপনি কি নিশ্চিতভাবে এই ${selectedPostIds.length}টি পোস্ট ডিলিট করতে চান ভাই?`);
     if (!confirmDelete) return;
     
     const btn = document.getElementById("deleteSelectedBtn");
     try {
         btn.innerText = "Deleting...";
-        btn.disabled = true; // ফিক্সড: True থেকে ছোট হাতের true করা হয়েছে
-        
-        const { error } = await mySupabase
-            .from('posts')
-            .delete()
-            .in('id', selectedPostIds);
-            
+        btn.disabled = true;
+        const { error } = await mySupabase.from('posts').delete().in('id', selectedPostIds);
         if (error) throw error;
-        
         alert("পোস্টগুলো সফলভাবে ডিলিট হয়েছে ভাই!");
         loadUserPosts(); 
-        
     } catch (e) {
         alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message);
     } finally {
         btn.innerText = "🗑️ Delete Selected Posts";
         btn.disabled = false;
+    }
+}
+
+async function editProfileName() {
+    const currentName = document.getElementById("userName").innerText;
+    const newName = prompt("আপনার নতুন নাম লিখুন ভাই:", currentName);
+    if (newName === null || newName.trim() === "") return;
+    try {
+        const { error } = await mySupabase.auth.updateUser({ data: { full_name: newName.trim() } });
+        if (error) throw error;
+        alert("নাম সফলভাবে আপডেট হয়েছে ভাই!");
+        window.location.reload();
+    } catch (e) { alert("আপডেট করতে সমস্যা হয়েছে: " + e.message); }
+}
+
+async function updateProfilePhotoLink() {
+    const currentAvatar = document.getElementById("userAvatar").src;
+    const photoUrl = prompt("আপনার ইমেজের ডিরেক্ট ইউআরএল (URL) পেস্ট করুন ভাই:", currentAvatar.includes("dicebear") ? "" : currentAvatar);
+    if (photoUrl === null || photoUrl.trim() === "") return;
+    try {
+        const { error: authErr } = await mySupabase.auth.updateUser({ data: { avatar_url: photoUrl.trim() } });
+        if (authErr) throw authErr;
+        await mySupabase.from('profiles').update({ avatar_url: photoUrl.trim() }).eq('id', currentUserId);
+        alert("প্রোফাইল ফটো সফলভাবে সেট হয়েছে ভাই!");
+        window.location.reload();
+    } catch (e) { alert("ফটো লিংক আপডেট করতে সমস্যা হয়েছে: " + e.message); }
+}
+
+// ৮. HTML এডিটর প্যানেল শো/হাইড টগল লজিক
+function toggleHtmlEditor() {
+    const box = document.getElementById("htmlEditorSection");
+    const btn = document.getElementById("toggleEditorBtn");
+    if (box.style.display === "block") {
+        box.style.display = "none";
+        btn.innerText = "⚡ HTML Profile Designer";
+    } else {
+        box.style.display = "block";
+        btn.innerText = "❌ Close Editor";
+    }
+}
+
+// ৯. কাস্টম HTML কোড সুপাবেস ডাটাবেজের profiles টেবিলের bio কলামে সেভ করা
+async function saveCustomHTML() {
+    const customHtml = document.getElementById("customHtmlInput").value;
+    const saveBtn = document.querySelector("#htmlEditorSection button");
+    
+    try {
+        saveBtn.innerText = "Saving...";
+        saveBtn.disabled = true;
+        
+        const { error } = await mySupabase
+            .from('profiles')
+            .update({ bio: customHtml }) // সুপাবেস ড্যাশবোর্ডের বায়ো (bio) কলামের ভেতর রেন্ডার কোড পুশ হচ্ছে
+            .eq('id', currentUserId);
+            
+        if (error) throw error;
+        
+        alert("আপনার কাস্টম HTML ডিজাইন সেভ হয়েছে ভাই!");
+        document.getElementById("htmlRenderZone").innerHTML = customHtml || '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
+        toggleHtmlEditor();
+        
+    } catch (e) {
+        alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message);
+    } finally {
+        saveBtn.innerText = "Save Design";
+        saveBtn.disabled = false;
     }
 }
 

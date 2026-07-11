@@ -79,7 +79,6 @@
         white-space: pre-wrap !important;
         border-radius: 18px !important;
     }
-    /* আমার মেসেজ: ডান কোনায় মসৃণ সবুজ */
     .msg-sent {
         background: #3ecf8e !important;
         color: #000 !important;
@@ -87,7 +86,6 @@
         align-self: flex-end !important;
         border-bottom-right-radius: 4px !important;
     }
-    /* ওপাশ থেকে আসা মেসেজ: বাম কোনায় ডার্ক গ্রে */
     .msg-received {
         background: #232326 !important;
         color: #f5f5f7 !important;
@@ -95,7 +93,7 @@
         border-bottom-left-radius: 4px !important;
     }
 
-    /* 📌 প্রিমিয়াম বটম ইনপুট বার (মেসেঞ্জারের মতো গোল ক্যাপসুল) */
+    /* 📌 প্রিমিয়াম বটম ইনপুট বার */
     .chat-input-area {
         background: #161618 !important;
         padding: 10px 16px !important;
@@ -105,7 +103,7 @@
         border-top: 1px solid #232326 !important;
         flex-shrink: 0 !important;
         width: 100% !important;
-        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; /* আইফোন/নতুন মোবাইলের নিচের বারের সেফটি */
+        padding-bottom: max(10px, env(safe-area-inset-bottom)) !important;
     }
     .chat-input {
         flex: 1 !important;
@@ -113,7 +111,7 @@
         border: 1px solid transparent !important;
         color: white !important;
         padding: 10px 16px !important;
-        border-radius: 20px !important; /* গোল ক্যাপসুল ভিউ */
+        border-radius: 20px !important;
         font-size: 14px !important;
         outline: none !important;
         font-family: inherit !important;
@@ -132,11 +130,6 @@
         font-size: 15px !important;
         cursor: pointer !important;
         flex-shrink: 0 !important;
-        transition: 0.1s !important;
-    }
-    .btn-send:active {
-        transform: scale(0.95);
-        opacity: 0.8;
     }
 </style>
 </head>
@@ -156,15 +149,114 @@
     <button class="btn-send" onclick="sendLiveMessage()">Send</button>
 </div>
 
-<script src="js/chatbox.js"></script>
-
 <script>
-    function resetHeight() {
-        document.body.style.height = window.innerHeight + 'px';
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+
+let currentUserId = null; 
+let targetUserId = null;  
+
+async function initChat() {
+    const urlParams = new URLSearchParams(window.location.search);
+    targetUserId = urlParams.get('target');
+    
+    if (!targetUserId) {
+        alert("কোনো ইউজার সিলেক্ট করা হয়নি ভাই!");
+        window.history.back();
+        return;
     }
-    window.addEventListener('resize', resetHeight);
-    window.addEventListener('orientationchange', resetHeight);
+
+    const { data: { user } } = await mySupabase.auth.getUser();
+    if (!user) { window.location.href = "login.html"; return; }
+    currentUserId = user.id;
+
+    if (currentUserId === targetUserId) {
+        document.getElementById('chatMessagesBox').innerHTML = "<p style='color:#aaa;text-align:center;padding:20px;'>এটি আপনার নিজের চ্যাট রুম ভাই!</p>";
+        return;
+    }
+
+    // চ্যাট পার্টনারের নাম হেডার-এ দেখানো
+    const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).maybeSingle();
+    if (profile && profile.username) {
+        document.getElementById('chatPartnerName').innerText = "💬 " + profile.username;
+    } else {
+        document.getElementById('chatPartnerName').innerText = "💬 User_" + targetUserId.substring(0, 5);
+    }
+
+    await loadPrivateChatHistory();
+    listenToPrivateMessages();
+}
+
+async function loadPrivateChatHistory() {
+    const box = document.getElementById('chatMessagesBox');
+    const { data, error } = await mySupabase
+        .from('messages')
+        .select('*')
+        .or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`)
+        .order('created_at', { ascending: true });
+        
+    if (error) { box.innerHTML = "<p style='color:red;text-align:center;'>Error loading chat</p>"; return; }
+    
+    box.innerHTML = data.length === 0 ? "<p class='no-msg-text' style='color:#666;text-align:center;margin-top:20px;'>No private messages yet.</p>" : "";
+    data.forEach(m => appendMsgUI(m));
+    box.scrollTop = box.scrollHeight;
+}
+
+function appendMsgUI(m) {
+    const box = document.getElementById('chatMessagesBox');
+    if (box.querySelector(`[data-msg-id="${m.id}"]`)) return;
+
+    const noMsgText = box.querySelector('.no-msg-text');
+    if(noMsgText) noMsgText.remove();
+
+    const div = document.createElement('div');
+    div.className = `msg-bubble ${m.sender_id === currentUserId ? 'msg-sent' : 'msg-received'}`;
+    div.setAttribute("data-msg-id", m.id);
+    div.innerText = m.message_text;
+    box.appendChild(div);
+    box.scrollTop = box.scrollHeight;
+}
+
+async function sendLiveMessage() {
+    const input = document.getElementById('chatMessageInput');
+    const text = input.value.trim();
+    if (!text) return;
+    
+    input.value = '';
+    
+    const { error } = await mySupabase.from('messages').insert({ 
+        message_text: text, 
+        sender_id: currentUserId,
+        receiver_id: targetUserId 
+    });
+
+    if(error) { alert("মেসেজ যায়নি ভাই!"); }
+}
+
+function listenToPrivateMessages() {
+    mySupabase
+        .channel('public:messages')
+        .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
+            const newMsg = payload.new;
+            if ((newMsg.sender_id === currentUserId && newMsg.receiver_id === targetUserId) || 
+                (newMsg.sender_id === targetUserId && newMsg.receiver_id === currentUserId)) {
+                appendMsgUI(newMsg);
+            }
+        })
+        .subscribe();
+}
+
+function resetHeight() {
+    document.body.style.height = window.innerHeight + 'px';
+}
+window.addEventListener('resize', resetHeight);
+window.addEventListener('orientationchange', resetHeight);
+
+window.onload = () => {
     resetHeight();
+    initChat();
+};
 </script>
 </body>
 </html>

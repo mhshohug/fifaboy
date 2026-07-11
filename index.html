@@ -205,12 +205,13 @@ function getMediaEmbedHTML(url, containerId) {
         return '<div class="embed-container" id="' + containerId + '"><div style="color:#aaa; text-align:center; padding:20px;">Loading Video...</div></div>';
     }
     
-    if (checkUrl.includes("tiktok.com")) {
+        if (checkUrl.includes("tiktok.com")) {
         let cleanUrl = url.split("?")[0];
         if (cleanUrl.endsWith('/')) cleanUrl = cleanUrl.slice(0, -1);
         const videoId = cleanUrl.split('/').pop(); 
         return '<div class="embed-container"><iframe src="' + cleanUrl.replace("tiktok.com", "tiktok.com/embed/v") + '" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>';
     }
+
     
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return '<div class="embed-container" style="background:transparent;"><blockquote class="twitter-tweet" data-theme="dark"><a href="' + url + '"></a></blockquote></div>';

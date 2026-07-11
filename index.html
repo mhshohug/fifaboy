@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>TRACKBOY | Evidence</title>
+<title>FifaBOY | Evidence</title>
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -432,49 +432,52 @@ window.addEventListener("scroll", () => {
     if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
 });
 
-// ⚡ ফিক্সড রিয়েল-টাইম গ্লোবাল সার্চ মেকানিজম (ইউজার + পোস্ট একসাথে)
+// ✅ ফিক্সড সার্চ ফাংশন (শুধু এই অংশটুকু রিপ্লেস)
 document.getElementById("search").addEventListener("input", async (e) => {
     const q = e.target.value.trim();
     const feedSection = document.getElementById("feed");
     
+    // সার্চ খালি থাকলে সব পোস্ট দেখাও
     if (!q) {
-        renderPosts(POSTS); // সার্চ ইনপুট ফাকা থাকলে স্বাভাবিক সব পোস্ট দেখাবে
+        renderPosts(POSTS);
         return;
     }
 
     try {
-        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">Searching users & evidence...</div>';
+        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">🔍 Searching...</div>';
 
-        // ১. Profiles টেবিল থেকে ইউজার সার্চ করা (পোস্ট থাক বা না থাক)
+        // ১. ইউজার খোঁজো (profiles টেবিলে)
         const { data: users, error: userErr } = await mySupabase
             .from('profiles')
             .select('id, username, avatar_url, role')
             .ilike('username', `%${q}%`);
 
-        if (userErr) throw userErr;
+        if (userErr) {
+            console.error("User search error:", userErr);
+        }
 
-        // ২. লোকাল মেমোরি (POSTS Array) থেকে এভিডেন্স ফিল্টার করা
+        // ২. পোস্ট ফিল্টার (POSTS অ্যারে থেকে)
         const filteredPosts = POSTS.filter(post =>
             (post.title || "").toLowerCase().includes(q.toLowerCase()) || 
             (post.description || "").toLowerCase().includes(q.toLowerCase())
         );
 
-        // ৩. কোনো ম্যাচিং ডাটা না পাওয়া গেলে
+        // ৩. কিছু না পেলে
         if ((!users || users.length === 0) && filteredPosts.length === 0) {
-            feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">No matching users or evidence found.</div>';
+            feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">😕 No matching users or evidence found.</div>';
             return;
         }
 
         feedSection.innerHTML = "";
 
-        // 👥 ৪. প্রথম পার্টে ম্যাচিং ইউজারদের কার্ড আকারে রেন্ডার করা (পোস্ট না থাকলেও শো করবে!)
+        // 👥 ৪. ম্যাচিং ইউজার দেখাও
         if (users && users.length > 0) {
             const userTitle = document.createElement('div');
-            userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users</h4>`;
+            userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users (${users.length})</h4>`;
             feedSection.appendChild(userTitle);
 
             users.forEach(u => {
-                const avatar = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username}`;
+                const avatar = u.avatar_url || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
                 const userCard = document.createElement("div");
                 userCard.className = "post-card";
                 userCard.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
@@ -484,7 +487,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
                     <div style="display:flex; align-items:center; gap:15px; width:100%;">
                         <img src="${avatar}" style="width:45px; height:45px; border-radius:50%; border:2px solid #3ecf8e; object-fit:cover; background:#2b2b2b;">
                         <div style="flex-grow:1;">
-                            <h3 style="margin:0; font-size:16px; color:#fff;">${u.username}</h3>
+                            <h3 style="margin:0; font-size:16px; color:#fff;">${u.username || 'Unknown'}</h3>
                             <span style="font-size:11px; color:#888;">Role: ${u.role || 'user'}</span>
                         </div>
                         <span class="badge" style="background:#2d2d2d; color:#3ecf8e; border:1px solid #3ecf8e; font-size:12px; padding:4px 10px; border-radius:4px;">View Profile</span>
@@ -494,10 +497,10 @@ document.getElementById("search").addEventListener("input", async (e) => {
             });
         }
 
-        // 📝 ৫. দ্বিতীয় পার্টে ম্যাচিং এভিডেন্স পোস্টগুলো রেন্ডার করা
+        // 📝 ৫. ম্যাচিং পোস্ট দেখাও
         if (filteredPosts.length > 0) {
             const postTitle = document.createElement('div');
-            postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence</h4>`;
+            postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence (${filteredPosts.length})</h4>`;
             feedSection.appendChild(postTitle);
 
             filteredPosts.forEach(post => {
@@ -558,9 +561,18 @@ document.getElementById("search").addEventListener("input", async (e) => {
                 feedSection.appendChild(postCard);
             });
         }
+        
+        // টুইটার এম্বেড রিলোড
+        setTimeout(() => {
+            if(window.twttr && window.twttr.widgets) {
+                window.twttr.widgets.load();
+            }
+        }, 500);
+
     } catch(err) {
-        console.error(err);
-        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#ff6b6b;">Search error occurred.</div>';
+        console.error("Search Error:", err);
+        feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#ff6b6b;">⚠️ Search error occurred. Showing all posts.</div>';
+        renderPosts(POSTS);
     }
 });
 

@@ -154,6 +154,41 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 let POSTS = [];
 let USER_VOTES = [];
 let currentUserId = null;
+    
+// ১. আগে থেকেই আপনার mySupabase ইনিশিয়েট করা আছে ধরে নিচ্ছি।
+// ২. হোম পেজ লোড হওয়ার পর ইউজারের আইডি চেক করবে এবং কাউন্ট দেখাবে
+window.addEventListener("DOMContentLoaded", async () => {
+    const { data: { user } } = await mySupabase.auth.getUser();
+    if (user) {
+        // মেনুর ইনবক্স কাউন্ট আপডেট করা
+        async function updateInboxCount() {
+            const { count } = await mySupabase
+                .from('messages')
+                .select('*', { count: 'exact', head: true })
+                .eq('receiver_id', user.id)
+                .eq('read_status', false);
+
+            const countSpan = document.getElementById('inbox-count');
+            if (countSpan) {
+                if (count > 0) {
+                    countSpan.style.display = 'inline-block';
+                    countSpan.innerText = count;
+                } else {
+                    countSpan.style.display = 'none';
+                }
+            }
+        }
+        
+        // কাউন্ট চেক করা
+        updateInboxCount();
+
+        // লাইভ আপডেট (নতুন মেসেজ আসলে সাথে সাথে লাল ডট বা সংখ্যা আসবে)
+        mySupabase.channel('inbox_count_channel')
+            .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages', filter: `receiver_id=eq.${user.id}` }, 
+            () => updateInboxCount())
+            .subscribe();
+    }
+});
 
 function getMediaEmbedHTML(url, containerId) {
     if (!url) return "";

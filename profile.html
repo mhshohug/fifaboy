@@ -89,7 +89,7 @@
     .btn-solid { background: #3ecf8e !important; color: white !important; }
     .btn-danger { background: #ff4a4a !important; color: white !important; display: none; margin-bottom: 15px !important; width: 100% !important; max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; }
 
-    /* 🛡️ কাস্টম ডিজাইন জোন - সুরক্ষা প্রাচীর */
+    /* 🛡️ কাস্টম дизайн জোন - সুরক্ষা প্রাচীর */
     .custom-html-preview { 
         display: none; 
         background: #1a1a1a !important; 
@@ -167,8 +167,10 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
+    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
         <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <div style='background:red; padding:10px;'>Custom</div>"></textarea>
@@ -197,8 +199,8 @@ const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
 
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-let currentUserId = null;       // লগইন থাকা ইউজার
-let targetProfileId = null;     // যে ইউজারের প্রোফাইল ব্রাউজ করা হচ্ছে
+let currentUserId = null;       
+let targetProfileId = null;     
 let selectedPostIds = [];
 
 function toggleDropdown(event) {
@@ -213,52 +215,62 @@ window.addEventListener("click", () => {
 
 async function initProfile() {
     try {
-        // ১. কারেন্ট সেশন রিড করা
+        // ১. URL থেকে টার্গেট ইউজারের আইডি নেওয়া (?uid=...)
+        const urlParams = new URLSearchParams(window.location.search);
+        targetProfileId = urlParams.get('uid');
+
+        // ২. কারেন্ট লগইন থাকা ইউজারের সেশন নেওয়া
         const { data: { user } } = await mySupabase.auth.getUser();
         if (user) {
             currentUserId = user.id;
         }
 
-        // ২. URL থেকে টার্গেট ইউজারের আইডি বের করা (?uid=...)
-        const urlParams = new URLSearchParams(window.location.search);
-        targetProfileId = urlParams.get('uid');
-
-        // ৩. যদি লিংকে কোনো uid না থাকে, তবে নিজের প্রোফাইল লোড হবে
+        // ৩. লিঙ্কে কোনো uid না থাকলে নিজের প্রোফাইল সেট করা
         if (!targetProfileId) {
             if (!user) { window.location.href = "login.html"; return; }
             targetProfileId = user.id;
         }
 
-        // ৪. যদি নিজের প্রোফাইল হয়, তবে এডিট অপশনগুলো ভিজিবল হবে
-        if (user && currentUserId === targetProfileId) {
-            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'flex');
+        // 🛡️ ওনারশিপ সিকিউরিটি চেক: এডিট অপশনগুলো কন্ট্রোল করা
+        if (currentUserId && currentUserId === targetProfileId) {
+            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'block');
             document.getElementById('postListTitle').innerText = "📝 My Evidence Posts";
         } else {
+            document.querySelectorAll('.option-owner-only').forEach(el => el.style.display = 'none');
             document.getElementById('postListTitle').innerText = "📝 Evidence Posts";
         }
+        
+        // ফ্যালব্যাক ডিফল্ট ইউজার ডাটা লোড
+        document.getElementById("userEmail").innerText = user ? user.email : "Loading...";
+        document.getElementById("userName").innerText = user ? (user.user_metadata.full_name || user.email.split('@')[0]) : "Loading...";
+        
+        if (user && user.user_metadata.avatar_url) {
+            document.getElementById("userAvatar").src = user.user_metadata.avatar_url;
+        }
+        if (user && user.created_at) {
+            const date = new Date(user.created_at);
+            document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
+        }
 
-        // ৫. ডাটাবেজ থেকে নির্দিষ্ট ইউজারের সেশন ইনফো (Email) রিড করা
-        // নোট: সুপাবেস সিকিউরিটির জন্য অন্য ইউজারের মূল auth ডাটা ডিরেক্ট পাওয়া যায় না, তাই profiles টেবিল থেকে আনব
+        // ৪. ডাটাবেজ টেবিল থেকে নির্দিষ্ট ইউজারের আসল ডাটা আনা
         const { data: pData } = await mySupabase.from('profiles').select('*').eq('id', targetProfileId).maybeSingle();
+        let savedHtml = "";
         
         if (pData) {
             document.getElementById("userEmail").innerText = pData.email || "No Email Public";
             document.getElementById("userName").innerText = pData.username || "User_" + targetProfileId.substring(0, 5);
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
             if (pData.avatar_url) document.getElementById("userAvatar").src = pData.avatar_url;
-            
-            if (pData.bio) {
-                renderSecureHTML(pData.bio);
-                document.getElementById("customHtmlInput").value = pData.bio;
-            } else {
-                document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
-            }
-        } else if (user && targetProfileId === user.id) {
-            // নিজের প্রোফাইল হলে সেভড ডাটা মেটাডাটা থেকে ফ্যালব্যাক লোড
-            document.getElementById("userEmail").innerText = user.email;
-            document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
+            if (pData.bio) savedHtml = pData.bio;
         }
-
+        
+        if (savedHtml) {
+            renderSecureHTML(savedHtml);
+            document.getElementById("customHtmlInput").value = savedHtml;
+        } else {
+            document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
+        }
+        
         loadUserPosts();
     } catch (e) { console.error(e); }
 }
@@ -300,7 +312,6 @@ async function loadUserPosts() {
             const rawDate = post.created_at ? new Date(post.created_at).toLocaleDateString('en-GB') : '-';
             const platform = post.platform || "Penalty";
 
-            // শুধুমাত্র প্রোফাইলের মালিক চেক বক্স দেখতে পারবে ডিলিট করার জন্য
             const checkboxHTML = (currentUserId && currentUserId === targetProfileId) 
                 ? `<input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)" onclick="event.stopPropagation()">` 
                 : '';
@@ -420,14 +431,10 @@ function openPrivateChat() {
         alert("কোনো ইউজার আইডি পাওয়া যায়নি ভাই!");
         return;
     }
-    
-    // নিজের প্রোফাইলে থেকে চ্যাট ওপেন করার চেষ্টা করলে অটো-অ্যাডমিন আইডি বা অ্যালার্ট জেনারেট
     if (currentUserId && targetProfileId === currentUserId) {
         alert("এটি আপনার নিজের প্রোফাইল ভাই! অন্য কাউকে মেসেজ পাঠাতে তার প্রোফাইলে যান।");
         return;
     }
-    
-    // সঠিক টার্গেট আইডি ওয়ান-টু-ওয়ান চ্যাটবক্সে পাঠিয়ে দেওয়া হবে
     window.location.href = `chatbox.html?target=${targetProfileId}`;
 }
 

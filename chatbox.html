@@ -158,6 +158,12 @@ const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 
 let currentUserId = null; 
 let targetUserId = null;  
+// এই ফাংশনটা আপনার <script> ট্যাগের ভেতরে বসান
+function goToProfile() {
+    if (targetUserId) {
+        window.location.href = 'profile.html?uid=' + targetUserId;
+    }
+}
 
 async function initChat() {
     const urlParams = new URLSearchParams(window.location.search);

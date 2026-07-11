@@ -184,8 +184,10 @@ async function initProfile() {
         const { data: { user } } = await mySupabase.auth.getUser();
         if (user) { currentUserId = user.id; }
 
-        const urlParams = new URLSearchParams(window.location.search);
-        targetProfileId = urlParams.get('uid');
+                const urlParams = new URLSearchParams(window.location.search);
+        // এখন id, uid বা target—যেকোনোটা আসুক, সে ধরে নেবে
+        targetProfileId = urlParams.get('id') || urlParams.get('uid') || urlParams.get('target');
+
 
         if (!targetProfileId) {
             if (!user) { window.location.href = "login.html"; return; }

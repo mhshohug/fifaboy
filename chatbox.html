@@ -3,716 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>TRACKBOY · Chat</title>
-    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2">
-    </script>
-    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js">
-    </script>
+    <title>TRACKBOY | Chat</title>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
     <style>
-        * {
-            box-sizing: border-box;
-            margin: 0;
-            padding: 0;
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-        }
-        body {
-            background: #0b0b0c;
-            color: #f0f0f0;
-            height: 100vh;
-            display: flex;
-            flex-direction: column;
-            overflow: hidden;
-            touch-action: manipulation;
-        }
-        .chat-header {
-            background: #161618;
-            padding: 10px 16px;
-            display: flex;
-            align-items: center;
-            height: 60px;
-            border-bottom: 1px solid #2a2a2e;
-            flex-shrink: 0;
-        }
-        .chat-header h3 {
-            flex: 1;
-            margin-left: 14px;
-            font-size: 17px;
-            font-weight: 500;
-            letter-spacing: 0.3px;
-        }
-        .btn-call {
-            background: #3ecf8e;
-            border: none;
-            color: #0b0b0c;
-            font-size: 18px;
-            font-weight: bold;
-            cursor: pointer;
-            padding: 8px 16px;
-            border-radius: 30px;
-            transition: 0.2s;
-            display: flex;
-            align-items: center;
-            gap: 6px;
-        }
-        .btn-call:active {
-            transform: scale(0.94);
-            opacity: 0.8;
-        }
-        .btn-call:disabled {
-            opacity: 0.4;
-            cursor: not-allowed;
-        }
-        #chatMessagesBox {
-            flex: 1;
-            overflow-y: auto;
-            padding: 16px 14px;
-            display: flex;
-            flex-direction: column;
-            gap: 10px;
-            scroll-behavior: smooth;
-        }
-        .msg-bubble {
-            max-width: 80%;
-            padding: 11px 16px;
-            border-radius: 20px;
-            font-size: 15px;
-            line-height: 1.45;
-            word-break: break-word;
-            animation: fadeIn 0.15s ease;
-        }
-        .msg-sent {
-            background: #3ecf8e;
-            color: #0b0b0c;
-            align-self: flex-end;
-            border-bottom-right-radius: 6px;
-        }
-        .msg-received {
-            background: #232326;
-            color: #f0f0f0;
-            align-self: flex-start;
-            border-bottom-left-radius: 6px;
-        }
-        @keyframes fadeIn {
-            0% {
-                opacity: 0.5;
-                transform: translateY(6px);
-            }
-            100% {
-                opacity: 1;
-                transform: translateY(0);
-            }
-        }
-        .chat-input-area {
-            background: #161618;
-            padding: 10px 15px;
-            display: flex;
-            gap: 10px;
-            align-items: center;
-            flex-shrink: 0;
-            border-top: 1px solid #2a2a2e;
-        }
-        .chat-input {
-            flex: 1;
-            padding: 12px 16px;
-            border-radius: 30px;
-            background: #232326;
-            border: none;
-            color: #fff;
-            outline: none;
-            font-size: 15px;
-            transition: 0.15s;
-        }
-        .chat-input::placeholder {
-            color: #7a7a80;
-        }
-        .btn-send {
-            background: #3ecf8e;
-            color: #0b0b0c;
-            border: none;
-            padding: 10px 22px;
-            border-radius: 30px;
-            font-weight: 600;
-            font-size: 15px;
-            cursor: pointer;
-            transition: 0.2s;
-            flex-shrink: 0;
-        }
-        .btn-send:active {
-            transform: scale(0.94);
-            opacity: 0.8;
-        }
-        #call-ui {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0, 0, 0, 0.92);
-            backdrop-filter: blur(6px);
-            z-index: 9999;
-            flex-direction: column;
-            justify-content: center;
-            align-items: center;
-            color: white;
-            transition: opacity 0.2s;
-        }
-        #call-status {
-            font-size: 26px;
-            font-weight: 500;
-            margin-bottom: 30px;
-            background: rgba(255, 255, 255, 0.05);
-            padding: 14px 32px;
-            border-radius: 60px;
-            border: 1px solid rgba(255, 255, 255, 0.08);
-            text-align: center;
-        }
-        #caller-name-display {
-            font-size: 32px;
-            font-weight: 700;
-            color: #3ecf8e;
-            margin-bottom: 10px;
-        }
-        .call-actions {
-            display: flex;
-            gap: 40px;
-            flex-wrap: wrap;
-            justify-content: center;
-            margin-top: 20px;
-        }
-        .btn-action {
-            width: 80px;
-            height: 80px;
-            border-radius: 50%;
-            border: none;
-            font-weight: 700;
-            font-size: 16px;
-            color: #fff;
-            cursor: pointer;
-            transition: 0.2s;
-            box-shadow: 0 8px 20px rgba(0, 0, 0, 0.6);
-        }
-        .btn-action:active {
-            transform: scale(0.92);
-        }
-        #btn-accept {
-            background: #2b8c5e;
-            display: none;
-            box-shadow: 0 0 0 2px #3ecf8e;
-        }
-        #btn-reject {
-            background: #c73b3b;
-        }
-        #btn-reject:active {
-            background: #a02e2e;
-        }
-        .back-btn {
-            background: none;
-            border: none;
-            color: #3ecf8e;
-            font-size: 22px;
-            cursor: pointer;
-            padding: 4px 6px;
-        }
-        .back-btn:active {
-            opacity: 0.5;
-        }
-        @keyframes ringingPulse {
-            0% {
-                transform: scale(1);
-                opacity: 1;
-            }
-            50% {
-                transform: scale(1.05);
-                opacity: 0.7;
-            }
-            100% {
-                transform: scale(1);
-                opacity: 1;
-            }
-        }
-        .ringing {
-            animation: ringingPulse 0.8s infinite;
-            color: #ffd700;
-        }
-        .status-badge {
-            background: #2a2a2e;
-            padding: 4px 12px;
-            border-radius: 20px;
-            font-size: 12px;
-            color: #7a7a80;
-        }
+        /* ফিক্সড লেআউট */
+        * { box-sizing: border-box; margin: 0; padding: 0; font-family: sans-serif; }
+        body { background: #0b0b0c; color: #fff; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+        
+        /* হেডার */
+        .chat-header { background: #161618; padding: 10px 16px; display: flex; align-items: center; height: 60px; border-bottom: 1px solid #232326; flex-shrink: 0; }
+        .chat-header h3 { flex: 1; margin-left: 15px; font-size: 16px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+        .btn-call { background: none; border: none; color: #3ecf8e; font-size: 22px; cursor: pointer; }
+
+        /* মেসেজ বক্স */
+        #chatMessagesBox { flex: 1; overflow-y: auto; padding: 16px; display: flex; flex-direction: column; gap: 10px; }
+        .msg-bubble { max-width: 80%; padding: 10px 15px; border-radius: 18px; font-size: 14px; word-wrap: break-word; }
+        .msg-sent { background: #3ecf8e; color: #000; align-self: flex-end; border-bottom-right-radius: 4px; }
+        .msg-received { background: #232326; color: #fff; align-self: flex-start; border-bottom-left-radius: 4px; }
+
+        /* ইনপুট এরিয়া - ফিক্সড */
+        .chat-input-area { background: #161618; padding: 10px 15px; display: flex; gap: 10px; align-items: center; flex-shrink: 0; border-top: 1px solid #232326; height: 65px; }
+        .chat-input { flex: 1; height: 45px; padding: 0 15px; border-radius: 25px; background: #232326; border: none; color: #fff; outline: none; font-size: 15px; }
+        .btn-send { background: #3ecf8e; color: #000; border: none; padding: 0 20px; height: 45px; border-radius: 25px; font-weight: bold; cursor: pointer; flex-shrink: 0; }
+
+        /* কলিং ইন্টারফেস */
+        #call-ui { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000; z-index: 9999; flex-direction: column; justify-content: center; align-items: center; }
+        .call-status-text { font-size: 22px; margin-bottom: 50px; color: #fff; }
+        .call-btn-container { display: flex; gap: 40px; }
+        .btn-round { width: 80px; height: 80px; border-radius: 50%; border: none; color: #fff; font-size: 16px; cursor: pointer; }
     </style>
 </head>
 <body>
 
-    <!-- CALL OVERLAY -->
-    <div id="call-ui">
-        <div id="caller-name-display">📞 Calling...</div>
-        <div id="call-status">Connecting...</div>
-        <div class="call-actions">
-            <button id="btn-accept" class="btn-action">✅ Accept</button>
-            <button id="btn-reject" class="btn-action">⛔ End</button>
-        </div>
+<div id="call-ui">
+    <div id="call-status" class="call-status-text">Calling...</div>
+    <div class="call-btn-container">
+        <button id="btn-accept" style="background: green; display: none;" class="btn-round">Accept</button>
+        <button id="btn-reject" style="background: red;" class="btn-round">Reject/End</button>
     </div>
+</div>
 
-    <!-- CHAT HEADER -->
-    <div class="chat-header">
-        <button class="back-btn" onclick="window.history.back()">←</button>
-        <h3 id="chatPartnerName">
-            <span id="partnerDisplayName">Loading...</span>
-            <span class="status-badge" id="connectionStatus">● Connecting</span>
-        </h3>
-        <button class="btn-call" id="callButton" onclick="initiateCall()">
-            📞 Call
-        </button>
-    </div>
+<div class="chat-header">
+    <button onclick="window.history.back()" style="background:none; border:none; color:#3ecf8e; font-size:20px;">←</button>
+    <h3 id="chatPartnerName">Loading...</h3>
+    <button class="btn-call" onclick="initiateCall()">📞</button>
+</div>
 
-    <!-- MESSAGES -->
-    <div id="chatMessagesBox"></div>
+<div id="chatMessagesBox"></div>
 
-    <!-- INPUT -->
-    <div class="chat-input-area">
-        <input type="text" id="chatMessageInput" class="chat-input" placeholder="Aa" autofocus>
-        <button class="btn-send" onclick="sendLiveMessage()">Send</button>
-    </div>
+<div class="chat-input-area">
+    <input type="text" id="chatMessageInput" class="chat-input" placeholder="Aa">
+    <button class="btn-send" onclick="sendLiveMessage()">Send</button>
+</div>
 
-    <script>
-        // ========== CONFIG ==========
-        const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
-        const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+<script>
+const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
+const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
+const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+let peer = new Peer();
+let targetUserId, currentUserId, currentCall;
 
-        const supabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
-        const peer = new Peer();
-
-        // ----- state -----
-        let currentUserId = null;
-        let targetUserId = null;
-        let targetUserName = 'Unknown';
-        let currentCall = null;
-        let localStream = null;
-        let ringingInterval = null;
-
-        // DOM refs
-        const messagesBox = document.getElementById('chatMessagesBox');
-        const inputMsg = document.getElementById('chatMessageInput');
-        const partnerNameEl = document.getElementById('chatPartnerName');
-        const partnerDisplayName = document.getElementById('partnerDisplayName');
-        const connectionStatus = document.getElementById('connectionStatus');
-        const callUI = document.getElementById('call-ui');
-        const callStatus = document.getElementById('call-status');
-        const callerNameDisplay = document.getElementById('caller-name-display');
-        const btnAccept = document.getElementById('btn-accept');
-        const btnReject = document.getElementById('btn-reject');
-        const callButton = document.getElementById('callButton');
-
-        // ========== রিংিং সাউন্ড ==========
-        function startRingingSound() {
-            if (ringingInterval) return;
-            const audioCtx = new(window.AudioContext || window.webkitAudioContext)();
-
-            function playBeep() {
-                const oscillator = audioCtx.createOscillator();
-                const gainNode = audioCtx.createGain();
-                oscillator.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-                oscillator.frequency.value = 440;
-                oscillator.type = 'sine';
-                gainNode.gain.setValueAtTime(0.3, audioCtx.currentTime);
-                gainNode.gain.exponentialRampToValueAtTime(0.01, audioCtx.currentTime + 0.3);
-                oscillator.start(audioCtx.currentTime);
-                oscillator.stop(audioCtx.currentTime + 0.3);
-            }
-
-            ringingInterval = setInterval(() => {
-                if (audioCtx.state === 'suspended') {
-                    audioCtx.resume();
-                }
-                playBeep();
-            }, 1200);
-
-            callStatus.classList.add('ringing');
-        }
-
-        function stopRingingSound() {
-            if (ringingInterval) {
-                clearInterval(ringingInterval);
-                ringingInterval = null;
-            }
-            callStatus.classList.remove('ringing');
-        }
-
-        // ========== HELPERS ==========
-        function getUrlParam(param) {
-            const urlParams = new URLSearchParams(window.location.search);
-            return urlParams.get(param);
-        }
-
-        // ========== UPDATE STATUS ==========
-        function updateConnectionStatus(status, color = '#7a7a80') {
-            connectionStatus.textContent = status;
-            connectionStatus.style.color = color;
-        }
-
-        // ========== RENDER MESSAGES ==========
-        function renderMessages(messages) {
-            messagesBox.innerHTML = '';
-            if (!messages || messages.length === 0) {
-                const empty = document.createElement('div');
-                empty.style.textAlign = 'center';
-                empty.style.color = '#5a5a60';
-                empty.style.fontSize = '14px';
-                empty.style.margin = '30px 0';
-                empty.innerText = 'No messages yet. Say hello!';
-                messagesBox.appendChild(empty);
-                return;
-            }
-            messages.forEach(msg => {
-                const div = document.createElement('div');
-                const isSent = msg.sender_id === currentUserId;
-                div.className = `msg-bubble ${isSent ? 'msg-sent' : 'msg-received'}`;
-                div.innerText = msg.message_text || '';
-                messagesBox.appendChild(div);
+// কল ফাংশন
+function initiateCall() {
+    mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).single().then(({data}) => {
+        if(data?.peer_id) {
+            document.getElementById('call-ui').style.display = 'flex';
+            document.getElementById('call-status').innerText = "Calling...";
+            navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+                currentCall = peer.call(data.peer_id, stream);
+                document.getElementById('call-status').innerText = "Ringing...";
+                currentCall.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
             });
-            messagesBox.scrollTop = messagesBox.scrollHeight;
         }
+    });
+}
 
-        // ========== LOAD CHAT HISTORY ==========
-        async function loadPrivateChatHistory() {
-            if (!currentUserId || !targetUserId) return;
-
-            const { data, error } = await supabase
-                .from('messages')
-                .select('*')
-                .or(`sender_id.eq.${currentUserId},and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`)
-                .order('created_at', { ascending: true });
-
-            if (error) {
-                console.warn('Error loading messages:', error);
-                return;
-            }
-            renderMessages(data);
-        }
-
-        // ========== SEND MESSAGE ==========
-        async function sendLiveMessage() {
-            const text = inputMsg.value.trim();
-            if (!text || !currentUserId || !targetUserId) return;
-
-            const { error } = await supabase
-                .from('messages')
-                .insert({
-                    message_text: text,
-                    sender_id: currentUserId,
-                    receiver_id: targetUserId,
-                });
-
-            if (error) {
-                console.warn('Send error:', error);
-                return;
-            }
-            inputMsg.value = '';
-            loadPrivateChatHistory();
-        }
-
-        // ========== AUDIO PLAYBACK ==========
-        function playAudioStream(stream) {
-            const audio = new Audio();
-            audio.srcObject = stream;
-            audio.autoplay = true;
-            audio.play().catch(e => console.warn('autoplay blocked', e));
-        }
-
-        // ========== INITIATE CALL (আউটগোয়িং) ==========
-        async function initiateCall() {
-            console.log('📞 Call button clicked!');
-
-            if (!targetUserId) {
-                alert('❌ No target user found! Please make sure URL has ?target=USER_ID');
-                console.error('targetUserId is null');
-                return;
-            }
-
-            console.log('📞 Calling:', targetUserName, '(ID:', targetUserId + ')');
-
-            // Show who we are calling
-            callUI.style.display = 'flex';
-            callerNameDisplay.textContent = `📞 Calling ${targetUserName}...`;
-            callStatus.textContent = 'Connecting...';
-            btnAccept.style.display = 'none';
-            callButton.disabled = true;
-
-            // Get target peer ID
-            const { data: profile, error } = await supabase
-                .from('profiles')
-                .select('peer_id')
-                .eq('id', targetUserId)
-                .single();
-
-            if (error || !profile?.peer_id) {
-                alert(`❌ ${targetUserName} is not available for call.`);
-                console.error('No peer_id found');
-                callUI.style.display = 'none';
-                callButton.disabled = false;
-                return;
-            }
-
-            console.log('✅ Target peer ID:', profile.peer_id);
-
-            // Start ringing
-            startRingingSound();
-            callStatus.textContent = '📳 Ringing...';
-
-            try {
-                const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                localStream = stream;
-                console.log('✅ Microphone access granted');
-
-                currentCall = peer.call(profile.peer_id, stream);
-                console.log('📞 Call initiated to:', profile.peer_id);
-
-                currentCall.on('stream', remoteStream => {
-                    stopRingingSound();
-                    playAudioStream(remoteStream);
-                    callStatus.textContent = '🔊 Talking...';
-                    callerNameDisplay.textContent = `🔊 Talking to ${targetUserName}`;
-                    console.log('🔊 Call connected!');
-                    callButton.disabled = false;
-                });
-
-                currentCall.on('close', () => {
-                    stopRingingSound();
-                    callStatus.textContent = 'Call ended';
-                    console.log('📴 Call ended');
-                    setTimeout(() => {
-                        callUI.style.display = 'none';
-                        if (localStream) {
-                            localStream.getTracks().forEach(t => t.stop());
-                            localStream = null;
-                        }
-                        currentCall = null;
-                        callButton.disabled = false;
-                    }, 600);
-                });
-
-                currentCall.on('error', err => {
-                    console.error('❌ Call error:', err);
-                    stopRingingSound();
-                    callStatus.textContent = '❌ Call failed';
-                    setTimeout(() => {
-                        callUI.style.display = 'none';
-                        if (localStream) {
-                            localStream.getTracks().forEach(t => t.stop());
-                            localStream = null;
-                        }
-                        currentCall = null;
-                        callButton.disabled = false;
-                    }, 1200);
-                });
-            } catch (e) {
-                alert('❌ Microphone access denied. Please allow microphone permission.');
-                console.error('❌ Microphone error:', e);
-                stopRingingSound();
-                callUI.style.display = 'none';
-                callButton.disabled = false;
-            }
-        }
-
-        // ========== INCOMING CALL ==========
-        peer.on('call', incomingCall => {
-            console.log('📲 Incoming call from:', incomingCall.peer);
-
-            // Show who is calling
-            callUI.style.display = 'flex';
-            callerNameDisplay.textContent = `📲 ${targetUserName} is calling...`;
-            callStatus.textContent = '📳 Incoming call...';
-            btnAccept.style.display = 'flex';
-            currentCall = incomingCall;
-            startRingingSound();
-            callButton.disabled = true;
-
-            btnAccept.onclick = async () => {
-                try {
-                    const stream = await navigator.mediaDevices.getUserMedia({ audio: true, video: false });
-                    localStream = stream;
-                    incomingCall.answer(stream);
-                    console.log('✅ Call accepted');
-
-                    stopRingingSound();
-
-                    incomingCall.on('stream', remoteStream => {
-                        playAudioStream(remoteStream);
-                        callStatus.textContent = '🔊 Talking...';
-                        callerNameDisplay.textContent = `🔊 Talking to ${targetUserName}`;
-                    });
-                    incomingCall.on('close', () => {
-                        stopRingingSound();
-                        callStatus.textContent = 'Call ended';
-                        setTimeout(() => {
-                            callUI.style.display = 'none';
-                            if (localStream) {
-                                localStream.getTracks().forEach(t => t.stop());
-                                localStream = null;
-                            }
-                            currentCall = null;
-                            callButton.disabled = false;
-                        }, 600);
-                    });
-                    btnAccept.style.display = 'none';
-                } catch (e) {
-                    alert('❌ Microphone access denied.');
-                    console.error('❌ Microphone error:', e);
-                    stopRingingSound();
-                    callUI.style.display = 'none';
-                    callButton.disabled = false;
-                }
-            };
+// কল রিসিভার
+peer.on('call', call => {
+    currentCall = call;
+    document.getElementById('call-ui').style.display = 'flex';
+    document.getElementById('call-status').innerText = "Incoming Call...";
+    document.getElementById('btn-accept').style.display = 'block';
+    document.getElementById('btn-accept').onclick = () => {
+        navigator.mediaDevices.getUserMedia({audio: true}).then(stream => {
+            call.answer(stream);
+            call.on('stream', s => { playAudio(s); document.getElementById('call-status').innerText = "Talking..."; });
+            document.getElementById('btn-accept').style.display = 'none';
         });
+    };
+});
 
-        // ========== REJECT / END CALL ==========
-        btnReject.onclick = () => {
-            console.log('⛔ Call rejected/ended');
-            stopRingingSound();
-            if (currentCall) {
-                currentCall.close();
-                currentCall = null;
-            }
-            if (localStream) {
-                localStream.getTracks().forEach(t => t.stop());
-                localStream = null;
-            }
-            callUI.style.display = 'none';
-            callButton.disabled = false;
-        };
+document.getElementById('btn-reject').onclick = () => {
+    if(currentCall) currentCall.close();
+    document.getElementById('call-ui').style.display = 'none';
+    location.reload();
+};
 
-        // ========== INIT CHAT ==========
-        async function initChat() {
-            console.log('🚀 Initializing chat...');
+function playAudio(s) { let a = new Audio(); a.srcObject = s; a.play(); }
 
-            const { data: { user } } = await supabase.auth.getUser();
-            if (!user) {
-                alert('❌ Please log in first.');
-                console.error('No user logged in');
-                return;
-            }
-            currentUserId = user.id;
-            console.log('✅ Current user ID:', currentUserId);
+// চ্যাট ফাংশন
+async function initChat() {
+    const urlParams = new URLSearchParams(window.location.search);
+    targetUserId = urlParams.get('target');
+    const { data: { user } } = await mySupabase.auth.getUser();
+    currentUserId = user?.id;
+    const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).single();
+    document.getElementById('chatPartnerName').innerText = profile?.username || "User";
+    loadPrivateChatHistory();
+    listenToPrivateMessages();
+}
 
-            const target = getUrlParam('target');
-            if (!target) {
-                alert('❌ Missing chat target. Please add ?target=USER_ID in URL');
-                console.error('No target parameter in URL');
-                return;
-            }
-            targetUserId = target;
-            console.log('✅ Target user ID:', targetUserId);
-
-            // Get target user name
-            const { data: profile } = await supabase
-                .from('profiles')
-                .select('username')
-                .eq('id', targetUserId)
-                .single();
-
-            targetUserName = profile?.username || 'User';
-            partnerDisplayName.textContent = targetUserName;
-            console.log('✅ Partner name:', targetUserName);
-
-            // Update connection status
-            updateConnectionStatus('● Connected', '#3ecf8e');
-
-            // Update peer ID
-            const { data: myProfile } = await supabase
-                .from('profiles')
-                .select('peer_id')
-                .eq('id', currentUserId)
-                .single();
-
-            if (!myProfile?.peer_id || myProfile.peer_id !== peer.id) {
-                await supabase
-                    .from('profiles')
-                    .update({ peer_id: peer.id })
-                    .eq('id', currentUserId);
-                console.log('✅ Peer ID updated in database:', peer.id);
-            }
-
-            await loadPrivateChatHistory();
-
-            // Realtime subscriptions
-            supabase
-                .channel('chat-realtime')
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `receiver_id=eq.${currentUserId}`,
-                }, (payload) => {
-                    if (payload.new && payload.new.sender_id === targetUserId) {
-                        console.log('📩 New message received from', targetUserName);
-                        loadPrivateChatHistory();
-                    }
-                })
-                .subscribe();
-
-            supabase
-                .channel('my-messages')
-                .on('postgres_changes', {
-                    event: 'INSERT',
-                    schema: 'public',
-                    table: 'messages',
-                    filter: `sender_id=eq.${currentUserId}`,
-                }, (payload) => {
-                    if (payload.new && payload.new.receiver_id === targetUserId) {
-                        console.log('📤 Message sent to', targetUserName);
-                        loadPrivateChatHistory();
-                    }
-                })
-                .subscribe();
-
-            inputMsg.addEventListener('keydown', (e) => {
-                if (e.key === 'Enter') {
-                    e.preventDefault();
-                    sendLiveMessage();
-                }
-            });
-
-            console.log('✅ Chat initialized successfully!');
-            console.log(`📞 To call ${targetUserName}, click the "📞 Call" button`);
-        }
-
-        // ========== START ==========
-        let initialized = false;
-
-        peer.on('open', () => {
-            console.log('🔗 PeerJS ready, ID:', peer.id);
-            if (!initialized) {
-                initialized = true;
-                initChat();
-            }
+function loadPrivateChatHistory() {
+    mySupabase.from('messages').select('*').or(`sender_id.eq.${currentUserId},and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true }).then(({data}) => {
+        const box = document.getElementById('chatMessagesBox');
+        box.innerHTML = "";
+        data?.forEach(m => {
+            const div = document.createElement('div');
+            div.className = "msg-bubble " + (m.sender_id === currentUserId ? "msg-sent" : "msg-received");
+            div.innerText = m.message_text;
+            box.appendChild(div);
         });
+        box.scrollTop = box.scrollHeight;
+    });
+}
 
-        peer.on('error', (err) => {
-            console.error('❌ PeerJS error:', err);
-            updateConnectionStatus('● Error', '#ff4444');
-        });
+function sendLiveMessage() {
+    const input = document.getElementById('chatMessageInput');
+    if(!input.value.trim()) return;
+    mySupabase.from('messages').insert({ message_text: input.value, sender_id: currentUserId, receiver_id: targetUserId }).then(() => {
+        input.value = "";
+    });
+}
 
-        // If peer already open
-        if (peer.open) {
-            console.log('🔗 PeerJS already open, ID:', peer.id);
-            if (!initialized) {
-                initialized = true;
-                initChat();
-            }
-        }
+function listenToPrivateMessages() {
+    mySupabase.channel('messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => { loadPrivateChatHistory(); }).subscribe();
+}
 
-        // Attach to global
-        window.sendLiveMessage = sendLiveMessage;
-        window.initiateCall = initiateCall;
-
-        console.log('📱 TRACKBOY Chat App Loaded!');
-        console.log('ℹ️ To call, click the "📞 Call" button');
-        console.log('ℹ️ Make sure URL has ?target=USER_ID');
-        console.log('ℹ️ Check console for any errors');
-    </script>
+window.onload = initChat;
+</script>
 </body>
 </html>

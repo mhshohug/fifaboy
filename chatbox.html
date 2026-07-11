@@ -350,7 +350,32 @@ sb.channel('realtime-messages')
       loadMessages(); 
   })
   .subscribe();
+// কল ইনকামিং লিসেনার (অপর পাশ থেকে কল আসলে যেন দেখা যায়)
+peer.on('call', (call) => {
+    // এটা ফোনে বড় করে দেখাবে যে কল আসছে
+    alert("📞 আপনার কাছে নতুন একটি কল এসেছে! রিসিভ করার জন্য প্রস্তুতি নিন...");
+    
+    callUI.style.display = 'flex';
+    callStatus.textContent = "📞 ইনকামিং কল...";
+    btnAccept.style.display = 'block'; // একসেপ্ট বাটনটা দেখাবে
+    
+    currentCall = call;
+    
+    btnAccept.onclick = () => {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
+            localStream = stream;
+            call.answer(stream);
+            call.on('stream', (remoteStream) => {
+                playAudio(remoteStream);
+                callStatus.textContent = "🔊 কথা বলা হচ্ছে";
+            });
+        });
+    };
+});
 
 </script>
 </body>
 </html>
+
+
+

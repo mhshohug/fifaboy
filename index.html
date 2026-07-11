@@ -417,22 +417,20 @@ window.addEventListener("scroll", () => {
     if(top) top.style.display = window.scrollY > 250 ? "flex" : "none";
 });
 
-// ✅ কলাম নেম 'avatar' ফিক্স করা গ্লোবাল সার্চ মেকানিজম
+// ✅ কলাম নেম 'avatar' ফিক্স করা গ্লোবাল সার্চ মেকানিজম (ইউজার প্রোফাইল কার্ডসহ ১০০% ফিক্সড)
 document.getElementById("search").addEventListener("input", async (e) => {
     const q = e.target.value.trim();
     const feedSection = document.getElementById("feed");
     
-    console.log("🔍 Searching for:", q);
-    
     if (!q) {
-        renderPosts(POSTS);
+        renderPosts(POSTS); // সার্চ খালি থাকলে নরমাল পোস্ট রেন্ডার করবে
         return;
     }
 
     try {
         feedSection.innerHTML = '<div style="text-align:center; padding:20px; color:#aaa;">🔍 Searching...</div>';
 
-        // 📌 ফিক্স: ডাটাবেজের সঠিক কলাম 'avatar' সিলেক্ট করা হয়েছে
+        // ১. Profiles টেবিল থেকে ইউজার সার্চ (সঠিক কলাম 'avatar' দিয়ে)
         const { data: users, error: userErr } = await mySupabase
             .from('profiles')
             .select('id, username, avatar, role')
@@ -440,11 +438,18 @@ document.getElementById("search").addEventListener("input", async (e) => {
 
         if (userErr) throw userErr;
 
-        // ২. লোকাল পোস্ট ফিল্টার
-        const filteredPosts = POSTS.filter(post =>
-            (post.title || "").toLowerCase().includes(q.toLowerCase()) || 
-            (post.description || "").toLowerCase().includes(q.toLowerCase())
-        );
+        // ২. পোস্ট ফিল্টারিং (টাইটেল, ডেসক্রিপশন অথবা ম্যাচিং ইউজারের পোস্ট)
+        const filteredPosts = POSTS.filter(post => {
+            const matchTitle = (post.title || "").toLowerCase().includes(q.toLowerCase());
+            const matchDesc = (post.description || "").toLowerCase().includes(q.toLowerCase());
+            
+            let matchUser = false;
+            if (users && users.length > 0) {
+                matchUser = users.some(u => u.id === post.user_id);
+            }
+            
+            return matchTitle || matchDesc || matchUser;
+        });
 
         // ৩. রেজাল্ট না পাওয়া গেলে
         if ((!users || users.length === 0) && filteredPosts.length === 0) {
@@ -454,37 +459,50 @@ document.getElementById("search").addEventListener("input", async (e) => {
 
         feedSection.innerHTML = "";
 
-        // 👥 ৪. ম্যাচিং ইউজার কার্ড রেন্ডার
+        // 👥 ৪. ম্যাচিং ইউজার কার্ড রেন্ডার (প্রিমিয়াম ইনলাইন প্রোফাইল কার্ড লুক)
         if (users && users.length > 0) {
             const userTitle = document.createElement('div');
             userTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 10px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">👥 Matching Users (${users.length})</h4>`;
             feedSection.appendChild(userTitle);
 
             users.forEach(u => {
-                // 📌 ফিক্স: u.avatar ব্যবহার করা হয়েছে
                 const avatar = u.avatar || `https://api.dicebear.com/7.x/bottts/svg?seed=${u.username || 'user'}`;
                 const userCard = document.createElement("div");
-                userCard.className = "post-card";
-                userCard.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
+                
+                // 🎨 আপনার প্রজেক্ট ডার্ক থিম ম্যাচিং ইনলাইন সিএসএস কার্ড লেআউট
+                userCard.style.background = "#2a2a2a";
+                userCard.style.padding = "15px";
+                userCard.style.borderRadius = "12px";
+                userCard.style.marginBottom = "15px";
+                userCard.style.display = "flex";
+                userCard.style.alignItems = "center";
+                userCard.style.justifyContent = "space-between";
+                userCard.style.gap = "15px";
                 userCard.style.cursor = "pointer";
+                userCard.style.border = "1px solid #383838";
+                userCard.style.boxShadow = "0 4px 10px rgba(0,0,0,0.3)";
+                
+                userCard.setAttribute("onclick", `window.location.href='profile.html?uid=${u.id}'`);
                 
                 const displayId = u.id ? u.id.substring(0, 8) + '...' : 'Unknown';
                 
                 userCard.innerHTML = `
-                    <div style="display:flex; align-items:center; gap:15px; width:100%;">
-                        <img src="${avatar}" style="width:45px; height:45px; border-radius:50%; border:2px solid #3ecf8e; object-fit:cover; background:#2b2b2b;">
-                        <div style="flex-grow:1;">
-                            <h3 style="margin:0; font-size:16px; color:#fff;">${u.username || 'Unknown'}</h3>
-                            <span style="font-size:11px; color:#888;">ID: ${displayId} | Role: ${u.role || 'user'}</span>
+                    <div style="display:flex; align-items:center; gap:15px; flex-grow:1;">
+                        <img src="${avatar}" style="width:50px; height:50px; border-radius:50%; border:2px solid #3ecf8e; object-fit:cover; background:#1f1f1f; flex-shrink:0;">
+                        <div style="text-align:left;">
+                            <h3 style="margin:0; font-size:16px; color:#fff; font-weight:600;">${u.username || 'Unknown'}</h3>
+                            <span style="font-size:11px; color:#aaa;">ID: ${displayId} | Role: <span style="color:#3ecf8e;font-weight:500;">${u.role || 'user'}</span></span>
                         </div>
-                        <span class="badge" style="background:#2d2d2d; color:#3ecf8e; border:1px solid #3ecf8e; font-size:12px; padding:4px 10px; border-radius:4px;">View Profile</span>
                     </div>
+                    <button style="background:#3ecf8e; color:#000; border:none; padding:8px 14px; border-radius:6px; font-weight:bold; font-size:12px; cursor:pointer; flex-shrink:0;">
+                        View Profile
+                    </button>
                 `;
                 feedSection.appendChild(userCard);
             });
         }
 
-        // 📝 ৫. ম্যাচিং এভিডেন্স পোস্ট রেন্ডার
+        // 📝 ৫. ম্যাচিং এведений্স পোস্ট রেন্ডার
         if (filteredPosts.length > 0) {
             const postTitle = document.createElement('div');
             postTitle.innerHTML = `<h4 style="color:#3ecf8e; margin: 25px 0 15px 0; font-size:14px; text-transform:uppercase; letter-spacing:1px;">📝 Matching Evidence (${filteredPosts.length})</h4>`;
@@ -517,11 +535,11 @@ document.getElementById("search").addEventListener("input", async (e) => {
                         <span class="badge" style="background:#444; font-size:12px; padding:2px 8px; border-radius:4px;">${post.platform || "Community"}</span>
                     </div>
                     
-                    <div style="font-size:11px; color:#888; margin:5px 0 10px;">
+                    <div style="font-size:11px; color:#888; margin:5px 0 10px; text-align:left;">
                         Posted By: <span class="comment-user-link" onclick="viewPublicProfile('${post.user_id}')">${userShortId}</span>
                     </div>
                     
-                    <p class="post-desc" style="color:#ccc; line-height:1.5; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
+                    <p class="post-desc" style="color:#ccc; line-height:1.5; text-align:left; cursor:pointer;" onclick="window.location.href='post.html?id=${post.id}'">
                         ${post.description || ""}
                     </p>
                     
@@ -550,9 +568,7 @@ document.getElementById("search").addEventListener("input", async (e) => {
         }
         
         setTimeout(() => {
-            if(window.twttr && window.twttr.widgets) {
-                window.twttr.widgets.load();
-            }
+            if(window.twttr && window.twttr.widgets) window.twttr.widgets.load();
         }, 500);
 
     } catch(err) {

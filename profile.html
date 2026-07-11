@@ -15,7 +15,7 @@
         padding: 25px 20px; 
         border-radius: 12px; 
         max-width: 500px; 
-        margin: 0 auto 25px; 
+        margin: 0 auto 15px; /* নিচের মার্জিন একটু কমানো হলো কারণ সেফটি স্পেস আমরা আলাদা দিচ্ছি */
         text-align: center;
         position: relative;
         z-index: 10;
@@ -87,7 +87,7 @@
     .btn-solid { background: #3ecf8e; color: white; }
     .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
 
-    /* ফিক্সড: কাস্টম এইচটিএমএল জোনকে ১০০% রেসপনসিভ ও মোবাইল ফ্রেন্ডলি করা হলো */
+    /* কাস্টম এইচটিএমএল জোন */
     .custom-html-preview { 
         background: #1a1a1a; 
         border: 1px dashed #3ecf8e; 
@@ -96,25 +96,34 @@
         margin: 15px 0; 
         text-align: left; 
         min-height: 50px;
-        overflow-x: auto; /* চওড়া টেবিল বা এলিমেন্ট থাকলে ভেতরেই স্ক্রল হবে, মেইন পেজ ভাঙবে না */
+        overflow-x: auto;
         box-sizing: border-box;
         width: 100%;
     }
-    
-    /* ইউজারদের দেওয়া সমস্ত চাইল্ড এলিমেন্ট মোবাইল স্ক্রিনে ফোর্স ফিট করার লজিক */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
-        white-space: normal !important; /* অতিরিক্ত বড় টেক্সট নিজে থেকেই ভেঙে পরের লাইনে যাবে */
-        height: auto !important; /* ফিক্সড হাইট থাকলে রেসপনসিভ অটো কমবে */
+        white-space: normal !important;
+        height: auto !important;
+    }
+
+    /* 💎 ফিক্সড: "Back to Home" এবং "My Evidence Posts" এর মাঝে রেসপনসিভ স্পেস কন্টেইনার */
+    .responsive-safety-space {
+        width: 100%;
+        max-width: 500px;
+        margin: 0 auto;
+        padding-bottom: 45px; /* আপনার প্রয়োজন অনুযায়ী পর্যাপ্ত মোবাইল রেসপনসিভ ফাঁকা জায়গা */
+        background: transparent;
+        clear: both;
     }
 
     .html-editor-box { display: none; margin-top: 15px; text-align: left; position: relative; z-index: 1001; }
     .html-textarea { width: 100%; height: 120px; background: #2b2b2b; color: #fff; border: 1px solid #444; border-radius: 6px; padding: 10px; font-family: 'Courier New', Courier, monospace; box-sizing: border-box; resize: vertical; }
 
-    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 40px; display: flex; justify-content: space-between; align-items: center; }
+    /* সেকশন টাইটেল স্পেসিং এডজাস্ট */
+    .section-title { font-size: 20px; color: #3ecf8e; font-weight: bold; margin-top: 10px; display: flex; justify-content: space-between; align-items: center; }
     
-    .post-list { max-width: 500px; margin: 0 auto; background: #121212; }
+    .post-list { max-width: 500px; margin: 0 auto; background: #121212; position: relative; z-index: 15; }
     .post-item { 
         background: #1e1e1e; padding: 15px; border-radius: 8px; margin-bottom: 12px; 
         display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
@@ -151,20 +160,22 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- রেসপনসিভ কাস্টম এইচটিএমএল প্রিভিউ বক্স -->
     <div id="htmlRenderZone" class="custom-html-preview">
         <span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>
     </div>
 
-    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
         <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b>"></textarea>
         <button class="btn btn-solid" style="padding: 8px; font-size: 14px; margin-top: 5px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
+    <!-- প্রোফাইল কার্ডের শেষ এলিমেন্ট "Back to Home" বাটন -->
     <button class="btn btn-solid" style="margin-top: 15px;" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
+
+<!-- 💎 এই কন্টেইনারটি বাটন এবং নিচের হেডিং-এর মাঝে পারফেক্ট ও রেসপনসিভ দূরত্ব বজায় রাখবে -->
+<div class="responsive-safety-space"></div>
 
 <div class="post-list">
     <div class="section-title">
@@ -293,7 +304,6 @@ function togglePostSelection(checkbox) {
     updateDeleteButtonState();
 }
 
-// বোতাম কাউন্টার আপডেট
 function updateDeleteButtonState() {
     const btn = document.getElementById("deleteSelectedBtn");
     const countSpan = document.getElementById("selectedCount");

@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1.0">
-<title>TRACKBOY | Profile</title>
+<title>FIFABOY | Profile</title>
 <link rel="stylesheet" href="css/style.css">
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -58,19 +58,19 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- HTML ডিজাইন রেন্ডার হওয়ার লাইভ বক্স -->
+    <!-- HTML ডিজাইন লাইভ বক্স -->
     <div id="htmlRenderZone" class="custom-html-preview">
         <span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>
     </div>
 
-    <!-- HTML কোড এডিটর (লুকানো থাকে, বাটনে চাপ দিলে খুলবে) -->
+    <!-- HTML কোড এডিটর বক্স -->
     <div id="htmlEditorSection" class="html-editor-box">
         <label style="font-size: 14px; color: #3ecf8e; font-weight: 500;">Write Custom HTML/CSS Code:</label>
-        <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b> or <div class='my-style'>...</div>"></textarea>
+        <textarea id="customHtmlInput" class="html-textarea" placeholder="e.g., <b style='color:red;'>Hello</b>"></textarea>
         <button class="btn btn-solid" style="padding: 8px; font-size: 14px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
-    <!-- বাটন অ্যাকশন সমূহ -->
+    <!-- অ্যাকশন বাটন সমূহ -->
     <button class="btn btn-outline" onclick="editProfileName()">Edit Profile Name</button>
     <button class="btn btn-outline" onclick="updateProfilePhotoLink()">Change Photo via Link</button>
     <button class="btn btn-outline" id="toggleEditorBtn" onclick="toggleHtmlEditor()">⚡ HTML Profile Designer</button>
@@ -121,17 +121,16 @@ async function initProfile() {
             }
         }
         
+        // জাভাস্ক্রিপ্ট কমেন্ট ফিক্স করা হলো (হ্যাব জ্যাম মুক্ত)
         if (user.created_at) {
             const date = new Date(user.created_at);
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
-        // প্রোফাইল রোল এবং কাস্টম HTML (bio কলাম থেকে) লোড করা
+        // প্রোফাইল রোল এবং কাস্টম HTML লোড করা
         const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
         if (pData) {
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
-            
-            // যদি ডাটাবেজে কাস্টম HTML বা বায়ো থাকে, সেটা সরাসরি রেন্ডার করা
             if (pData.bio) {
                 document.getElementById("htmlRenderZone").innerHTML = pData.bio;
                 document.getElementById("customHtmlInput").value = pData.bio;
@@ -200,7 +199,6 @@ function togglePostSelection(checkbox) {
     updateDeleteButtonState();
 }
 
- anti-scrambler count display update
 function updateDeleteButtonState() {
     const btn = document.getElementById("deleteSelectedBtn");
     const countSpan = document.getElementById("selectedCount");
@@ -254,7 +252,6 @@ async function updateProfilePhotoLink() {
     } catch (e) { alert("ফটো লিংক আপডেট করতে সমস্যা হয়েছে: " + e.message); }
 }
 
-// ৮. HTML এডিটর প্যানেল শো/হাইড টগল লজিক
 function toggleHtmlEditor() {
     const box = document.getElementById("htmlEditorSection");
     const btn = document.getElementById("toggleEditorBtn");
@@ -267,7 +264,6 @@ function toggleHtmlEditor() {
     }
 }
 
-// ৯. কাস্টম HTML কোড সুপাবেস ডাটাবেজের profiles টেবিলের bio কলামে সেভ করা
 async function saveCustomHTML() {
     const customHtml = document.getElementById("customHtmlInput").value;
     const saveBtn = document.querySelector("#htmlEditorSection button");
@@ -278,7 +274,7 @@ async function saveCustomHTML() {
         
         const { error } = await mySupabase
             .from('profiles')
-            .update({ bio: customHtml }) // সুপাবেস ড্যাশবোর্ডের বায়ো (bio) কলামের ভেতর রেন্ডার কোড পুশ হচ্ছে
+            .update({ bio: customHtml })
             .eq('id', currentUserId);
             
         if (error) throw error;

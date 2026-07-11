@@ -47,8 +47,13 @@
 </div>
 
 <div class="header">
-    <button class="back-btn" onclick="history.back()">←</button>
+    <!-- ব্যাক বাটন -->
+    <button class="back-btn" onclick="window.history.back()">←</button>
+    
+    <!-- প্রোফাইল ভিউ (নাম ক্লিক করলে) -->
     <div class="chat-name" id="chatName" onclick="openProfile()">লোড হচ্ছে...</div>
+    
+    <!-- কল বাটন -->
     <button class="call-btn" id="callBtn" onclick="initCall()">📞 কল</button>
 </div>
 
@@ -60,18 +65,20 @@
 </div>
 
 <script>
+    // ===== Supabase & PeerJS =====
     const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
     const sb = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
     const peer = new Peer();
 
-    // URL থেকে target আইডি নিন
+    // ===== URL থেকে টার্গেট আইডি =====
     const urlParams = new URLSearchParams(window.location.search);
     const targetId = urlParams.get('target') || urlParams.get('id');
 
+    // ===== স্টেট =====
     let myId = null, targetName = 'ব্যবহারকারী', currentCall = null, ringInterval = null, localStream = null;
 
-    // DOM elements
+    // ===== ডম =====
     const chatNameEl = document.getElementById('chatName');
     const callBtn = document.getElementById('callBtn');
     const callUI = document.getElementById('call-ui');
@@ -82,14 +89,14 @@
     const messagesBox = document.getElementById('chatMessagesBox');
     const toastEl = document.getElementById('toast');
 
-    // Toast function
+    // ===== টোস্ট =====
     function showToast(msg, type = 'info') {
         toastEl.textContent = msg;
         toastEl.className = 'toast show ' + type;
         setTimeout(() => { toastEl.className = 'toast'; }, 4000);
     }
 
-    // Open profile
+    // ===== প্রোফাইল ওপেন =====
     function openProfile() {
         if (targetId && targetId !== myId) {
             window.location.href = 'profile.html?id=' + targetId;
@@ -98,7 +105,7 @@
         }
     }
 
-    // Ringtone
+    // ===== রিংটোন =====
     function playRingtone() {
         const ctx = new (window.AudioContext || window.webkitAudioContext)();
         return setInterval(() => {
@@ -118,16 +125,14 @@
     function stopRingtone() { if (ringInterval) { clearInterval(ringInterval); ringInterval = null; } }
     function playAudio(stream) { const a = new Audio(); a.srcObject = stream; a.autoplay = true; a.play().catch(()=>{}); }
 
-    // ========== INIT ==========
+    // ===== ইনিট =====
     async function init() {
-        // Check if targetId exists
         if (!targetId) {
             chatNameEl.textContent = '❌ ভুল লিংক';
             showToast('❌ চ্যাট করার জন্য সঠিক ইউজার আইডি দিন', 'error');
             return;
         }
 
-        // Get current user
         const { data: { user } } = await sb.auth.getUser();
         if (!user) {
             showToast('❌ দয়া করে লগইন করুন', 'error');
@@ -136,20 +141,17 @@
         }
         myId = user.id;
 
-        // Check if target is self
         if (targetId === myId) {
             showToast('⚠️ নিজের সাথে চ্যাট করা যায় না', 'error');
             chatNameEl.textContent = '❌ নিজের সাথে নয়';
             return;
         }
 
-        // Save peer ID
         peer.on('open', async (id) => {
             await sb.from('profiles').update({ peer_id: id }).eq('id', myId);
-            console.log('✅ Peer ID saved:', id);
+            console.log('✅ পিয়ার আইডি সেভ হয়েছে:', id);
         });
 
-        // Get target user info
         const { data: profile, error } = await sb
             .from('profiles')
             .select('username')
@@ -166,10 +168,9 @@
         chatNameEl.textContent = targetName;
         showToast(`✅ ${targetName}‑এর সাথে সংযুক্ত`, 'success');
 
-        // Load messages
         await loadMessages();
 
-        // Realtime subscriptions
+        // রিয়েল-টাইম সাবস্ক্রিপশন
         sb.channel('chat-realtime')
             .on('postgres_changes', {
                 event: 'INSERT',
@@ -196,7 +197,6 @@
             })
             .subscribe();
 
-        // Enter key
         msgInput.addEventListener('keydown', (e) => {
             if (e.key === 'Enter') sendMessage();
         });
@@ -204,7 +204,7 @@
         console.log('✅ চ্যাট প্রস্তুত!');
     }
 
-    // ========== LOAD MESSAGES ==========
+    // ===== মেসেজ লোড =====
     async function loadMessages() {
         if (!myId || !targetId) return;
 
@@ -241,7 +241,7 @@
         messagesBox.scrollTop = messagesBox.scrollHeight;
     }
 
-    // ========== SEND MESSAGE ==========
+    // ===== মেসেজ পাঠানো =====
     async function sendMessage() {
         const text = msgInput.value.trim();
         if (!text || !myId || !targetId || targetId === myId) return;
@@ -263,7 +263,7 @@
         await loadMessages();
     }
 
-    // ========== INITIATE CALL ==========
+    // ===== কল করা =====
     async function initCall() {
         if (!targetId || targetId === myId) {
             showToast('❌ কল করা যাবে না', 'error');
@@ -339,7 +339,7 @@
         }
     }
 
-    // ========== INCOMING CALL ==========
+    // ===== ইনকামিং কল =====
     peer.on('call', (call) => {
         currentCall = call;
         callUI.style.display = 'flex';
@@ -385,7 +385,7 @@
         };
     });
 
-    // ========== REJECT / END ==========
+    // ===== কল শেষ =====
     btnReject.onclick = () => {
         stopRingtone();
         if (currentCall) {
@@ -401,32 +401,21 @@
         showToast('📴 কল শেষ', 'info');
     };
 
-    // ========== START ==========
+    // ===== স্টার্ট =====
     let initialized = false;
-
     peer.on('open', () => {
-        console.log('🔗 PeerJS ready, ID:', peer.id);
-        if (!initialized) {
-            initialized = true;
-            init();
-        }
+        console.log('🔗 পিয়ারজেএস প্রস্তুত, আইডি:', peer.id);
+        if (!initialized) { initialized = true; init(); }
     });
-
     if (peer.open) {
-        console.log('🔗 PeerJS already open, ID:', peer.id);
-        if (!initialized) {
-            initialized = true;
-            init();
-        }
+        console.log('🔗 পিয়ারজেএস ইতিমধ্যে ওপেন, আইডি:', peer.id);
+        if (!initialized) { initialized = true; init(); }
     }
 
-    // Expose functions
     window.sendMessage = sendMessage;
     window.initCall = initCall;
     window.openProfile = openProfile;
-
     console.log('📱 চ্যাট অ্যাপ লোড হয়েছে!');
-    console.log('ℹ️ টার্গেট আইডি:', targetId || 'নেই');
 </script>
 </body>
 </html>

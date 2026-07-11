@@ -9,7 +9,6 @@
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script async src="https://platform.twitter.com/widgets.js" charset="utf-8"></script>
 <style>
-/* আপনার অরিজিনাল স্টাইল */
 body { background-color: #121212; color: white; font-family: 'Poppins', sans-serif; margin: 0; padding: 0; }
 .details-container { max-width: 600px; margin: 30px auto; background: #1e1e1e; padding: 20px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.5); box-sizing: border-box; }
 .post-title { color: #3ecf8e; font-size: 22px; margin-top: 0; }
@@ -46,7 +45,6 @@ body { background-color: #121212; color: white; font-family: 'Poppins', sans-ser
         <div id="commentsContainer" class="comments-list"></div>
     </div>
 </div>
-
 <script>
 const SUPABASE_URL = "https://zqsjopjkhtofyepjneby.supabase.co"; 
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6Inpxc2pvcGpraHRvZnllcGpuZWJ5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM2NTQ4MTEsImV4cCI6MjA5OTIzMDgxMX0.BgUuO9jdDzWNX2tzTw49LQGeaNq59Qv2pbw9CbmkbBU";
@@ -59,42 +57,32 @@ async function loadPostDetails() {
     const params = new URLSearchParams(window.location.search);
     currentPostId = params.get('id');
     if (!currentPostId) return;
-
     const { data: { user } } = await mySupabase.auth.getUser();
     currentUserId = user ? user.id : null;
-
     const { data: post } = await mySupabase.from('posts').select('*').eq('id', currentPostId).maybeSingle();
     if (!post) { document.getElementById("postDetails").innerHTML = "Post not found."; return; }
-    
     renderPostData(post);
     loadComments();
 }
 
-// এখানে আমি সব প্ল্যাটফর্মের অরিজিনাল লজিক রাখলাম, কিছু কাটিনি
 function getMediaEmbedHTML(url) {
     if (!url) return "";
     let checkUrl = url.toLowerCase();
-
-    // YouTube
     if (checkUrl.includes("youtube.com") || checkUrl.includes("youtu.be")) {
         let id = url.includes("shorts/") ? url.split("shorts/")[1].split("?")[0] : (url.includes("v=") ? url.split("v=")[1].split("&")[0] : url.split("youtu.be/")[1].split("?")[0]);
         return `<div class="embed-container"><iframe src="https://www.youtube.com/embed/${id}" allowfullscreen></iframe></div>`;
     }
-    // Facebook
     if (checkUrl.includes("facebook.com") || checkUrl.includes("fb.watch")) {
         let clean = url.split("?")[0];
         return `<div class="embed-container"><iframe src="https://www.facebook.com/plugins/video.php?href=${encodeURIComponent(clean)}&show_text=false&width=500" width="100%" height="500" style="border:none;" scrolling="no" frameborder="0" allowfullscreen="true"></iframe></div>`;
     }
-    // TikTok (অফিসিয়াল এমবেড)
     if (checkUrl.includes("tiktok.com")) {
         let clean = url.split("?")[0].replace("tiktok.com", "tiktok.com/embed/v");
         return `<div class="embed-container"><iframe src="${clean}" width="100%" height="550" frameborder="0" allowfullscreen></iframe></div>`;
     }
-    // Twitter/X
     if (checkUrl.includes("twitter.com") || checkUrl.includes("x.com")) {
         return `<div class="embed-container"><blockquote class="twitter-tweet" data-theme="dark"><a href="${url}"></a></blockquote></div>`;
     }
-    // Instagram
     if (checkUrl.includes("instagram.com")) {
         let clean = url.split("?")[0]; if (!clean.endsWith("/")) clean += "/";
         return `<div class="embed-container"><iframe src="${clean}embed" style="min-height:450px;"></iframe></div>`;
@@ -102,13 +90,24 @@ function getMediaEmbedHTML(url) {
     return `<img src="${url}" style="max-width:100%; border-radius:8px;">`;
 }
 
-function renderPostData(post) {
+async function renderPostData(post) {
     const container = document.getElementById("postDetails");
+    const { data: profile } = await mySupabase.from('profiles').select('role').eq('id', currentUserId).maybeSingle();
+    const isAdmin = profile && profile.role === 'admin';
+    const isPostOwner = currentUserId && (post.user_id === currentUserId);
+    
+    let actionButtonsHTML = (isPostOwner || isAdmin) ? `
+        <div class="author-actions">
+            <button class="btn-action btn-edit" onclick="editPost()">✏️ Edit Post</button>
+            <button class="btn-action btn-delete" onclick="deletePost()">🗑️ Delete Post</button>
+        </div>` : "";
+
     container.innerHTML = `
-        <h2 class="post-title">${post.title}</h2>
-        <p class="post-desc">${post.description}</p>
+        <h2 class="post-title" id="displayTitle">${post.title}</h2>
+        <div style="font-size:12px; color:#aaa; margin-bottom:10px;">Posted By: <span class="comment-user">👤 User_${post.user_id ? post.user_id.substring(0,5) : "Unknown"}</span></div>
+        <p class="post-desc" id="displayDesc">${post.description}</p>
         ${getMediaEmbedHTML(post.url)}
-        ${post.user_id === currentUserId ? `<div class="author-actions"><button class="btn-action btn-delete" onclick="deletePost()">Delete</button></div>` : ""}
+        ${actionButtonsHTML}
     `;
     if(window.twttr) window.twttr.widgets.load();
 }
@@ -118,7 +117,7 @@ async function loadComments() {
     const container = document.getElementById("commentsContainer");
     container.innerHTML = "";
     if (comments) comments.forEach(c => {
-        container.innerHTML += `<div class="comment-card"><div><div class="comment-user">User_${c.user_id.substring(0,5)}</div><p>${c.comment || c.comment_text || ""}</p></div>${c.user_id === currentUserId ? `<span class="comment-del-icon" onclick="deleteComment(${c.id})">❌</span>` : ""}</div>`;
+        container.innerHTML += `<div class="comment-card"><div><div class="comment-user">👤 User_${c.user_id.substring(0,5)}</div><p>${c.comment || c.comment_text || ""}</p></div>${c.user_id === currentUserId ? `<span class="comment-del-icon" onclick="deleteComment(${c.id})">❌</span>` : ""}</div>`;
     });
 }
 
@@ -132,6 +131,11 @@ async function submitComment() {
 
 async function deleteComment(id) { await mySupabase.from('comments').delete().eq('id', id); loadComments(); }
 async function deletePost() { await mySupabase.from('posts').delete().eq('id', currentPostId); window.location.href="index.html"; }
+async function editPost() {
+    const newTitle = prompt("নতুন টাইটেল:", document.getElementById("displayTitle").innerText);
+    const newDesc = prompt("নতুন ডেসক্রিপশন:", document.getElementById("displayDesc").innerText);
+    if(newTitle && newDesc) { await mySupabase.from('posts').update({title: newTitle, description: newDesc}).eq('id', currentPostId); window.location.reload(); }
+}
 
 window.onload = loadPostDetails;
 </script>

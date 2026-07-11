@@ -20,6 +20,9 @@
         position: relative;
         z-index: 10;
         box-sizing: border-box;
+        /* ফিক্সড: কার্ডের ভেতরের সব এলিমেন্ট যেন ফ্লেক্সিবল অটো-হাইট নেয় */
+        display: flex;
+        flex-direction: column;
     }
 
     /* ৩-ডট মেনু ও ড্রপডাউন সিএসএস */
@@ -27,7 +30,7 @@
         position: absolute;
         top: 15px;
         right: 15px;
-        z-index: 9999 !important; /* সর্বোচ্চ প্রায়োরিটি যাতে ডিজাইনের উপরে থাকে */
+        z-index: 9999 !important;
     }
     .three-dot-btn {
         background: #2a2a2a;
@@ -87,27 +90,29 @@
     .btn-solid { background: #3ecf8e; color: white; }
     .btn-danger { background: #ff4a4a; color: white; display: none; margin-bottom: 15px; width: 100%; max-width: 500px; margin-left: auto; margin-right: auto; }
 
-    /* কাস্টম এইচটিএমএল জোন (টগলড ভিউ স্টাইল) */
+    /* 💎 ফিক্সড: কাস্টম এইচটিএমএল প্রিভিউ বক্স অটো-হাইট লজিক */
     .custom-html-preview { 
-        display: none; /* ডিফল্ট অবস্থায় অফ থাকবে, ক্লিক করলে শো হবে */
+        display: none; 
         background: #1a1a1a; 
-        border: 2px solid #3ecf8e; 
+        border: 2px dashed #3ecf8e; 
         border-radius: 8px; 
         padding: 15px; 
-        margin: 15px 0; 
+        margin: 15px 0 20px 0; /* নিচ দিয়ে পর্যাপ্ত গ্যাপ রাখা হলো */
         text-align: left; 
+        height: auto !important; /* ফিক্সড হাইট রিমুভ করে অটো করা হলো */
         min-height: 50px;
-        overflow-x: auto;
+        overflow-x: auto; /* ডানে বাঁমে চওড়া এলিমেন্ট থাকলে স্ক্রল হবে কিন্তু বক্স লম্বা হবে */
         box-sizing: border-box;
         width: 100%;
         position: relative;
         z-index: 5;
     }
+    
+    /* কাস্টম এইচটিএমএল চাইল্ড এলিমেন্ট প্রটেকশন */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
         white-space: normal !important;
-        height: auto !important;
     }
 
     /* রেসপনসিভ সেফটি স্পেসিং কন্টেইনার */
@@ -165,7 +170,7 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন (অটো হাইট ও স্পেসিং লক করা হয়েছে) -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
     <!-- HTML কোড এডিটর বক্স -->
@@ -175,7 +180,8 @@
         <button class="btn btn-solid" style="padding: 8px; font-size: 14px; margin-top: 5px;" onclick="saveCustomHTML()">Save Design</button>
     </div>
     
-    <button class="btn btn-solid" style="margin-top: 15px;" onclick="window.location.href='index.html'">Back to Home</button>
+    <!-- ব্যাক টু হোম বাটন যা ডিজাইন লম্বা হলে অটোমেটিক নিচে নেমে যাবে -->
+    <button class="btn btn-solid" style="margin-top: auto;" onclick="window.location.href='index.html'">Back to Home</button>
 </div>
 
 <div class="responsive-safety-space"></div>
@@ -237,7 +243,6 @@ async function initProfile() {
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
         }
 
-        // প্রথমে ডাটাবেজ টেবিল থেকে চেক করবে কাস্টম এইচটিএমএল ডাটা
         const { data: pData } = await mySupabase.from('profiles').select('role, bio').eq('id', user.id).maybeSingle();
         let savedHtml = "";
         
@@ -246,7 +251,6 @@ async function initProfile() {
             if (pData.bio) savedHtml = pData.bio;
         }
         
-        // ব্যাকআপ হিসেবে মেটাডাটাও চেক করা হলো যাতে রিলোডে ডাটা ড্রপ না হয়
         if (!savedHtml && user.user_metadata.custom_html) {
             savedHtml = user.user_metadata.custom_html;
         }
@@ -381,7 +385,6 @@ function toggleHtmlEditor() {
     }
 }
 
-// 💎 ৩-ডট থেকে স্পেশাল কাস্টম প্রোফাইল ভিউ শো/হাইড করার ফাংশন
 function toggleSpecialProfileView() {
     const viewZone = document.getElementById("htmlRenderZone");
     const btn = document.getElementById("toggleSpecialViewBtn");
@@ -394,7 +397,6 @@ function toggleSpecialProfileView() {
     }
 }
 
-// 💎 রিলোড ট্র্যাকার ফিক্সড ডুয়াল সেভ লজিক
 async function saveCustomHTML() {
     const customHtml = document.getElementById("customHtmlInput").value;
     const saveBtn = document.querySelector("#htmlEditorSection button");
@@ -403,7 +405,6 @@ async function saveCustomHTML() {
         saveBtn.innerText = "Saving...";
         saveBtn.disabled = true;
         
-        // ১. ডাটাবেজের bio কলামে পার্মানেন্ট সেভ
         const { error: dbErr } = await mySupabase
             .from('profiles')
             .update({ bio: customHtml })
@@ -411,7 +412,6 @@ async function saveCustomHTML() {
             
         if (dbErr) throw dbErr;
         
-        // ২. সেশন রিফ্রেশ ফিক্স: ইউজার অথ মেটাডাটায় ব্যাকআপ রাইট (যাতে রিলোডে ডাটা মুছবে না)
         await mySupabase.auth.updateUser({
             data: { custom_html: customHtml }
         });
@@ -419,7 +419,6 @@ async function saveCustomHTML() {
         alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
         document.getElementById("htmlRenderZone").innerHTML = customHtml || '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
         
-        // সেভ হওয়ার পর ডিজাইনটি লাইভ শো করাবে
         document.getElementById("htmlRenderZone").style.display = "block";
         toggleHtmlEditor();
         

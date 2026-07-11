@@ -10,33 +10,20 @@
 <script src="https://unpkg.com/peerjs@1.5.2/dist/peerjs.min.js"></script>
 <style>
     * { box-sizing: border-box !important; margin: 0; padding: 0; }
-    html, body { 
-        background-color: #0b0b0c !important; 
-        color: #f5f5f7 !important; 
-        font-family: 'Poppins', sans-serif !important; 
-        height: 100% !important; width: 100% !important;
-        overflow: hidden !important; display: flex !important;
-        flex-direction: column !important;
-    }
-    .chat-header {
-        background: #161618 !important; padding: 0 16px !important;
-        display: flex !important; align-items: center !important;
-        border-bottom: 1px solid #232326 !important;
-        flex-shrink: 0 !important; width: 100% !important;
-        height: 60px !important; gap: 12px !important;
-    }
+    html, body { background-color: #0b0b0c !important; color: #f5f5f7 !important; font-family: 'Poppins', sans-serif !important; height: 100% !important; width: 100% !important; overflow: hidden !important; display: flex !important; flex-direction: column !important; }
+    .chat-header { background: #161618 !important; padding: 0 16px !important; display: flex !important; align-items: center !important; border-bottom: 1px solid #232326 !important; flex-shrink: 0 !important; width: 100% !important; height: 60px !important; gap: 12px !important; }
     .btn-back { background: transparent !important; color: #3ecf8e !important; border: none !important; font-size: 24px !important; cursor: pointer !important; line-height: 1 !important; padding: 5px !important; display: flex !important; align-items: center !important; }
     .chat-header h3 { font-size: 16px !important; font-weight: 600 !important; color: #fff !important; white-space: nowrap !important; overflow: hidden !important; text-overflow: ellipsis !important; }
-    /* কল বাটন স্টাইল */
-    .call-btn { background: #25D366 !important; color: white !important; border: none !important; padding: 8px 12px !important; border-radius: 50% !important; cursor: pointer !important; font-size: 16px !important; margin-left: auto !important; }
     .chat-messages-container { flex: 1 !important; overflow-y: auto !important; padding: 20px 16px !important; display: flex !important; flex-direction: column !important; gap: 8px !important; background: #0b0b0c !important; width: 100% !important; -webkit-overflow-scrolling: touch !important; }
     .msg-bubble { max-width: 75% !important; padding: 10px 16px !important; font-size: 14px !important; line-height: 1.5 !important; word-wrap: break-word !important; white-space: pre-wrap !important; border-radius: 18px !important; }
     .msg-sent { background: #3ecf8e !important; color: #000 !important; font-weight: 500 !important; align-self: flex-end !important; border-bottom-right-radius: 4px !important; }
     .msg-received { background: #232326 !important; color: #f5f5f7 !important; align-self: flex-start !important; border-bottom-left-radius: 4px !important; }
     .chat-input-area { background: #161618 !important; padding: 10px 16px !important; display: flex !important; gap: 10px !important; align-items: center !important; border-top: 1px solid #232326 !important; flex-shrink: 0 !important; width: 100% !important; padding-bottom: max(10px, env(safe-area-inset-bottom)) !important; }
-    .chat-input { flex: 1 !important; background: #232326 !important; border: 1px solid transparent !important; color: white !important; padding: 10px 16px !important; border-radius: 20px !important; font-size: 14px !important; outline: none !important; transition: 0.2s !important; }
+    .chat-input { flex: 1 !important; background: #232326 !important; border: 1px solid transparent !important; color: white !important; padding: 10px 16px !important; border-radius: 20px !important; font-size: 14px !important; outline: none !important; font-family: inherit !important; transition: 0.2s !important; }
     .chat-input:focus { border-color: #3ecf8e !important; background: #1c1c1e !important; }
     .btn-send { background: transparent !important; color: #3ecf8e !important; border: none !important; padding: 5px 8px !important; font-weight: 700 !important; font-size: 15px !important; cursor: pointer !important; flex-shrink: 0 !important; }
+    /* নতুন কল বাটন স্টাইল */
+    .btn-call { background: transparent !important; color: #3ecf8e !important; border: none !important; font-size: 20px !important; cursor: pointer !important; margin-left: auto !important; }
 </style>
 </head>
 <body>
@@ -46,7 +33,7 @@
     <div onclick="goToProfile()" style="cursor: pointer; flex: 1;">
         <h3 id="chatPartnerName">Loading...</h3>
     </div>
-    <button class="call-btn" onclick="initiateCall()">📞</button>
+    <button class="btn-call" onclick="initiateCall()">📞</button>
 </div>
 
 <div id="chatMessagesBox" class="chat-messages-container">
@@ -64,41 +51,8 @@ const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBh
 const mySupabase = window.supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 let currentUserId = null; 
-let targetUserId = null;
-let peer = new Peer(); // PeerJS ইনিশিয়ালাইজেশন
-
-// কল রিসিভ করার লিসেনার
-peer.on('call', (call) => {
-    if(confirm("একটি ভয়েস কল আসছে, রিসিভ করবেন?")) {
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            call.answer(stream);
-            call.on('stream', (remoteStream) => {
-                let audio = new Audio();
-                audio.srcObject = remoteStream;
-                audio.play();
-            });
-        });
-    }
-});
-
-// কল করার ফাংশন
-async function initiateCall() {
-    const { data, error } = await mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).maybeSingle();
-    if (data && data.peer_id) {
-        alert("কল যাচ্ছে...");
-        navigator.mediaDevices.getUserMedia({ audio: true }).then((stream) => {
-            let call = peer.call(data.peer_id, stream);
-            call.on('stream', (remoteStream) => {
-                let audio = new Audio();
-                audio.srcObject = remoteStream;
-                audio.play();
-                alert("কল কানেক্ট হয়েছে!");
-            });
-        });
-    } else {
-        alert("ইউজার অনলাইনে নেই!");
-    }
-}
+let targetUserId = null;  
+let peer = new Peer(); 
 
 function goToProfile() { if (targetUserId) window.location.href = 'profile.html?uid=' + targetUserId; }
 
@@ -106,54 +60,42 @@ async function initChat() {
     const urlParams = new URLSearchParams(window.location.search);
     targetUserId = urlParams.get('target');
     if (!targetUserId) { window.history.back(); return; }
-
     const { data: { user } } = await mySupabase.auth.getUser();
     if (!user) { window.location.href = "login.html"; return; }
     currentUserId = user.id;
-
     const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', targetUserId).maybeSingle();
     document.getElementById('chatPartnerName').innerText = "💬 " + (profile?.username || "User");
-
     await loadPrivateChatHistory();
     await markMessagesAsRead();
     listenToPrivateMessages();
 }
 
-async function markMessagesAsRead() {
-    await mySupabase.from('messages').update({ read_status: true }).eq('receiver_id', currentUserId).eq('sender_id', targetUserId).eq('read_status', false);
+async function markMessagesAsRead() { await mySupabase.from('messages').update({ read_status: true }).eq('receiver_id', currentUserId).eq('sender_id', targetUserId).eq('read_status', false); }
+async function loadPrivateChatHistory() { const box = document.getElementById('chatMessagesBox'); const { data } = await mySupabase.from('messages').select('*').or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true }); box.innerHTML = data?.length === 0 ? "<p style='color:#666;text-align:center;'>No messages yet.</p>" : ""; data?.forEach(m => appendMsgUI(m)); box.scrollTop = box.scrollHeight; }
+function appendMsgUI(m) { const box = document.getElementById('chatMessagesBox'); const div = document.createElement('div'); div.className = `msg-bubble ${m.sender_id === currentUserId ? 'msg-sent' : 'msg-received'}`; div.innerText = m.message_text; box.appendChild(div); box.scrollTop = box.scrollHeight; }
+async function sendLiveMessage() { const input = document.getElementById('chatMessageInput'); const text = input.value.trim(); if (!text) return; input.value = ''; await mySupabase.from('messages').insert({ message_text: text, sender_id: currentUserId, receiver_id: targetUserId }); }
+function listenToPrivateMessages() { mySupabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => { if ((payload.new.sender_id === targetUserId && payload.new.receiver_id === currentUserId)) { appendMsgUI(payload.new); markMessagesAsRead(); } else if (payload.new.sender_id === currentUserId && payload.new.receiver_id === targetUserId) appendMsgUI(payload.new); }).subscribe(); }
+
+// কলিং ফাংশন (পুরানো কোড ঠিক রেখে যোগ করা হয়েছে)
+async function initiateCall() {
+    const { data } = await mySupabase.from('profiles').select('peer_id').eq('id', targetUserId).maybeSingle();
+    if (data?.peer_id) {
+        alert("Calling...");
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            let call = peer.call(data.peer_id, stream);
+            call.on('stream', remoteStream => { let audio = new Audio(); audio.srcObject = remoteStream; audio.play(); });
+        });
+    } else { alert("User offline."); }
 }
 
-async function loadPrivateChatHistory() {
-    const box = document.getElementById('chatMessagesBox');
-    const { data } = await mySupabase.from('messages').select('*').or(`and(sender_id.eq.${currentUserId},receiver_id.eq.${targetUserId}),and(sender_id.eq.${targetUserId},receiver_id.eq.${currentUserId})`).order('created_at', { ascending: true });
-    box.innerHTML = data?.length === 0 ? "<p style='color:#666;text-align:center;'>No messages yet.</p>" : "";
-    data?.forEach(m => appendMsgUI(m));
-    box.scrollTop = box.scrollHeight;
-}
-
-function appendMsgUI(m) {
-    const box = document.getElementById('chatMessagesBox');
-    const div = document.createElement('div');
-    div.className = `msg-bubble ${m.sender_id === currentUserId ? 'msg-sent' : 'msg-received'}`;
-    div.innerText = m.message_text;
-    box.appendChild(div);
-    box.scrollTop = box.scrollHeight;
-}
-
-async function sendLiveMessage() {
-    const input = document.getElementById('chatMessageInput');
-    const text = input.value.trim();
-    if (!text) return;
-    input.value = '';
-    await mySupabase.from('messages').insert({ message_text: text, sender_id: currentUserId, receiver_id: targetUserId });
-}
-
-function listenToPrivateMessages() {
-    mySupabase.channel('public:messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, payload => {
-        if ((payload.new.sender_id === targetUserId && payload.new.receiver_id === currentUserId)) { appendMsgUI(payload.new); markMessagesAsRead(); }
-        else if (payload.new.sender_id === currentUserId && payload.new.receiver_id === targetUserId) appendMsgUI(payload.new);
-    }).subscribe();
-}
+peer.on('call', call => {
+    if (confirm("Incoming call... Accept?")) {
+        navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+            call.answer(stream);
+            call.on('stream', remoteStream => { let audio = new Audio(); audio.srcObject = remoteStream; audio.play(); });
+        });
+    }
+});
 
 window.onload = () => { initChat(); };
 </script>

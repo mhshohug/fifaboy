@@ -166,11 +166,11 @@ window.addEventListener("click", () => {
 
 async function initProfile() {
     try {
-        const urlParams = new URLSearchParams(window.location.search);
-        targetProfileId = urlParams.get('uid');
-
         const { data: { user } } = await mySupabase.auth.getUser();
         if (user) { currentUserId = user.id; }
+
+        const urlParams = new URLSearchParams(window.location.search);
+        targetProfileId = urlParams.get('uid');
 
         if (!targetProfileId) {
             if (!user) { window.location.href = "login.html"; return; }
@@ -216,6 +216,10 @@ async function initProfile() {
         if (savedHtml) {
             renderSecureHTML(savedHtml);
             document.getElementById("customHtmlInput").value = savedHtml;
+            // 📌 ফিক্স: রিফ্রেশ দিলেও কাস্টম HTML জোন অটোমেটিক ওপেন ও বাটন আপডেট হবে
+            document.getElementById("htmlRenderZone").style.display = "block";
+            const btn = document.getElementById("toggleSpecialViewBtn");
+            if(btn) btn.innerText = "❌ Hide Special View";
         } else {
             document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
         }
@@ -334,7 +338,7 @@ async function updateProfilePhotoLink() {
         const { error: authErr } = await mySupabase.auth.updateUser({ data: { avatar_url: photoUrl.trim() } });
         if (authErr) throw authErr;
         await mySupabase.from('profiles').update({ avatar_url: photoUrl.trim() }).eq('id', currentUserId);
-        alert("প্রোفাইল ফটো সফলভাবে সেট হয়েছে ভাই!");
+        alert("প্রোফাইল ফটো সফলভাবে সেট হয়েছে ভাই!");
         window.location.reload();
     } catch (e) { alert("ফটো লিংক আপডেট করতে সমস্যা হয়েছে: " + e.message); }
 }
@@ -368,6 +372,8 @@ async function saveCustomHTML() {
         alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
         renderSecureHTML(customHtml);
         document.getElementById("htmlRenderZone").style.display = "block";
+        const btn = document.getElementById("toggleSpecialViewBtn");
+        if(btn) btn.innerText = "❌ Hide Special View";
         toggleHtmlEditor();
     } catch (e) { alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message); }
     finally { saveBtn.innerText = "Save Design"; saveBtn.disabled = false; }

@@ -166,6 +166,7 @@ window.addEventListener("click", () => {
 
 async function initProfile() {
     try {
+        // ১. আগে সেশন ইউজার ডাটা চেক
         const { data: { user } } = await mySupabase.auth.getUser();
         if (user) { currentUserId = user.id; }
 
@@ -177,7 +178,7 @@ async function initProfile() {
             targetProfileId = user.id;
         }
 
-        // ওনারশিপ প্রটেকশন: নিজের ও অন্যের বাটন কন্ট্রোল
+        // ২. ওনারশিপ বাটন কন্ট্রোল সেটআপ
         if (currentUserId && currentUserId === targetProfileId) {
             document.getElementById('postListTitle').innerText = "📝 My Evidence Posts";
             const chatBtn = document.getElementById('chatCallBtn');
@@ -198,11 +199,12 @@ async function initProfile() {
             document.getElementById("userName").innerText = "User_" + targetProfileId.substring(0, 5);
         }
 
+        // ৩. ⚡ ফিক্সড লজিক: সবার শেষে ডাটাবেজ থেকে রিয়েল ডাটা এনে পেজে বসানো
         const { data: pData } = await mySupabase.from('profiles').select('*').eq('id', targetProfileId).maybeSingle();
         let savedHtml = "";
         
         if (pData) {
-            if (pData.email) document.getElementById("userEmail").innerText = pData.email;
+            if (pData.email && currentUserId === targetProfileId) document.getElementById("userEmail").innerText = pData.email;
             if (pData.username) document.getElementById("userName").innerText = pData.username;
             if (pData.role) document.getElementById("userRole").innerText = pData.role;
             if (pData.avatar_url) document.getElementById("userAvatar").src = pData.avatar_url;
@@ -213,10 +215,10 @@ async function initProfile() {
             }
         }
         
+        // ৪. ডিজাইন জোন একদম শেষে এক্সিকিউট হবে যেন ডাটা রিফ্রেশে মুছে না যায়
         if (savedHtml) {
             renderSecureHTML(savedHtml);
             document.getElementById("customHtmlInput").value = savedHtml;
-            // 📌 ফিক্স: রিফ্রেশ দিলেও কাস্টম HTML জোন অটোমেটিক ওপেন ও বাটন আপডেট হবে
             document.getElementById("htmlRenderZone").style.display = "block";
             const btn = document.getElementById("toggleSpecialViewBtn");
             if(btn) btn.innerText = "❌ Hide Special View";

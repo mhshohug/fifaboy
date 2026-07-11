@@ -27,9 +27,9 @@
         display: flex; align-items: center; gap: 15px; border: 1px solid #2d2d2d;
     }
     .post-checkbox { width: 20px; height: 20px; accent-color: #3ecf8e; cursor: pointer; }
-    .post-details { flex-grow: 1; cursor: pointer; } /* ফিক্সড: মাউস নিলে হাতের চিহ্ন আসবে */
+    .post-details { flex-grow: 1; cursor: pointer; }
     .post-title { font-weight: 600; font-size: 16px; margin: 0; color: #fff; }
-    .post-title:hover { color: #3ecf8e; } /* হালকা হোভার ইফেক্ট */
+    .post-title:hover { color: #3ecf8e; }
     .post-meta { font-size: 12px; color: #888; margin-top: 4px; display: flex; align-items: center; gap: 5px; }
     .badge { background: #2d2d2d; color: #3ecf8e; padding: 2px 8px; border-radius: 4px; font-size: 12px; margin-left: auto; }
 </style>
@@ -82,7 +82,7 @@ async function initProfile() {
         document.getElementById("userEmail").innerText = user.email;
         document.getElementById("userName").innerText = user.user_metadata.full_name || user.email.split('@')[0];
         
-        # অ্যাকাউন্ট তৈরির ডেট ফরম্যাট করা
+        // অ্যাকাউন্ট তৈরির ডেট ফরম্যাট করা
         if (user.created_at) {
             const date = new Date(user.created_at);
             document.getElementById("accountDate").innerText = date.toLocaleDateString('en-GB');
@@ -128,7 +128,6 @@ async function loadUserPosts() {
             const rawDate = post.created_at ? new Date(post.created_at).toLocaleDateString('en-GB') : '-';
             const platform = post.platform || "Penalty";
 
-            // ফিক্সড লজিক: post-details ক্লাসের ওপর ক্লিক ফাংশন অ্যাড করা হয়েছে যাতে লিংকে চলে যায়
             item.innerHTML = `
                 <input type="checkbox" class="post-checkbox" value="${post.id}" onchange="togglePostSelection(this)">
                 <div class="post-details" onclick="window.location.href='post.html?id=${post.id}'">
@@ -182,9 +181,8 @@ async function deleteSelectedPosts() {
     const btn = document.getElementById("deleteSelectedBtn");
     try {
         btn.innerText = "Deleting...";
-        btn.disabled = True;
+        btn.disabled = true; // ফিক্সড: True থেকে ছোট হাতের true করা হয়েছে
         
-        // সুapabase এ একসাথে সব সিলেক্টেড আইডি ডিলিট করার ইন-কুয়েরি (in_)
         const { error } = await mySupabase
             .from('posts')
             .delete()
@@ -193,7 +191,7 @@ async function deleteSelectedPosts() {
         if (error) throw error;
         
         alert("পোস্টগুলো সফলভাবে ডিলিট হয়েছে ভাই!");
-        loadUserPosts(); // লিস্ট রিফ্রেশ করা
+        loadUserPosts(); 
         
     } catch (e) {
         alert("ডিলিট করতে সমস্যা হয়েছে: " + e.message);

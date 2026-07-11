@@ -8,14 +8,13 @@
 <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;500;600;700&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <style>
-    /* 🚨 ফোর্সড গ্লোবাল স্ক্রল অ্যাক্টিভেশন: পুরো পেজের বডি ও এইচটিএমএল-কে স্ক্রল করতে বাধ্য করা হলো */
     html, body { 
         background-color: #121212 !important; 
         color: white !important; 
         font-family: 'Poppins', sans-serif !important; 
         margin: 0 !important; 
         padding: 20px !important; 
-        overflow-y: auto !important; /* মেইন পেজের স্ক্রল কোন মতেই ব্লক হতে পারবে না */
+        overflow-y: auto !important;
         height: auto !important;
         min-height: 100vh !important;
     }
@@ -30,7 +29,6 @@
         position: relative !important;
         z-index: 10 !important;
         box-sizing: border-box !important;
-        height: auto !important; /* কার্ড নিজেই অটো লম্বা হবে */
     }
 
     /* ৩-ডট মেনু ও ড্রপডাউন */
@@ -82,7 +80,7 @@
     }
     
     .avatar-container { margin-bottom: 15px !important; }
-    .profile-avatar { width: 100px !important; height: 100px !important; border-radius: 50 !important; border: 3px solid #3ecf8e !important; background: #2b2b2b !important; object-fit: cover !important; }
+    .profile-avatar { width: 100px !important; height: 100px !important; border-radius: 50% !important; border: 3px solid #3ecf8e !important; background: #2b2b2b !important; object-fit: cover !important; }
     
     .profile-info { margin-bottom: 15px !important; font-size: 16px !important; text-align: left !important; }
     .profile-info span { color: #3ecf8e !important; font-weight: 600 !important; }
@@ -91,7 +89,7 @@
     .btn-solid { background: #3ecf8e !important; color: white !important; }
     .btn-danger { background: #ff4a4a !important; color: white !important; display: none; margin-bottom: 15px !important; width: 100% !important; max-width: 500px !important; margin-left: auto !important; margin-right: auto !important; }
 
-    /* 🚨 চূড়ান্ত ফিক্স: কাস্টম এইচটিএমএল প্রিভিউ বক্স - এখানে জোর করে অটো হাইট অ্যাপ্লাই করা হলো */
+    /* 🛡️ কাস্টম ডিজাইন জোন - সুরক্ষা প্রাচীর (আইসোলেটেড কন্টেইনার) */
     .custom-html-preview { 
         display: none; 
         background: #1a1a1a !important; 
@@ -103,23 +101,23 @@
         width: 100% !important;
         box-sizing: border-box !important;
         
-        /* পুরোনো সমস্ত সিএসএস ওভাররাইড করার জন্য ফোর্স লজিক */
+        /* সম্পূর্ণ প্রুফিং লজিক */
         height: auto !important; 
         min-height: 50px !important;
-        max-height: none !important; /* কোনো ফিক্সড বা ম্যাক্স হাইট থাকতে পারবে না */
-        overflow: visible !important; /* কোন স্ক্রলবার আসবে না, বক্স নিজেই লম্বা হবে */
+        max-height: none !important; 
+        overflow-x: auto !important; /* ভেতরের চওড়া কন্টেন্ট পেজ না ভেঙে এখানে স্ক্রল হবে */
+        overflow-y: visible !important;
+        position: relative !important;
+        clear: both !important;
     }
     
-    /* কাস্টম এইচটিএমএলের ভেতরের সমস্ত এলিমেন্টের স্ক্রল লক ব্রেক করার লজিক */
+    /* ভেতরের উপাদানগুলোর পজিশন ও ফ্লো কন্ট্রোল */
     .custom-html-preview * { 
         max-width: 100% !important; 
         box-sizing: border-box !important;
-        height: auto !important;
-        max-height: none !important;
         overflow: visible !important;
     }
 
-    /* বাটন ও পোস্ট লিস্টের মধ্যকার সেফটি গ্যাপ */
     .responsive-safety-space {
         width: 100% !important;
         max-width: 500px !important;
@@ -152,7 +150,7 @@
 
 <div class="profile-card">
     <div class="menu-container">
-        <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮📚</button>
+        <button class="three-dot-btn" onclick="toggleDropdown(event)">⋮ Options</button>
         <div id="profileDropdown" class="dropdown-menu">
             <button class="dropdown-item" onclick="editProfileName()">✏️ Edit Profile Name</button>
             <button class="dropdown-item" onclick="updateProfilePhotoLink()">🖼️ Change Photo via Link</button>
@@ -172,7 +170,7 @@
     <div class="profile-info">Role: <span id="userRole">user</span></div>
     <div class="profile-info">Account Created: <span id="accountDate">-</span></div>
 
-    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন (ফোর্সড অটো হাইট) -->
+    <!-- কাস্টম স্পেশাল এইচটিএমএল ডিজাইন জোন -->
     <div id="htmlRenderZone" class="custom-html-preview"></div>
 
     <!-- HTML কোড এডিটর বক্স -->
@@ -251,8 +249,9 @@ async function initProfile() {
         
         if (!savedHtml && user.user_metadata.custom_html) savedHtml = user.user_metadata.custom_html;
 
+        // 🛡️ সুরক্ষিত লোডিং নিশ্চিতকরণ
         if (savedHtml) {
-            document.getElementById("htmlRenderZone").innerHTML = savedHtml;
+            renderSecureHTML(savedHtml);
             document.getElementById("customHtmlInput").value = savedHtml;
         } else {
             document.getElementById("htmlRenderZone").innerHTML = '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
@@ -260,6 +259,21 @@ async function initProfile() {
         
         loadUserPosts();
     } catch (e) { console.error(e); }
+}
+
+// 🛡️ ডম এলিমেন্ট ব্রেক প্রটেকশন মেকানিজম
+function renderSecureHTML(rawHtml) {
+    const renderZone = document.getElementById("htmlRenderZone");
+    
+    // ব্রাউজারের নিজস্ব পার্সার ব্যবহার করে ভাঙা ট্যাগগুলো অটো-ক্লিন ও ক্লোজ করা হচ্ছে
+    const parser = new DOMParser();
+    const doc = parser.parseFromString(rawHtml, 'text/html');
+    
+    renderZone.innerHTML = "";
+    // সেফ বডির ভেতরের নোডগুলো এনে বসানো হচ্ছে যেন মেইন পেজের ট্যাগ ভেঙে না যায়
+    while (doc.body.firstChild) {
+        renderZone.appendChild(doc.body.firstChild);
+    }
 }
 
 async function loadUserPosts() {
@@ -390,7 +404,9 @@ async function saveCustomHTML() {
         if (dbErr) throw dbErr;
         await mySupabase.auth.updateUser({ data: { custom_html: customHtml } });
         alert("আপনার কাস্টম HTML ডিজাইন পার্মানেন্টলি সেভ হয়েছে ভাই!");
-        document.getElementById("htmlRenderZone").innerHTML = customHtml || '<span style="color: #666; font-size: 14px;">No custom HTML design added yet.</span>';
+        
+        renderSecureHTML(customHtml);
+        
         document.getElementById("htmlRenderZone").style.display = "block";
         toggleHtmlEditor();
     } catch (e) { alert("ডিজাইন সেভ করতে সমস্যা হয়েছে: " + e.message); }

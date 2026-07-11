@@ -252,22 +252,20 @@
         await loadMessages();
     }
 
-        async function initCall() {
+            async function initCall() {
         if (!targetId || targetId === myId) return;
         callBtn.disabled = true;
 
         const { data: profile } = await sb.from('profiles').select('peer_id').eq('id', targetId).single();
+        
+        // কল যাওয়ার আগে বড় অ্যালার্ট দিবে, যাতে আপনি নিশ্চিত হতে পারেন
         if (!profile?.peer_id) {
-            showToast(`❌ ${targetName} অফলাইনে আছে`, 'error');
+            alert("❌ টার্গেট ইউজারের Peer ID ডাটাবেসে নেই! মেহেদী কি এখন অনলাইনে আছে?");
             callBtn.disabled = false;
             return;
+        } else {
+            alert("✅ কল যাচ্ছে এই Peer ID-তে: " + profile.peer_id);
         }
-
-        // --- টেস্টিংয়ের জন্য নতুন বসানো কোড ---
-        showToast(`🔍 টেস্টিং: ${profile.peer_id} আইডিতে কল যাচ্ছে`, 'info');
-        console.log("যার কাছে কল যাচ্ছে তার নাম:", targetName);
-        console.log("তার Peer ID হলো:", profile.peer_id);
-        // -------------------------------------
 
         callUI.style.display = 'flex';
         callStatus.textContent = `📞 ${targetName}‑কে কলিং...`;
@@ -291,9 +289,10 @@
 
         } catch (e) {
             endCallCleanup();
-            showToast('❌ মাইক্রোফোন পারমিশন দিন', 'error');
+            alert("❌ মাইক্রোফোন পারমিশনDenied: " + e.message);
         }
     }
+
 
 
     peer.on('call', (call) => {

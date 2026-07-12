@@ -38,7 +38,7 @@
 <div class="header">
     <div style="display:flex; align-items:center; gap:12px;">
         <button class="back-btn" onclick="goBack()" aria-label="ফিরে যান">←</button>
-        <div class="chat-name" id="chatName">লোড হচ্ছে...</div>
+        <div class="chat-name" id="chatName" onclick="goToProfile()">লোড হচ্ছে...</div>
     </div>
     <button class="call-btn" id="callBtn" onclick="initCall()">📞 কল</button>
 </div>
@@ -163,6 +163,12 @@
         if (callTimeoutId) {
             clearTimeout(callTimeoutId);
             callTimeoutId = null;
+        }
+    }
+
+    function goToProfile() {
+        if (targetId) {
+            window.location.href = 'profile.html?target=' + encodeURIComponent(targetId);
         }
     }
 

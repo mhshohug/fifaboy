@@ -64,6 +64,45 @@
     const remoteAudio = new Audio();
     remoteAudio.autoplay = true;
 
+    // --- Ringback tone: plays on the CALLER's side while waiting for answer ---
+    let ringbackCtx = null;
+    let ringbackInterval = null;
+
+    function startRingback() {
+        if (ringbackInterval) return;
+        ringbackCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playPulse() {
+            const now = ringbackCtx.currentTime;
+            const osc = ringbackCtx.createOscillator();
+            const gain = ringbackCtx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = 425; // classic ring-back tone frequency
+            gain.gain.setValueAtTime(0, now);
+            gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
+            gain.gain.linearRampToValueAtTime(0.2, now + 1.0);
+            gain.gain.linearRampToValueAtTime(0, now + 1.05);
+            osc.connect(gain);
+            gain.connect(ringbackCtx.destination);
+            osc.start(now);
+            osc.stop(now + 1.1);
+        }
+
+        playPulse();
+        ringbackInterval = setInterval(playPulse, 3000); // 1s tone, ~2s silence
+    }
+
+    function stopRingback() {
+        if (ringbackInterval) {
+            clearInterval(ringbackInterval);
+            ringbackInterval = null;
+        }
+        if (ringbackCtx) {
+            ringbackCtx.close();
+            ringbackCtx = null;
+        }
+    }
+
     // --- Ringtone for incoming calls (synthesized, no external audio file needed) ---
     let ringtoneCtx = null;
     let ringtoneInterval = null;
@@ -104,6 +143,15 @@
         }
     }
 
+    let callTimeoutId = null;
+
+    function clearCallTimeout() {
+        if (callTimeoutId) {
+            clearTimeout(callTimeoutId);
+            callTimeoutId = null;
+        }
+    }
+
     function goBack() {
         if (window.history.length > 1) {
             window.history.back();
@@ -126,16 +174,6 @@
             const { error } = await sb.from('profiles').update({ peer_id: peerId }).eq('id', myId);
             if (error) console.error('peer_id update failed:', error);
         }
-
-        // Personal channel to receive signaling events (e.g. "the callee's
-        // phone is actually ringing now") aimed specifically at this user.
-        sb.channel('signal-' + myId)
-            .on('broadcast', { event: 'ringing' }, () => {
-                if (currentCall) {
-                    document.getElementById('call-status').textContent = '📳 রিং হচ্ছে...';
-                }
-            })
-            .subscribe();
 
         const { data: profile } = await sb.from('profiles').select('username').eq('id', targetId).single();
         document.getElementById('chatName').textContent = profile?.username || 'চ্যাট';
@@ -175,6 +213,8 @@
         document.getElementById('callBtn').disabled = false;
         remoteAudio.srcObject = null;
         stopRingtone();
+        stopRingback();
+        clearCallTimeout();
         if (localStream) {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
@@ -185,6 +225,8 @@
     function attachCallHandlers(call) {
         call.on('stream', (remoteStream) => {
             stopRingtone();
+            stopRingback();
+            clearCallTimeout();
             document.getElementById('call-status').textContent = '🔊 কথা হচ্ছে';
             remoteAudio.srcObject = remoteStream;
             remoteAudio.play().catch(() => {});
@@ -203,8 +245,20 @@
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream = stream;
             showCallUI(false);
+            document.getElementById('call-status').textContent = '📳 রিং হচ্ছে...';
+            startRingback();
+
             currentCall = peer.call(profile.peer_id, stream, { metadata: { callerId: myId } });
             attachCallHandlers(currentCall);
+
+            // If nobody answers within 25s, assume no response / offline.
+            callTimeoutId = setTimeout(() => {
+                if (currentCall) {
+                    alert('কোনো রেসপন্স পাওয়া যায়নি — ইউজার হয়তো অফলাইনে আছে।');
+                    currentCall.close();
+                    resetCallUI();
+                }
+            }, 25000);
         } catch (err) {
             alert('মাইক্রোফোন অ্যাক্সেস করা যায়নি।');
             resetCallUI();
@@ -253,6 +307,14 @@
 
     peer.on('error', (err) => {
         console.error('PeerJS error:', err.type, err);
+        // Fires quickly (within a few seconds) when the target's peer_id is
+        // not currently connected to the signaling server — i.e. they're
+        // genuinely offline. Much faster and more reliable than waiting
+        // for the full no-answer timeout.
+        if (err.type === 'peer-unavailable' && currentCall) {
+            alert('ইউজার এখন অফলাইনে আছে — কল পৌঁছায়নি।');
+            resetCallUI();
+        }
     });
 
     peer.on('disconnected', () => {

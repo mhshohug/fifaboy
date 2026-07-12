@@ -64,6 +64,46 @@
     const remoteAudio = new Audio();
     remoteAudio.autoplay = true;
 
+    // --- Ringtone for incoming calls (synthesized, no external audio file needed) ---
+    let ringtoneCtx = null;
+    let ringtoneInterval = null;
+
+    function startRingtone() {
+        if (ringtoneInterval) return;
+        ringtoneCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+        function playTone() {
+            const now = ringtoneCtx.currentTime;
+            [0, 0.15].forEach((offset) => {
+                const osc = ringtoneCtx.createOscillator();
+                const gain = ringtoneCtx.createGain();
+                osc.type = 'sine';
+                osc.frequency.value = 900;
+                gain.gain.setValueAtTime(0, now + offset);
+                gain.gain.linearRampToValueAtTime(0.25, now + offset + 0.02);
+                gain.gain.linearRampToValueAtTime(0, now + offset + 0.12);
+                osc.connect(gain);
+                gain.connect(ringtoneCtx.destination);
+                osc.start(now + offset);
+                osc.stop(now + offset + 0.15);
+            });
+        }
+
+        playTone();
+        ringtoneInterval = setInterval(playTone, 2000);
+    }
+
+    function stopRingtone() {
+        if (ringtoneInterval) {
+            clearInterval(ringtoneInterval);
+            ringtoneInterval = null;
+        }
+        if (ringtoneCtx) {
+            ringtoneCtx.close();
+            ringtoneCtx = null;
+        }
+    }
+
     function goBack() {
         if (window.history.length > 1) {
             window.history.back();
@@ -86,6 +126,16 @@
             const { error } = await sb.from('profiles').update({ peer_id: peerId }).eq('id', myId);
             if (error) console.error('peer_id update failed:', error);
         }
+
+        // Personal channel to receive signaling events (e.g. "the callee's
+        // phone is actually ringing now") aimed specifically at this user.
+        sb.channel('signal-' + myId)
+            .on('broadcast', { event: 'ringing' }, () => {
+                if (currentCall) {
+                    document.getElementById('call-status').textContent = '📳 রিং হচ্ছে...';
+                }
+            })
+            .subscribe();
 
         const { data: profile } = await sb.from('profiles').select('username').eq('id', targetId).single();
         document.getElementById('chatName').textContent = profile?.username || 'চ্যাট';
@@ -124,6 +174,7 @@
         document.getElementById('btn-accept').style.display = 'none';
         document.getElementById('callBtn').disabled = false;
         remoteAudio.srcObject = null;
+        stopRingtone();
         if (localStream) {
             localStream.getTracks().forEach(t => t.stop());
             localStream = null;
@@ -133,7 +184,8 @@
 
     function attachCallHandlers(call) {
         call.on('stream', (remoteStream) => {
-            document.getElementById('call-status').textContent = '🔊 কথা বলা হচ্ছে';
+            stopRingtone();
+            document.getElementById('call-status').textContent = '🔊 কথা হচ্ছে';
             remoteAudio.srcObject = remoteStream;
             remoteAudio.play().catch(() => {});
         });
@@ -151,7 +203,7 @@
             const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
             localStream = stream;
             showCallUI(false);
-            currentCall = peer.call(profile.peer_id, stream);
+            currentCall = peer.call(profile.peer_id, stream, { metadata: { callerId: myId } });
             attachCallHandlers(currentCall);
         } catch (err) {
             alert('মাইক্রোফোন অ্যাক্সেস করা যায়নি।');
@@ -163,11 +215,24 @@
         if (currentCall) { call.close(); return; } // already busy, reject silently
         currentCall = call;
         showCallUI(true);
+        startRingtone();
+
+        // Let the caller know their call actually reached us and is ringing here.
+        const callerId = call.metadata?.callerId;
+        if (callerId) {
+            const notifyCh = sb.channel('signal-' + callerId);
+            notifyCh.subscribe((status) => {
+                if (status === 'SUBSCRIBED') {
+                    notifyCh.send({ type: 'broadcast', event: 'ringing', payload: {} });
+                }
+            });
+        }
 
         document.getElementById('btn-accept').onclick = async () => {
             try {
                 const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
                 localStream = stream;
+                stopRingtone();
                 call.answer(stream);
                 attachCallHandlers(call);
                 document.getElementById('btn-accept').style.display = 'none';
@@ -185,6 +250,15 @@
     };
 
     sb.channel('realtime-messages').on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, () => loadMessages()).subscribe();
+
+    peer.on('error', (err) => {
+        console.error('PeerJS error:', err.type, err);
+    });
+
+    peer.on('disconnected', () => {
+        console.warn('PeerJS disconnected from signaling server. Attempting reconnect...');
+        peer.reconnect();
+    });
 
     peer.on('open', (id) => init(id));
 </script>

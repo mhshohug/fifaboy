@@ -33,6 +33,7 @@
         <button id="btn-accept" style="background:#28a745; display:none;" class="btn-call-action">✅ রিসিভ</button>
         <button id="btn-reject" style="background:#dc3545;" class="btn-call-action">⛔ কেটে দিন</button>
     </div>
+    <button id="btn-speaker" onclick="toggleSpeaker()" style="margin-top:20px; background:#232326; color:#fff; border:1px solid #3ecf8e; padding:8px 18px; border-radius:30px; cursor:pointer; display:none;">🔊 স্পিকার</button>
 </div>
 
 <div class="header">
@@ -166,6 +167,40 @@
         }
     }
 
+    // --- Speaker toggle (earpiece vs loudspeaker) ---
+    // Not supported on all browsers (notably iOS Safari has no public API
+    // for this at all). Where supported (mainly some Android Chrome
+    // versions), we switch the output device the remote audio plays through.
+    let usingSpeaker = true; // default is loudspeaker, as observed
+
+    async function toggleSpeaker() {
+        if (typeof remoteAudio.setSinkId !== 'function') {
+            alert('আপনার ব্রাউজারে স্পিকার বদলানোর সুবিধা সমর্থিত নয়।');
+            return;
+        }
+        try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const outputs = devices.filter(d => d.kind === 'audiooutput');
+            const earpiece = outputs.find(d => /earpiece|receiver/i.test(d.label));
+            const speaker = outputs.find(d => /speaker/i.test(d.label));
+
+            if (usingSpeaker && earpiece) {
+                await remoteAudio.setSinkId(earpiece.deviceId);
+                usingSpeaker = false;
+                document.getElementById('btn-speaker').textContent = '📱 ইয়ারপিস';
+            } else if (!usingSpeaker && speaker) {
+                await remoteAudio.setSinkId(speaker.deviceId);
+                usingSpeaker = true;
+                document.getElementById('btn-speaker').textContent = '🔊 স্পিকার';
+            } else {
+                alert('এই ডিভাইসে আলাদা আউটপুট খুঁজে পাওয়া যায়নি।');
+            }
+        } catch (err) {
+            console.error('setSinkId failed:', err);
+            alert('স্পিকার বদলানো যায়নি — এই ব্রাউজার/ডিভাইসে সমর্থিত নয়।');
+        }
+    }
+
     function goToProfile() {
         if (targetId) {
             window.location.href = 'profile.html?target=' + encodeURIComponent(targetId);
@@ -230,6 +265,9 @@
     function resetCallUI() {
         document.getElementById('call-ui').style.display = 'none';
         document.getElementById('btn-accept').style.display = 'none';
+        document.getElementById('btn-speaker').style.display = 'none';
+        document.getElementById('btn-speaker').textContent = '🔊 স্পিকার';
+        usingSpeaker = true;
         document.getElementById('callBtn').disabled = false;
         remoteAudio.srcObject = null;
         stopRingtone();
@@ -250,6 +288,7 @@
             document.getElementById('call-status').textContent = '🔊 কথা হচ্ছে';
             remoteAudio.srcObject = remoteStream;
             remoteAudio.play().catch(() => {});
+            document.getElementById('btn-speaker').style.display = 'inline-block';
         });
         call.on('close', resetCallUI);
         call.on('error', resetCallUI);

@@ -58,10 +58,6 @@
             iceServers: [
                 { urls: 'stun:stun.l.google.com:19302' },
                 { urls: 'stun:stun1.l.google.com:19302' },
-                // TURN relay servers — needed when direct P2P fails, e.g. one
-                // side is on mobile data or behind a restrictive/symmetric NAT.
-                // (Public demo credentials; fine for testing, but for production
-                // use your own TURN provider — these are rate-limited/shared.)
                 { urls: 'turn:openrelay.metered.ca:80', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:openrelay.metered.ca:443', username: 'openrelayproject', credential: 'openrelayproject' },
                 { urls: 'turn:openrelay.metered.ca:443?transport=tcp', username: 'openrelayproject', credential: 'openrelayproject' }
@@ -73,13 +69,9 @@
     let currentCall = null;
     let localStream = null;
 
-    // Single reusable audio element for remote stream playback (fixes the
-    // original bug where a new, un-played Audio() was used for srcObject
-    // and a second, empty Audio() was the one actually played).
     const remoteAudio = new Audio();
     remoteAudio.autoplay = true;
 
-    // --- Ringback tone: plays on the CALLER's side while waiting for answer ---
     let ringbackCtx = null;
     let ringbackInterval = null;
 
@@ -92,7 +84,7 @@
             const osc = ringbackCtx.createOscillator();
             const gain = ringbackCtx.createGain();
             osc.type = 'sine';
-            osc.frequency.value = 425; // classic ring-back tone frequency
+            osc.frequency.value = 425;
             gain.gain.setValueAtTime(0, now);
             gain.gain.linearRampToValueAtTime(0.2, now + 0.05);
             gain.gain.linearRampToValueAtTime(0.2, now + 1.0);
@@ -104,7 +96,7 @@
         }
 
         playPulse();
-        ringbackInterval = setInterval(playPulse, 3000); // 1s tone, ~2s silence
+        ringbackInterval = setInterval(playPulse, 3000);
     }
 
     function stopRingback() {
@@ -118,7 +110,6 @@
         }
     }
 
-    // --- Ringtone for incoming calls (synthesized, no external audio file needed) ---
     let ringtoneCtx = null;
     let ringtoneInterval = null;
 
@@ -167,11 +158,7 @@
         }
     }
 
-    // --- Speaker toggle (earpiece vs loudspeaker) ---
-    // Not supported on all browsers (notably iOS Safari has no public API
-    // for this at all). Where supported (mainly some Android Chrome
-    // versions), we switch the output device the remote audio plays through.
-    let usingSpeaker = true; // default is loudspeaker, as observed
+    let usingSpeaker = true;
 
     async function toggleSpeaker() {
         if (typeof remoteAudio.setSinkId !== 'function') {
@@ -211,7 +198,7 @@
         if (window.history.length > 1) {
             window.history.back();
         } else {
-            window.location.href = 'index.html'; // fallback: adjust to your chat-list page
+            window.location.href = 'index.html';
         }
     }
 
@@ -220,11 +207,6 @@
         if (!user) return;
         myId = user.id;
 
-        // Save this session's PeerJS id against the logged-in user's profile.
-        // (Must happen here, using the id passed in from the 'open' event,
-        // not via a second peer.on('open', ...) registered after init() —
-        // 'open' only fires once, so a listener added inside init() would
-        // never run and peer_id would never reach the database.)
         if (peerId) {
             const { error } = await sb.from('profiles').update({ peer_id: peerId }).eq('id', myId);
             if (error) console.error('peer_id update failed:', error);
@@ -233,6 +215,19 @@
         const { data: profile } = await sb.from('profiles').select('username').eq('id', targetId).single();
         document.getElementById('chatName').textContent = profile?.username || 'চ্যাট';
         loadMessages();
+    }
+
+    // NEW: marks all messages FROM targetId TO me as read.
+    // Called every time the chat is (re)loaded, since that's when the
+    // user has actually seen the messages on screen.
+    async function markMessagesAsRead() {
+        if (!myId || !targetId) return;
+        const { error } = await sb.from('messages')
+            .update({ read_status: true })
+            .eq('sender_id', targetId)
+            .eq('receiver_id', myId)
+            .eq('read_status', false);
+        if (error) console.error('markMessagesAsRead failed:', error);
     }
 
     async function loadMessages() {
@@ -246,6 +241,9 @@
             box.appendChild(div);
         });
         box.scrollTop = box.scrollHeight;
+
+        // NEW: mark incoming messages as read now that they've been rendered.
+        await markMessagesAsRead();
     }
 
     async function sendMessage() {
@@ -293,16 +291,13 @@
         call.on('close', resetCallUI);
         call.on('error', resetCallUI);
 
-        // Debug aid: watch the underlying WebRTC connection state so you can
-        // see in the console whether media actually connects (vs just the
-        // PeerJS signaling succeeding).
         call.peerConnection?.addEventListener('iceconnectionstatechange', () => {
             console.log('ICE connection state:', call.peerConnection.iceConnectionState);
         });
     }
 
     async function initCall() {
-        if (currentCall) return; // already in a call, ignore
+        if (currentCall) return;
 
         const { data: profile } = await sb.from('profiles').select('peer_id').eq('id', targetId).single();
         if (!profile?.peer_id) { alert('ইউজার অনলাইনে নেই!'); return; }
@@ -317,7 +312,6 @@
             currentCall = peer.call(profile.peer_id, stream, { metadata: { callerId: myId } });
             attachCallHandlers(currentCall);
 
-            // If nobody answers within 25s, assume no response / offline.
             callTimeoutId = setTimeout(() => {
                 if (currentCall) {
                     alert('কোনো রেসপন্স পাওয়া যায়নি — ইউজার হয়তো অফলাইনে আছে।');
@@ -332,12 +326,11 @@
     }
 
     peer.on('call', (call) => {
-        if (currentCall) { call.close(); return; } // already busy, reject silently
+        if (currentCall) { call.close(); return; }
         currentCall = call;
         showCallUI(true);
         startRingtone();
 
-        // Let the caller know their call actually reached us and is ringing here.
         const callerId = call.metadata?.callerId;
         if (callerId) {
             const notifyCh = sb.channel('signal-' + callerId);
@@ -373,10 +366,6 @@
 
     peer.on('error', (err) => {
         console.error('PeerJS error:', err.type, err);
-        // Fires quickly (within a few seconds) when the target's peer_id is
-        // not currently connected to the signaling server — i.e. they're
-        // genuinely offline. Much faster and more reliable than waiting
-        // for the full no-answer timeout.
         if (err.type === 'peer-unavailable' && currentCall) {
             alert('ইউজার এখন অফলাইনে আছে — কল পৌঁছায়নি।');
             resetCallUI();

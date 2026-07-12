@@ -13,9 +13,20 @@
     .inbox-title { color: #3ecf8e !important; font-size: 22px !important; font-weight: bold !important; margin-bottom: 20px !important; border-bottom: 1px solid #333 !important; padding-bottom: 10px !important; }
     .chat-item { background: #2a2a2a !important; padding: 15px !important; border-radius: 8px !important; margin-bottom: 10px !important; display: flex !important; align-items: center !important; justify-content: space-between !important; cursor: pointer !important; border: 1px solid #383838 !important; transition: 0.2s !important; }
     .chat-item:hover { border-color: #3ecf8e !important; background: #333 !important; }
+    /* NEW: unread chat gets a highlighted border + slightly different background */
+    .chat-item.unread { border-color: #3ecf8e !important; background: #22332a !important; }
+    .user-info { display: flex !important; align-items: center !important; gap: 8px !important; }
     .user-info h4 { margin: 0 !important; color: #fff !important; font-size: 16px !important; }
+    /* NEW: bold name for unread chats */
+    .chat-item.unread .user-info h4 { font-weight: 700 !important; color: #3ecf8e !important; }
     .user-info p { margin: 5px 0 0 0 !important; color: #aaa !important; font-size: 13px !important; }
+    /* NEW: bolder, brighter preview text for unread chats */
+    .chat-item.unread .user-info p { color: #ddd !important; font-weight: 600 !important; }
     .btn-chat { background: #3ecf8e !important; color: white !important; border: none !important; padding: 6px 12px !important; border-radius: 6px !important; font-weight: bold !important; font-size: 12px !important; }
+    /* NEW: small green unread dot next to the name */
+    .unread-dot { width: 9px !important; height: 9px !important; border-radius: 50% !important; background: #3ecf8e !important; display: inline-block !important; box-shadow: 0 0 6px rgba(62,207,142,0.8) !important; flex-shrink: 0 !important; }
+    /* NEW: unread count badge under the timestamp */
+    .unread-badge { background: #3ecf8e !important; color: #0b0b0c !important; font-size: 11px !important; font-weight: 700 !important; padding: 2px 7px !important; border-radius: 10px !important; display: inline-block !important; margin-bottom: 5px !important; }
 </style>
 </head>
 <body>
@@ -38,7 +49,7 @@ let globalUser = null;
 async function initInbox() {
     const { data: { user } } = await mySupabase.auth.getUser();
     if (!user) {
-        document.getElementById("inboxList").innerHTML = '<p style="text-align:center; color:#ff4a4a;">দয়া করে প্রথমে লগইন করুন ভাই!</p>';
+        document.getElementById("inboxList").innerHTML = '<p style="text-align:center; color:#ff4a4a;">দয়া করে প্রথমে লগইন করুন ভাই!</p>';
         return;
     }
     globalUser = user;
@@ -60,11 +71,21 @@ async function loadInboxData() {
         return;
     }
 
+    // NEW: track last message + per-partner unread count (messages this
+    // partner sent to me that I haven't read yet) in the same pass.
     const chatPartners = {};
     messages.forEach(msg => {
         const partnerId = msg.sender_id === globalUser.id ? msg.receiver_id : msg.sender_id;
         if (!chatPartners[partnerId]) {
-            chatPartners[partnerId] = { lastMessage: msg.message_text, time: new Date(msg.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'}) };
+            chatPartners[partnerId] = {
+                lastMessage: msg.message_text,
+                time: new Date(msg.created_at).toLocaleTimeString('en-GB', {hour: '2-digit', minute:'2-digit'}),
+                unreadCount: 0
+            };
+        }
+        // Only messages FROM the partner TO me that are still unread count here.
+        if (msg.sender_id === partnerId && msg.receiver_id === globalUser.id && msg.read_status === false) {
+            chatPartners[partnerId].unreadCount += 1;
         }
     });
 
@@ -72,10 +93,25 @@ async function loadInboxData() {
     for (const partnerId in chatPartners) {
         const { data: profile } = await mySupabase.from('profiles').select('username').eq('id', partnerId).maybeSingle();
         const name = (profile && profile.username) ? profile.username : "User_" + partnerId.substring(0, 5);
+        const partner = chatPartners[partnerId];
+        const isUnread = partner.unreadCount > 0;
+
         const item = document.createElement("div");
-        item.className = "chat-item";
+        item.className = "chat-item" + (isUnread ? " unread" : "");
         item.onclick = () => window.location.href = `chatbox.html?target=${partnerId}`;
-        item.innerHTML = `<div class="user-info"><h4>💬 ${name}</h4><p>${chatPartners[partnerId].lastMessage}</p></div><div style="text-align: right;"><span style="font-size:11px; color:#666; display:block; margin-bottom:5px;">${chatPartners[partnerId].time}</span><button class="btn-chat">Open</button></div>`;
+        item.innerHTML = `
+            <div class="user-info">
+                ${isUnread ? '<span class="unread-dot"></span>' : ''}
+                <div>
+                    <h4>💬 ${name}</h4>
+                    <p>${partner.lastMessage}</p>
+                </div>
+            </div>
+            <div style="text-align: right;">
+                ${isUnread ? `<span class="unread-badge">${partner.unreadCount}</span><br>` : ''}
+                <span style="font-size:11px; color:#666; display:block; margin-bottom:5px;">${partner.time}</span>
+                <button class="btn-chat">Open</button>
+            </div>`;
         listContainer.appendChild(item);
     }
 }
